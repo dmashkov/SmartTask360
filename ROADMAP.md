@@ -30,6 +30,12 @@
 - ✅ Task urgency indicators (overdue/due today/due soon)
 - ✅ UI refinements (subtasks inline, placeholder tabs, completion result)
 
+**Plan for 2026-01-05:**
+See [docs/PLAN_2026-01-05.md](docs/PLAN_2026-01-05.md) for detailed plan:
+- 🔍 Session 1 (3h): Search and Filtering
+- ✅ Session 2 (3-4h): Checklists (multiple per task, flat structure)
+- 🚀 Session 3 (4-5h): Projects Module (CRITICAL - full development)
+
 ---
 
 ## Sprint 0: Setup & Documentation

@@ -144,18 +144,22 @@ make shell-db        # psql в базу данных
 
 ## 🎯 Roadmap
 
+**Current Status (2026-01-04):** Phase 2B completed + enhancements, preparing for Projects module
+
 ### Phase 1: Backend Development
 - [x] **Phase 1A:** Backend Core — Auth, Users, Departments, Tasks Foundation ✅
 - [x] **Phase 1B:** Backend Tasks Extended — Tags, Comments, Checklists, Documents, History, Workflow ✅
-- [ ] **Phase 1C:** Backend AI — SMART validation, AI dialogs, AI comments
-- [ ] **Phase 1D:** Backend Boards & Notifications — Kanban, notifications, escalation
+- [x] **Phase 1C:** Backend AI — SMART validation, AI dialogs, AI comments ✅
+- [x] **Phase 1D:** Backend Boards & Notifications — Kanban, notifications, escalation ✅
+- [ ] **Phase 1E:** Projects Module — Backend + Frontend ⏳ Next (2026-01-05)
+- [ ] **Phase 1F:** Gantt Chart — Task dependencies, timeline view
 
 ### Phase 2: Frontend Development
-- [ ] **Phase 2A:** Frontend Core — React setup, auth, layout
-- [ ] **Phase 2B:** Frontend Tasks & Kanban — task management UI, boards
+- [x] **Phase 2A:** Frontend Core — React setup, auth, layout ✅
+- [x] **Phase 2B:** Frontend Tasks & Kanban — task management UI, boards, hierarchy, urgency ✅
 - [ ] **Phase 2C:** Frontend AI & Polish — AI integration UI, final polish
 
-### Phase 2 — Стратегический слой
+### Phase 3 — Стратегический слой
 - [ ] Проекты и программы
 - [ ] Диаграмма Гантта
 - [ ] OKR

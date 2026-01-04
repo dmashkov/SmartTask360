@@ -1,6 +1,6 @@
 # SmartTask360 — Development Context
 
-**Last Updated:** 2026-01-04 (Evening Session)
+**Last Updated:** 2026-01-04 (Planning Session for 2026-01-05)
 
 ---
 
@@ -10,6 +10,7 @@
 
 ### Current Sprint
 Sprint 6: Frontend Tasks & Kanban — ✅ Completed with enhancements
+Sprint 6.5: Preparing for 2026-01-05 work sessions
 
 ### Recent Enhancements (2026-01-04)
 - ✅ Task hierarchy visualization (TaskExpandButton, ParentTaskLink, ChildTaskNode, ChildTasksTree)
@@ -22,10 +23,34 @@ Sprint 6: Frontend Tasks & Kanban — ✅ Completed with enhancements
 - ✅ Urgency shown in TaskRow, TaskDetailPage, ChildTaskNode
 
 ### Current Session
-Documentation update — adding latest features to docs
+Planning session for 2026-01-05
 
-### Next Up
-Phase 1E: Projects Module (Backend + Frontend)
+### Plan for 2026-01-05
+**3 Sessions Planned (~10-12 hours):**
+
+**Session 1 (3h): Search and Filtering**
+- Global search placeholder in Header (stub only)
+- Enhanced TaskList search (highlight, debounce)
+- Saved filter views (UserView backend model + frontend)
+
+**Session 2 (3-4h): Checklists**
+- Multiple checklists per task (alternative to subtasks)
+- Flat structure only (NO nesting for MVP)
+- Backend: GET /checklists, toggle, create/delete endpoints
+- Frontend: ChecklistsPanel, ChecklistCard, ChecklistItem components
+- Integration into TaskDetailPage
+
+**Session 3 (4-5h): Projects - Full Development**
+- **CRITICAL MODULE** - what makes SmartTask360 more than "just a task tracker with AI"
+- Architecture discussion and concept documentation
+- Backend: Complete ProjectService with stats, timeline, member management
+- Frontend: ProjectsPage with filtering and cards
+- Frontend: ProjectDetailPage with 3 tabs (Overview, Tasks, Boards)
+- Full integration with Tasks and Boards
+- Team member management UI
+
+### Next Up After 2026-01-05
+Phase 1F: Gantt Chart → Phase 2C: AI & Polish
 
 ---
 
