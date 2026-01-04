@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Background circle representing 360° -->
+  <circle cx="16" cy="16" r="14" stroke="#3B82F6" stroke-width="2.5" fill="white"/>
+
+  <!-- Gradient arc showing progress/completion -->
+  <path d="M16 2 A14 14 0 1 1 5.5 26" stroke="url(#gradient)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+
+  <!-- Checkmark in the center -->
+  <path d="M10 16 L14 20 L22 12" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Small arrow indicating 360 rotation -->
+  <path d="M5 24 L3 27 L7 26" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="50%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+  </defs>
+</svg>

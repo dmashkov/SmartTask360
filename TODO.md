@@ -8,12 +8,23 @@
 - [x] **Phase 1B:** Backend Tasks Extended (Sessions 2.1-2.7) ✅
 - [x] **Phase 1C:** Backend AI (Sessions 1C.1-1C.4) ✅
 - [x] **Phase 1D:** Backend Boards & Notifications ✅
+- [ ] **Phase 1E:** Projects Module (Backend + Frontend)
+- [ ] **Phase 1F:** Gantt Chart (MVP view mode)
 - [x] **Phase 2A:** Frontend Core ✅
 - [x] **Phase 2B:** Frontend Tasks & Kanban ✅
 - [ ] **Phase 2C:** Frontend AI & Polish
 
-**Current:** Phase 2B completed — Frontend Tasks & Kanban завершен ✅
-**Next:** Phase 2C - Frontend AI & Polish
+**Current:** Phase 2B completed + Enhanced — Frontend Tasks & Kanban + Hierarchy + Urgency ✅
+**Next:** Phase 1E - Projects Module → Phase 1F - Gantt Chart
+
+**Recent Enhancements (2026-01-04):**
+- [x] Task hierarchy visualization with expand/collapse
+- [x] Lazy loading of subtasks
+- [x] Parent task navigation
+- [x] Fixed duplicate children rendering
+- [x] Task urgency indicators (overdue, due today, due soon)
+- [x] Completion result placeholder
+- [x] Placeholder tabs (Documents, Comments, History)
 
 ---
 
@@ -358,6 +369,137 @@
 - [x] Add status, priority, search filters to GET /tasks/
 - [x] Update TaskService.get_all() with filter logic
 
+### 2B.8 Task Hierarchy Visualization (2026-01-04) ✅
+- [x] Create TaskExpandButton component
+- [x] Create ParentTaskLink component
+- [x] Create ChildTaskNode component (recursive)
+- [x] Create ChildTasksTree container
+- [x] Add useTaskChildren hook for lazy loading
+- [x] Add children_count to Task model
+- [x] Integrate expand/collapse in TaskRow
+- [x] Fix duplicate children rendering in TaskList
+- [x] Add subtasks section to TaskDetailPage (inline, not tab)
+- [x] Make subtasks panel compact
+
+### 2B.9 Task Urgency Indicators (2026-01-04) ✅
+- [x] Create getTaskUrgency() utility in utils.ts
+- [x] Implement urgency states: overdue 🔴, due_today 🟠, due_soon 🟡
+- [x] Add Russian pluralization (1 день, 2 дня, 5 дней)
+- [x] Show urgency in TaskRow (icon next to due date)
+- [x] Show urgency in TaskDetailPage header (badge)
+- [x] Show urgency in TaskDetailPage Details section
+- [x] Show urgency in ChildTaskNode (subtasks tree)
+- [x] Handle completed tasks that were late
+- [x] Add detailed tooltips
+
+### 2B.10 UI Enhancements (2026-01-04) ✅
+- [x] Restructure TaskDetailPage (remove Subtasks tab)
+- [x] Add placeholder tabs: Documents, Comments, History
+- [x] Add completion result placeholder (for done tasks)
+- [x] Position subtasks between Description and Status Actions
+
+---
+
+## Phase 1E: Projects Module (~12 hours) ⬅️ NEXT
+
+**Goal:** Полноценный модуль проектов для привязки задач и досок
+
+### 1E.1 Backend: Models & Schemas (2h)
+- [ ] Create Project model (id, name, code, description, status, owner_id, dates, settings)
+- [ ] Create ProjectMember model (project_id, user_id, role)
+- [ ] Create ProjectStatus enum (planning, active, on_hold, completed, archived)
+- [ ] Create ProjectMemberRole enum (owner, admin, member, viewer)
+- [ ] Create schemas (ProjectCreate, ProjectUpdate, ProjectResponse, ProjectWithStats)
+- [ ] Create migration with FK constraints:
+  - tasks.project_id → projects.id
+  - boards.project_id → projects.id
+
+### 1E.2 Backend: Service & Router (3h)
+- [ ] Create ProjectService:
+  - CRUD operations
+  - get_project_tasks(project_id) — все задачи проекта
+  - get_project_boards(project_id) — все доски проекта
+  - get_project_stats(project_id) — статистика (% выполнения, кол-во задач по статусам)
+  - add_member, remove_member, update_member_role
+- [ ] Create router:
+  - GET /projects — список проектов (с фильтрами)
+  - POST /projects — создание
+  - GET /projects/{id} — детали с статистикой
+  - PATCH /projects/{id} — обновление
+  - DELETE /projects/{id} — удаление (soft delete)
+  - GET /projects/{id}/tasks — задачи проекта
+  - GET /projects/{id}/boards — доски проекта
+  - POST /projects/{id}/members — добавить участника
+  - DELETE /projects/{id}/members/{user_id} — удалить участника
+  - PATCH /projects/{id}/members/{user_id} — изменить роль
+- [ ] Register router in main.py
+- [ ] Write tests (15+ scenarios)
+
+### 1E.3 Backend: Integration (1h)
+- [ ] Update TaskService.get_all() — add project_id filter
+- [ ] Update TaskService.create() — validate project_id exists
+- [ ] Update BoardService — add project_id filter
+- [ ] Update GET /tasks endpoint — add project_id query param
+
+### 1E.4 Frontend: Types, API, Hooks (2h)
+- [ ] Create modules/projects/types.ts
+- [ ] Create modules/projects/api.ts (all methods)
+- [ ] Create hooks:
+  - useProjects(filters)
+  - useProject(id)
+  - useProjectMutations()
+  - useProjectMembers(projectId)
+
+### 1E.5 Frontend: Components (2h)
+- [ ] Create ProjectSelect (for TaskFormModal, BoardFormModal)
+- [ ] Create ProjectCard (for projects list)
+- [ ] Create ProjectBadge (inline project indicator)
+- [ ] Create ProjectMembersModal
+
+### 1E.6 Frontend: Pages & Integration (2h)
+- [ ] Create ProjectsPage (list with filters, create button)
+- [ ] Create ProjectDetailPage with view switcher:
+  - [ ] ViewSwitcher component (Таблица / Kanban / Gantt tabs)
+  - [ ] Table view — TaskList filtered by project
+  - [ ] Kanban view — KanbanBoard filtered by project
+  - [ ] Gantt view — placeholder (Phase 1F)
+- [ ] Add ProjectSelect to TaskFormModal
+- [ ] Add project_id filter to TaskFilters
+- [ ] Add "Проекты" to Sidebar navigation
+- [ ] Update Router with /projects routes
+
+---
+
+## Phase 1F: Gantt Chart (~10 hours) ⬅️ MVP
+
+**Goal:** Gantt-диаграмма как третий режим просмотра задач проекта
+
+### 1F.1 Backend: Task Dependencies (2h)
+- [ ] Create TaskDependency model (predecessor_id, successor_id, type)
+- [ ] Add dependency types: FS (finish-to-start), SS, FF, SF
+- [ ] Create schemas (TaskDependencyCreate, TaskDependencyResponse)
+- [ ] Add to TaskService: add_dependency, remove_dependency, get_dependencies
+- [ ] Add endpoints: POST/DELETE /tasks/{id}/dependencies
+- [ ] Create migration
+- [ ] Write tests
+
+### 1F.2 Frontend: Gantt Component (5h)
+- [ ] Research and choose library (frappe-gantt recommended — lightweight, MIT)
+- [ ] Create GanttChart component wrapper
+- [ ] Create GanttBar (task bar with drag handles)
+- [ ] Create GanttTimeline (date headers)
+- [ ] Implement task date editing via drag
+- [ ] Implement dependency arrows visualization
+- [ ] Connect to project tasks API
+
+### 1F.3 Frontend: Gantt Integration (3h)
+- [ ] Add Gantt tab to ProjectDetailPage ViewSwitcher
+- [ ] Implement zoom controls (day/week/month)
+- [ ] Implement task click → open TaskDetailPage
+- [ ] Implement inline task creation
+- [ ] Sync changes with Table/Kanban views
+- [ ] Add loading and empty states
+
 ---
 
 ## Phase 2C: Frontend AI & Polish (~31 hours)
@@ -420,45 +562,53 @@
 | Phase 1D | 14h | Backend boards & notifications |
 | Phase 2A | 19h | Frontend core |
 | Phase 2B | 42h | Frontend tasks & kanban |
+| Phase 1E | 12h | Projects module |
+| Phase 1F | 10h | Gantt chart |
 | Phase 2C | 31h | Frontend AI & polish |
-| **Total MVP** | **186h** | ~6 weeks |
+| **Total MVP** | **208h** | ~7 weeks |
 
 ---
 
-## Phase 2: Strategic Layer (Post-MVP)
+## Phase 3: Strategic Layer (Post-MVP)
 
-### 2.1 Projects & Programs
-- [ ] Create projects module (models, schemas, service, router)
-- [ ] Create programs module
-- [ ] Link tasks to projects
-- [ ] Project dashboard with progress
-- [ ] Project-level permissions
+### 3.1 Programs Module
+- [ ] Create Program model (id, name, description, owner_id, status, dates)
+- [ ] Create ProgramProject association (program_id, project_id)
+- [ ] Programs → Projects hierarchy
+- [ ] Program dashboard with aggregated stats
+- [ ] Program-level permissions
 
-### 2.2 Gantt Chart
-- [ ] Research Gantt libraries (frappe-gantt, dhtmlx-gantt, custom)
-- [ ] Create Gantt component
-- [ ] Task dependencies visualization
-- [ ] Drag-drop for dates/duration
+### 3.2 OKR Module
+- [ ] Create Objective model (id, title, description, period, owner_id)
+- [ ] Create KeyResult model (objective_id, title, target, current, unit)
+- [ ] Link OKR to Programs/Projects
+- [ ] Progress tracking with check-ins
+- [ ] OKR dashboard with cascade view
+
+### 3.3 BSC (Balanced Scorecard) Module
+- [ ] Create Perspective model (Financial, Customer, Internal, Learning)
+- [ ] Create StrategicGoal model (perspective_id, title, weight)
+- [ ] Create KPI model (goal_id, name, target, actual, unit)
+- [ ] BSC → OKR → Programs → Projects → Tasks cascade
+- [ ] Strategy map visualization
+- [ ] Scorecard dashboard
+
+### 3.4 Gantt Chart Advanced (extends MVP)
 - [ ] Critical path highlighting
 - [ ] Export to PDF/PNG
 - [ ] Milestones on timeline
 - [ ] Resource allocation view
+- [ ] Baseline comparison
+- [ ] Progress tracking overlay
 
-### 2.3 OKR Module
-- [ ] Objectives CRUD
-- [ ] Key Results with progress tracking
-- [ ] Link OKR to projects/tasks
-- [ ] OKR dashboard
-- [ ] Cascade view (Objective → KR → Projects → Tasks)
-
-### 2.4 Advanced Analytics
+### 3.5 Advanced Analytics
 - [ ] Task completion trends
 - [ ] Team velocity metrics
 - [ ] Acceptance time analytics
 - [ ] SMART score distribution
 - [ ] Overdue analysis
 
-### 2.5 Advanced Search & Filters
+### 3.6 Advanced Search & Filters
 - [ ] Saved filters (views)
 - [ ] Full-text search in documents
 - [ ] Advanced query builder

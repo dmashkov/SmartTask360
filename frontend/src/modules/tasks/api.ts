@@ -9,6 +9,7 @@ import type {
   AvailableTransitions,
   TaskFilters,
   PaginationParams,
+  ImportResult,
 } from "./types";
 
 // Get all tasks with filters and pagination
@@ -168,5 +169,58 @@ export async function getTaskTags(
   const response = await api.get<Array<{ id: string; name: string; color: string }>>(
     `/tasks/${taskId}/tags`
   );
+  return response.data;
+}
+
+// ===== Excel Export/Import =====
+
+// Export tasks to Excel file
+export async function exportTasksExcel(filters?: TaskFilters): Promise<Blob> {
+  const params = new URLSearchParams();
+
+  if (filters) {
+    if (filters.status) {
+      if (Array.isArray(filters.status)) {
+        filters.status.forEach((s) => params.append("status", s));
+      } else {
+        params.append("status", filters.status);
+      }
+    }
+    if (filters.priority) {
+      if (Array.isArray(filters.priority)) {
+        filters.priority.forEach((p) => params.append("priority", p));
+      } else {
+        params.append("priority", filters.priority);
+      }
+    }
+    if (filters.search) params.append("search", filters.search);
+    if (filters.project_id) params.append("project_id", filters.project_id);
+    if (filters.department_id) params.append("department_id", filters.department_id);
+  }
+
+  const response = await api.get(`/tasks/export/excel?${params.toString()}`, {
+    responseType: "blob",
+  });
+  return response.data;
+}
+
+// Get import template
+export async function getImportTemplate(): Promise<Blob> {
+  const response = await api.get("/tasks/export/template", {
+    responseType: "blob",
+  });
+  return response.data;
+}
+
+// Import tasks from Excel file
+export async function importTasksExcel(file: File): Promise<ImportResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await api.post<ImportResult>("/tasks/import/excel", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return response.data;
 }

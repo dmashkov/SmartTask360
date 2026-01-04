@@ -1,21 +1,31 @@
 # SmartTask360 — Development Context
 
-**Last Updated:** 2026-01-03
+**Last Updated:** 2026-01-04 (Evening Session)
 
 ---
 
 ## 🎯 Current Phase
 
-**Phase 1C: Backend AI** — ✅ Completed
+**Phase 2B: Frontend Tasks & Kanban** — ✅ Completed + Enhancements
 
 ### Current Sprint
-Sprint 3: AI Integration — ✅ Completed
+Sprint 6: Frontend Tasks & Kanban — ✅ Completed with enhancements
+
+### Recent Enhancements (2026-01-04)
+- ✅ Task hierarchy visualization (TaskExpandButton, ParentTaskLink, ChildTaskNode, ChildTasksTree)
+- ✅ Lazy loading of subtasks (useTaskChildren hook)
+- ✅ Fixed duplicate children rendering in TaskList
+- ✅ Restructured TaskDetailPage (removed Subtasks tab, made inline)
+- ✅ Added placeholder tabs (Documents, Comments, History)
+- ✅ Added completion result placeholder (for done tasks)
+- ✅ Implemented task urgency indicators (getTaskUrgency utility)
+- ✅ Urgency shown in TaskRow, TaskDetailPage, ChildTaskNode
 
 ### Current Session
-Session 1C.4: AI Comments & Analysis — ✅ Completed
+Documentation update — adding latest features to docs
 
 ### Next Up
-Phase 1D: Boards & Notifications
+Phase 1E: Projects Module (Backend + Frontend)
 
 ---
 
@@ -26,8 +36,11 @@ Phase 1D: Boards & Notifications
 - [x] **Phase 1A:** Backend Core (100%)
 - [x] **Phase 1B:** Backend Tasks Extended (100%)
 - [x] **Phase 1C:** Backend AI (100%)
+- [x] **Phase 1D:** Boards & Notifications (100%)
+- [x] **Phase 2A:** Frontend Core (100%)
+- [x] **Phase 2B:** Frontend Tasks & Kanban (100%)
 
-### Completed Sessions (18 total)
+### Completed Sessions (22+ total)
 **Sprint 0 (2 sessions):**
 - [x] Session 0.1: Meta-documentation files
 - [x] Session 0.2: Infrastructure Setup
@@ -54,17 +67,31 @@ Phase 1D: Boards & Notifications
 - [x] Session 1C.3: AI Task Dialogs
 - [x] Session 1C.4: AI Comments & Analysis
 
+**Sprint 4 (2 sessions):**
+- [x] Session 1D.1: Boards Module
+- [x] Session 1D.2: Notifications Module
+
+**Sprint 5 (Frontend Core):**
+- [x] Session 2A.1: Project Structure & Auth
+- [x] Session 2A.2: Layout & Navigation
+
+**Sprint 6 (Frontend Tasks & Kanban):**
+- [x] Session 2B.1: Task List & Filters
+- [x] Session 2B.2: Task CRUD & Kanban
+
 ### In Progress
-None - Sprint 3 completed
+None - Sprint 6 completed
 
 ### Next Up
-- **Phase 1D:** Boards & Notifications (Sprint 4)
+- **Phase 1E:** Projects Module (Backend + Frontend)
+- **Phase 1F:** Gantt Chart
+- **Phase 2C:** Frontend AI & Polish
 
 ---
 
 ## 🏗️ Active Modules
 
-### Backend
+### Backend (Complete)
 - `core/` — ✅ Security, types, dependencies
 - `modules/users/` — ✅ CRUD with JWT protection
 - `modules/auth/` — ✅ Login & refresh tokens
@@ -76,32 +103,50 @@ None - Sprint 3 completed
 - `modules/documents/` — ✅ MinIO upload/download
 - `modules/workflow/` — ✅ Templates + transitions
 - `modules/ai/` — ✅ SMART validation + dialogs + comments + risk analysis
-- `modules/boards/` — ⏳ Next up
+- `modules/boards/` — ✅ Kanban with WIP limits, status sync
+- `modules/notifications/` — ✅ Settings, unread tracking
+
+### Frontend (Phase 2B Complete + Enhanced)
+- `shared/` — ✅ API client, UI components, hooks, layouts, utils (with urgency indicators)
+- `modules/auth/` — ✅ Login, AuthContext, ProtectedRoute
+- `modules/tasks/` — ✅ List, filters, detail, create/edit modal, hierarchy tree, urgency indicators
+- `modules/boards/` — ✅ Kanban with drag-and-drop, WIP indicators
+- `modules/ai/` — ⏳ Next up (Phase 2C)
 - `modules/notifications/` — ⏳ Next up
 
-### Frontend
-- `src/` — Minimal skeleton exists (main.tsx, index.css)
-- Awaiting structure creation
+**Latest Components (2026-01-04):**
+- `TaskExpandButton` — expand/collapse subtasks in list
+- `ParentTaskLink` — navigation to parent task
+- `ChildTaskNode` — recursive subtask tree node
+- `ChildTasksTree` — subtasks tree container
+- `getTaskUrgency()` utility — urgency calculation with Russian pluralization
 
 ---
 
 ## 📦 Technology Stack Status
 
-### Backend
-- ✅ FastAPI skeleton created
+### Backend (MVP Complete)
+- ✅ FastAPI with 14 modules
 - ✅ SQLAlchemy async configured
 - ✅ Pydantic Settings configured
-- ✅ Alembic with 10+ migrations
+- ✅ Alembic with 15+ migrations
 - ✅ Security infrastructure (JWT + bcrypt)
-- ✅ 11 modules implemented (users, auth, departments, tasks, tags, comments, checklists, documents, workflow, ai, task_history)
+- ✅ 14 modules: users, auth, departments, tasks, tags, comments, checklists, documents, workflow, ai, task_history, boards, notifications
 - ✅ AI integration (Anthropic Claude API)
 - ✅ SMART validation + dialogs + risk analysis
-- ✅ Adminer database UI on port 8080
+- ✅ 95+ API endpoints, 200+ test scenarios
 
-### Frontend
-- ✅ Vite + React + TypeScript initialized
-- ✅ Dependencies installed (React Query, React Router, Tailwind, etc.)
-- ⏳ No components created yet
+### Frontend (Phase 2B Complete)
+- ✅ Vite + React + TypeScript
+- ✅ Tailwind CSS styling
+- ✅ React Query for data fetching
+- ✅ React Hook Form + Zod for forms
+- ✅ React Router v6 for routing
+- ✅ @dnd-kit for drag-and-drop
+- ✅ Auth module (login, context, protected routes)
+- ✅ Tasks module (list, filters, detail, create/edit)
+- ✅ Boards module (Kanban with DnD, WIP limits)
+- ✅ Full Russian localization
 
 ### Infrastructure
 - ✅ Docker Compose configured (PostgreSQL, MinIO, Backend, Frontend, Adminer)
@@ -110,6 +155,7 @@ None - Sprint 3 completed
 - ✅ MinIO with 'documents' bucket created
 - ✅ Adminer UI for database management (port 8080)
 - ✅ Makefile with common commands
+- ✅ Git initialized with commits
 
 ---
 
@@ -131,7 +177,7 @@ None - Sprint 3 completed
 - **Configurable statuses** — workflow templates (basic, agile, approval)
 - **Task acceptance flow** — assignee must accept or reject within 48h
 - **AI temperatures:** 0.3 (validation), 0.7 (dialog), 0.5 (comments)
-- **NO Git/GitHub** — project uses Docker volumes for persistence, no version control
+- **Git initialized** — local version control with commits
 
 ---
 
@@ -181,22 +227,29 @@ modules/{name}/
 
 ## 🚀 Next Session Preview
 
-**Session 4.1:** Boards Module (Part 1: Models & Basic CRUD)
+**Phase 1E:** Projects Module
 
-**Goal:** Implement Kanban boards foundation
+**Goal:** Полноценный модуль проектов для привязки задач и досок
 
-**Tasks:**
-1. Create Board, BoardColumn, BoardTask, BoardMember models
-2. Create schemas and basic service
-3. Create router for board CRUD
-4. Create migration
-5. Link boards to projects
-6. Write tests
+**Backend Tasks:**
+1. Create Project model (id, name, code, description, status, owner_id, dates)
+2. Create ProjectMember model (project_id, user_id, role)
+3. Create ProjectService with CRUD + stats + members
+4. Create router with 10+ endpoints
+5. Add project_id filter to Tasks and Boards
+6. Write tests (15+ scenarios)
+
+**Frontend Tasks:**
+1. Create projects module (types, api, hooks)
+2. Create ProjectSelect, ProjectCard, ProjectBadge components
+3. Create ProjectsPage and ProjectDetailPage
+4. Add ProjectSelect to TaskFormModal
+5. Add "Проекты" to Sidebar navigation
 
 **Important Notes:**
-- ⚠️ NO Git/GitHub operations — project uses Docker volumes for persistence
-- All data stored in Docker volumes (postgres_data, minio_data)
-- Start session with: `make up` or `docker-compose up -d`
+- После Projects → Phase 1F (Gantt Chart)
+- Три режима просмотра задач проекта: Таблица / Kanban / Gantt
+- Start session with: `docker-compose up -d`
 
 **Blockers:** None
 

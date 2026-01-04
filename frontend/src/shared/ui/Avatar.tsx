@@ -5,6 +5,7 @@ export interface AvatarProps {
   src?: string | null;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   className?: string;
+  title?: string;
 }
 
 const sizes = {
@@ -42,12 +43,15 @@ function getColorFromName(name: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-function Avatar({ name, src, size = "md", className }: AvatarProps) {
+function Avatar({ name, src, size = "md", className, title }: AvatarProps) {
+  const displayTitle = title || name;
+
   if (src) {
     return (
       <img
         src={src}
-        alt={name}
+        alt={displayTitle}
+        title={displayTitle}
         className={cn(
           "rounded-full object-cover",
           sizes[size],
@@ -58,7 +62,7 @@ function Avatar({ name, src, size = "md", className }: AvatarProps) {
   }
 
   const initials = getInitials(name);
-  const bgColor = getColorFromName(name);
+  const bgColor = getColorFromName(title || name);
 
   return (
     <div
@@ -68,7 +72,7 @@ function Avatar({ name, src, size = "md", className }: AvatarProps) {
         bgColor,
         className
       )}
-      title={name}
+      title={displayTitle}
     >
       {initials}
     </div>

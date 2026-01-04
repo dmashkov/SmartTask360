@@ -11,6 +11,7 @@ import {
 } from "../../../shared/ui";
 import { useCreateTask, useUpdateTask } from "../hooks";
 import type { Task, TaskCreate, TaskUpdate, TaskPriority } from "../types";
+import { useUsers } from "../../users";
 
 const priorityOptions = [
   { value: "low", label: "Низкий" },
@@ -30,12 +31,24 @@ export function TaskFormModal({ isOpen, onClose, task, parentId }: TaskFormModal
   const isEdit = !!task;
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
+  const { data: users = [] } = useUsers();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [dueDate, setDueDate] = useState("");
   const [estimatedHours, setEstimatedHours] = useState("");
+  const [creatorId, setCreatorId] = useState<string>("");
+  const [assigneeId, setAssigneeId] = useState<string>("");
+
+  // Build user options for select
+  const userOptions = [
+    { value: "", label: "Не выбран" },
+    ...users.map((user) => ({
+      value: user.id,
+      label: user.name,
+    })),
+  ];
 
   // Reset form when modal opens/closes or task changes
   useEffect(() => {
@@ -46,12 +59,16 @@ export function TaskFormModal({ isOpen, onClose, task, parentId }: TaskFormModal
         setPriority(task.priority);
         setDueDate(task.due_date ? task.due_date.split("T")[0] : "");
         setEstimatedHours(task.estimated_hours?.toString() || "");
+        setCreatorId(task.creator_id || "");
+        setAssigneeId(task.assignee_id || "");
       } else {
         setTitle("");
         setDescription("");
         setPriority("medium");
         setDueDate("");
         setEstimatedHours("");
+        setCreatorId("");
+        setAssigneeId("");
       }
     }
   }, [isOpen, task]);
@@ -74,6 +91,8 @@ export function TaskFormModal({ isOpen, onClose, task, parentId }: TaskFormModal
       due_date: formattedDueDate,
       estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
       parent_id: parentId || null,
+      creator_id: creatorId || null,
+      assignee_id: assigneeId || null,
     };
 
     try {
@@ -117,6 +136,22 @@ export function TaskFormModal({ isOpen, onClose, task, parentId }: TaskFormModal
             placeholder="Описание задачи (необязательно)"
             rows={4}
           />
+
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Постановщик"
+              options={userOptions}
+              value={creatorId}
+              onChange={(e) => setCreatorId(e.target.value)}
+            />
+
+            <Select
+              label="Исполнитель"
+              options={userOptions}
+              value={assigneeId}
+              onChange={(e) => setAssigneeId(e.target.value)}
+            />
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <Select

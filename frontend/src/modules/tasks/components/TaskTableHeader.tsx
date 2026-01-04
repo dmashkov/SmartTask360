@@ -1,4 +1,5 @@
 import { cn } from "../../../shared/lib/utils";
+import type { ColumnConfig } from "./TaskFilters";
 
 export type SortField = "title" | "priority" | "status" | "due_date" | "created_at";
 export type SortOrder = "asc" | "desc";
@@ -11,6 +12,7 @@ export interface SortConfig {
 interface TaskTableHeaderProps {
   sort: SortConfig;
   onSortChange: (field: SortField) => void;
+  columnConfig: ColumnConfig;
 }
 
 interface HeaderCellProps {
@@ -63,14 +65,21 @@ function HeaderCell({ field, label, currentSort, onSort, className }: HeaderCell
   );
 }
 
-export function TaskTableHeader({ sort, onSortChange }: TaskTableHeaderProps) {
+export function TaskTableHeader({ sort, onSortChange, columnConfig }: TaskTableHeaderProps) {
   return (
     <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
-      <div className="flex items-center gap-4 px-4 py-3">
+      <div className="flex items-center gap-3 px-3 py-1.5">
         {/* Checkbox placeholder */}
-        <div className="w-5" />
+        <div className="w-4" />
 
-        {/* Title */}
+        {/* ID */}
+        {columnConfig.id && (
+          <div className="w-16 shrink-0">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">ID</span>
+          </div>
+        )}
+
+        {/* Title - always visible */}
         <div className="flex-1 min-w-0">
           <HeaderCell
             field="title"
@@ -80,51 +89,77 @@ export function TaskTableHeader({ sort, onSortChange }: TaskTableHeaderProps) {
           />
         </div>
 
+        {/* Author - who physically created */}
+        {columnConfig.author && (
+          <div className="w-24 shrink-0">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Автор</span>
+          </div>
+        )}
+
+        {/* Creator - on whose behalf */}
+        {columnConfig.creator && (
+          <div className="w-24 shrink-0">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Постановщик</span>
+          </div>
+        )}
+
+        {/* Assignee - who will execute */}
+        {columnConfig.assignee && (
+          <div className="w-24 shrink-0">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Исполнитель</span>
+          </div>
+        )}
+
         {/* Due Date */}
-        <div className="w-28">
-          <HeaderCell
-            field="due_date"
-            label="Срок"
-            currentSort={sort}
-            onSort={onSortChange}
-          />
-        </div>
+        {columnConfig.dueDate && (
+          <div className="w-24">
+            <HeaderCell
+              field="due_date"
+              label="Срок"
+              currentSort={sort}
+              onSort={onSortChange}
+            />
+          </div>
+        )}
 
         {/* Priority */}
-        <div className="w-24">
-          <HeaderCell
-            field="priority"
-            label="Приоритет"
-            currentSort={sort}
-            onSort={onSortChange}
-          />
-        </div>
+        {columnConfig.priority && (
+          <div className="w-20">
+            <HeaderCell
+              field="priority"
+              label="Приоритет"
+              currentSort={sort}
+              onSort={onSortChange}
+            />
+          </div>
+        )}
 
         {/* Status */}
-        <div className="w-28">
-          <HeaderCell
-            field="status"
-            label="Статус"
-            currentSort={sort}
-            onSort={onSortChange}
-          />
-        </div>
+        {columnConfig.status && (
+          <div className="w-24">
+            <HeaderCell
+              field="status"
+              label="Статус"
+              currentSort={sort}
+              onSort={onSortChange}
+            />
+          </div>
+        )}
 
         {/* Created */}
-        <div className="w-32">
-          <HeaderCell
-            field="created_at"
-            label="Создана"
-            currentSort={sort}
-            onSort={onSortChange}
-          />
-        </div>
-
-        {/* Assignee placeholder */}
-        <div className="w-8" />
+        {columnConfig.createdAt && (
+          <div className="w-28">
+            <HeaderCell
+              field="created_at"
+              label="Создана"
+              currentSort={sort}
+              onSort={onSortChange}
+            />
+          </div>
+        )}
 
         {/* Actions placeholder */}
-        <div className="w-6" />
+        <div className="w-5" />
       </div>
     </div>
   );

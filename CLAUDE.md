@@ -12,6 +12,8 @@
 **✅ Phase 1B Completed** - Backend Tasks Extended (Tags, Comments, Checklists, Documents, History, Workflow)
 **✅ Phase 1C Completed** - AI Integration (SMART validation, AI dialogs, AI comments)
 **✅ Phase 1D Completed** - Boards & Notifications
+**✅ Phase 2A Completed** - Frontend Core (Auth, Layout, Navigation)
+**✅ Phase 2B Completed** - Frontend Tasks & Kanban
 
 **📊 Backend MVP Complete:**
 - 14 modules implemented
@@ -20,7 +22,7 @@
 - 15 database migrations
 - All tests passing ✅
 
-**Implemented Modules:**
+**Implemented Backend Modules:**
 - Auth, Users, Departments
 - Tasks (with hierarchy, status workflow, acceptance flow)
 - Tags, Comments, Checklists, Documents
@@ -29,7 +31,25 @@
 - Boards (Kanban with WIP limits, status sync)
 - Notifications (settings, unread tracking)
 
-**Next:** Phase 2A - Frontend Core
+**📊 Frontend Phase 2B Complete:**
+- Auth module (login, context, protected routes)
+- Tasks module (list with filters, detail page, create/edit modal, hierarchy)
+- Boards module (Kanban with drag-and-drop, WIP limits)
+- Shared UI components (Button, Input, Modal, etc.)
+- Full Russian localization
+- Task hierarchy visualization (expand/collapse with lazy loading)
+- Task urgency indicators (overdue, due today, due soon)
+- 60+ React components
+
+**Latest Features (2026-01-04):**
+- ✅ Task hierarchy tree with expand/collapse
+- ✅ Lazy loading of subtasks via API
+- ✅ Parent task navigation links
+- ✅ Task urgency/overdue indicators with icons
+- ✅ Completion result placeholder (for done tasks)
+- ✅ Placeholder tabs (Documents, Comments, History)
+
+**Next:** Phase 1E - Projects Module → Phase 1F - Gantt Chart → Phase 2C - AI & Polish
 
 ## Tech Stack
 
@@ -290,7 +310,7 @@ async def create_item(self, item_data):
     await self.db.commit()
 ```
 
-### 3. SMART Validation Flow (To be implemented in Phase 1C)
+### 3. SMART Validation Flow (Implemented)
 ```
 User creates task
     → TaskService.create()
@@ -298,6 +318,11 @@ User creates task
     → Return (task, smart_result)
     → UI shows validation result
     → User can: accept, apply suggestions, or start dialog
+
+Backend endpoints:
+  - POST /ai/smart/validate - validate task against SMART criteria
+  - POST /ai/dialogs - start AI dialog for task refinement
+  - GET /ai/dialogs/{task_id} - get dialog history
 ```
 
 ### 4. Status Transitions with Workflow Validation
@@ -366,7 +391,7 @@ async def add_watcher(self, task_id, user_id):
     await self.db.execute(stmt)
 ```
 
-### 8. Board Task Movement (To be implemented in Phase 1D)
+### 8. Board Task Movement (Implemented)
 ```
 Drag task to new column
     → BoardService.move_task()
@@ -375,9 +400,14 @@ Drag task to new column
     → If column.mapped_status:
         → TaskService.change_status()
     → Return updated state
+
+Frontend implementation:
+  - @dnd-kit for drag-and-drop
+  - Optimistic updates with React Query
+  - WIP limit indicators on columns
 ```
 
-### 9. Board-Project Relationship (To be implemented in Phase 1D)
+### 9. Board-Project Relationship (Implemented)
 ```
 One Board = One Project (or Department)
 
@@ -414,6 +444,26 @@ class TaskHistory(Base):
     old_value: Mapped[dict | None]  # JSONB - flexible storage
     new_value: Mapped[dict | None]  # JSONB - flexible storage
     extra_data: Mapped[dict | None]  # NOT 'metadata' (reserved name!)
+```
+
+### 12. Task Urgency Indicators (Implemented)
+```typescript
+// Frontend utility for urgency calculation
+export function getTaskUrgency(task: { status, due_date, completed_at }): TaskUrgency {
+  // Returns: status, label, tooltip, colorClass, icon, daysLeft
+  // States: overdue 🔴 | due_today 🟠 | due_soon 🟡 | on_track | completed
+}
+
+UI Integration:
+  - TaskRow: icon next to due date
+  - TaskDetailPage: badge in header + icon in Details section
+  - ChildTaskNode: icon in subtask tree
+
+Features:
+  - Shows for completed tasks if they were late
+  - Russian pluralization (1 день, 2 дня, 5 дней)
+  - Week-based display for long overdue periods
+  - Color coding: red (overdue), orange (today), yellow (1-3 days)
 ```
 
 ## Common Commands

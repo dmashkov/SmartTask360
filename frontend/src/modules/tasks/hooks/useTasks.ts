@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getTasks, getTaskChildren, getTaskDescendants } from "../api";
+import { getTasks, getTaskChildren, getTaskDescendants, getTaskAncestors } from "../api";
 import type { TaskFilters, PaginationParams } from "../types";
 
 export const taskKeys = {
@@ -11,6 +11,7 @@ export const taskKeys = {
   detail: (id: string) => [...taskKeys.details(), id] as const,
   children: (id: string) => [...taskKeys.detail(id), "children"] as const,
   descendants: (id: string) => [...taskKeys.detail(id), "descendants"] as const,
+  ancestors: (id: string) => [...taskKeys.detail(id), "ancestors"] as const,
 };
 
 export function useTasks(filters?: TaskFilters, pagination?: PaginationParams) {
@@ -32,6 +33,14 @@ export function useTaskDescendants(taskId: string, enabled = true) {
   return useQuery({
     queryKey: taskKeys.descendants(taskId),
     queryFn: () => getTaskDescendants(taskId),
+    enabled,
+  });
+}
+
+export function useTaskAncestors(taskId: string, enabled = true) {
+  return useQuery({
+    queryKey: taskKeys.ancestors(taskId),
+    queryFn: () => getTaskAncestors(taskId),
     enabled,
   });
 }

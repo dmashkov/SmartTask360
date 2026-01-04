@@ -52,3 +52,6 @@ export {
 // Feedback components
 export { Spinner, Loading, LoadingOverlay, type SpinnerProps, type LoadingProps, type LoadingOverlayProps } from "./Spinner";
 export { ToastProvider, useToast } from "./Toast";
+
+// Navigation components
+export { Pagination } from "./Pagination";

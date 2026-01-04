@@ -129,3 +129,177 @@ export function getStatusLabel(status: string): string {
 export function getPriorityLabel(priority: string): string {
   return PRIORITY_LABELS[priority] || priority;
 }
+
+/**
+ * Get short ID from UUID (first 8 characters)
+ */
+export function getShortId(uuid: string): string {
+  return uuid.slice(0, 8).toUpperCase();
+}
+
+/**
+ * Copy text to clipboard and return success status
+ */
+export async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // Fallback for older browsers
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand("copy");
+      return true;
+    } catch {
+      return false;
+    } finally {
+      document.body.removeChild(textarea);
+    }
+  }
+}
+
+/**
+ * Get full URL for a task
+ */
+export function getTaskUrl(taskId: string): string {
+  return `${window.location.origin}/tasks/${taskId}`;
+}
+
+/**
+ * Task urgency status type
+ */
+export type TaskUrgencyStatus = "overdue" | "due_today" | "due_soon" | "on_track" | "completed";
+
+export interface TaskUrgency {
+  status: TaskUrgencyStatus;
+  label: string | null;
+  tooltip: string | null;
+  colorClass: string | null;
+  icon: string | null;
+  daysLeft: number | null;
+}
+
+/**
+ * Get task urgency status based on due date
+ */
+export function getTaskUrgency(task: { status: string; due_date: string | null; completed_at: string | null }): TaskUrgency {
+  // Completed tasks
+  if (task.status === "done") {
+    if (!task.due_date) {
+      return {
+        status: "completed",
+        label: null,
+        tooltip: null,
+        colorClass: null,
+        icon: null,
+        daysLeft: null,
+      };
+    }
+
+    const completedDate = task.completed_at ? parseBackendDate(task.completed_at) : new Date();
+    const dueDate = parseBackendDate(task.due_date);
+    const daysLate = Math.ceil((completedDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (daysLate > 0) {
+      const weeksLate = Math.floor(daysLate / 7);
+      const tooltip = weeksLate > 0
+        ? `Просрочена на ${weeksLate} ${weeksLate === 1 ? 'неделю' : weeksLate < 5 ? 'недели' : 'недель'}`
+        : `Просрочена на ${daysLate} ${daysLate === 1 ? 'день' : daysLate < 5 ? 'дня' : 'дней'}`;
+
+      return {
+        status: "overdue",
+        label: "Просрочена",
+        tooltip,
+        colorClass: "bg-gray-100 text-gray-600",
+        icon: "⚠",
+        daysLeft: -daysLate,
+      };
+    }
+
+    return {
+      status: "completed",
+      label: null,
+      tooltip: null,
+      colorClass: null,
+      icon: null,
+      daysLeft: null,
+    };
+  }
+
+  // No due date
+  if (!task.due_date) {
+    return {
+      status: "on_track",
+      label: null,
+      tooltip: null,
+      colorClass: null,
+      icon: null,
+      daysLeft: null,
+    };
+  }
+
+  // Calculate days left
+  const now = new Date();
+  now.setHours(0, 0, 0, 0); // Start of today
+  const dueDate = parseBackendDate(task.due_date);
+  dueDate.setHours(0, 0, 0, 0); // Start of due date
+  const daysLeft = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+  // Overdue
+  if (daysLeft < 0) {
+    const daysOverdue = Math.abs(daysLeft);
+    const weeksOverdue = Math.floor(daysOverdue / 7);
+    const tooltip = weeksOverdue > 0
+      ? `Просрочена на ${weeksOverdue} ${weeksOverdue === 1 ? 'неделю' : weeksOverdue < 5 ? 'недели' : 'недель'}`
+      : `Просрочена на ${daysOverdue} ${daysOverdue === 1 ? 'день' : daysOverdue < 5 ? 'дня' : 'дней'}`;
+
+    return {
+      status: "overdue",
+      label: "Просрочена",
+      tooltip,
+      colorClass: "bg-red-100 text-red-700",
+      icon: "🔴",
+      daysLeft,
+    };
+  }
+
+  // Due today
+  if (daysLeft === 0) {
+    return {
+      status: "due_today",
+      label: "Срок сегодня",
+      tooltip: "Задача должна быть завершена сегодня",
+      colorClass: "bg-orange-100 text-orange-700",
+      icon: "🟠",
+      daysLeft: 0,
+    };
+  }
+
+  // Due soon (1-3 days)
+  if (daysLeft <= 3) {
+    const tooltip = `Осталось ${daysLeft} ${daysLeft === 1 ? 'день' : daysLeft < 5 ? 'дня' : 'дней'}`;
+    return {
+      status: "due_soon",
+      label: `${daysLeft} дн.`,
+      tooltip,
+      colorClass: "bg-yellow-100 text-yellow-700",
+      icon: "🟡",
+      daysLeft,
+    };
+  }
+
+  // On track
+  return {
+    status: "on_track",
+    label: null,
+    tooltip: null,
+    colorClass: null,
+    icon: null,
+    daysLeft,
+  };
+}

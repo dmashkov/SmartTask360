@@ -6,7 +6,7 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import delete as sql_delete
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.types import TaskStatus
@@ -17,7 +17,9 @@ from app.modules.tasks.schemas import (
     TaskReject,
     TaskStatusChange,
     TaskUpdate,
+    UserBrief,
 )
+from app.modules.users.models import User
 
 
 class TaskService:
@@ -39,6 +41,7 @@ class TaskService:
         status: str | None = None,
         priority: str | None = None,
         search: str | None = None,
+        project_id: UUID | None = None,
     ) -> list[Task]:
         """Get all tasks with optional filters, ordered by path (hierarchical order)"""
         query = select(Task)
@@ -56,6 +59,8 @@ class TaskService:
             query = query.where(
                 Task.title.ilike(search_pattern) | Task.description.ilike(search_pattern)
             )
+        if project_id:
+            query = query.where(Task.project_id == project_id)
 
         query = query.order_by(Task.path).offset(skip).limit(limit)
 
@@ -141,8 +146,18 @@ class TaskService:
         )
         return list(result.scalars().all())
 
-    async def create(self, task_data: TaskCreate, creator_id: UUID) -> Task:
-        """Create new task"""
+    async def create(self, task_data: TaskCreate, current_user_id: UUID) -> Task:
+        """Create new task
+
+        - author_id: always set to current_user_id (who physically creates the task)
+        - creator_id: set from task_data or defaults to current_user_id (on whose behalf)
+        - assignee_id: set from task_data or defaults to creator_id
+        """
+        # Determine creator_id (defaults to current user)
+        effective_creator_id = task_data.creator_id or current_user_id
+        # Determine assignee_id (defaults to creator_id)
+        effective_assignee_id = task_data.assignee_id if task_data.assignee_id is not None else effective_creator_id
+
         # Calculate path and depth
         if task_data.parent_id:
             parent = await self.get_by_id(task_data.parent_id)
@@ -157,8 +172,9 @@ class TaskService:
                 description=task_data.description,
                 status=task_data.status.value,
                 priority=task_data.priority.value,
-                creator_id=creator_id,
-                assignee_id=task_data.assignee_id,
+                author_id=current_user_id,  # Who physically created (immutable)
+                creator_id=effective_creator_id,  # On whose behalf
+                assignee_id=effective_assignee_id,  # Who will execute
                 parent_id=task_data.parent_id,
                 department_id=task_data.department_id,
                 project_id=task_data.project_id,
@@ -184,8 +200,9 @@ class TaskService:
                 description=task_data.description,
                 status=task_data.status.value,
                 priority=task_data.priority.value,
-                creator_id=creator_id,
-                assignee_id=task_data.assignee_id,
+                author_id=current_user_id,  # Who physically created (immutable)
+                creator_id=effective_creator_id,  # On whose behalf
+                assignee_id=effective_assignee_id,  # Who will execute
                 parent_id=None,
                 department_id=task_data.department_id,
                 project_id=task_data.project_id,
@@ -415,12 +432,15 @@ class TaskService:
         await self.db.commit()
         return result.rowcount > 0
 
-    async def get_watchers(self, task_id: UUID) -> list[UUID]:
-        """Get list of user IDs watching this task"""
+    async def get_watchers(self, task_id: UUID) -> list[UserBrief]:
+        """Get list of users watching this task with their details"""
         result = await self.db.execute(
-            select(task_watchers.c.user_id).where(task_watchers.c.task_id == task_id)
+            select(User)
+            .join(task_watchers, User.id == task_watchers.c.user_id)
+            .where(task_watchers.c.task_id == task_id)
+            .order_by(User.name)
         )
-        return [row[0] for row in result.all()]
+        return [UserBrief.model_validate(u) for u in result.scalars().all()]
 
     async def get_watched_tasks(self, user_id: UUID) -> list[Task]:
         """Get all tasks user is watching"""
@@ -469,14 +489,15 @@ class TaskService:
         await self.db.commit()
         return result.rowcount > 0
 
-    async def get_participants(self, task_id: UUID) -> list[UUID]:
-        """Get list of user IDs participating in this task"""
+    async def get_participants(self, task_id: UUID) -> list[UserBrief]:
+        """Get list of users participating in this task with their details"""
         result = await self.db.execute(
-            select(task_participants.c.user_id).where(
-                task_participants.c.task_id == task_id
-            )
+            select(User)
+            .join(task_participants, User.id == task_participants.c.user_id)
+            .where(task_participants.c.task_id == task_id)
+            .order_by(User.name)
         )
-        return [row[0] for row in result.all()]
+        return [UserBrief.model_validate(u) for u in result.scalars().all()]
 
     async def get_participated_tasks(self, user_id: UUID) -> list[Task]:
         """Get all tasks user is participating in"""
@@ -589,3 +610,32 @@ class TaskService:
         await self.db.commit()
         await self.db.refresh(task)
         return task
+
+    # ========================================================================
+    # Children Count
+    # ========================================================================
+
+    async def get_children_count(self, task_id: UUID) -> int:
+        """Get count of direct (non-deleted) children for a task"""
+        result = await self.db.execute(
+            select(func.count(Task.id))
+            .where(Task.parent_id == task_id)
+            .where(Task.is_deleted == False)
+        )
+        return result.scalar() or 0
+
+    async def get_children_counts(self, task_ids: list[UUID]) -> dict[UUID, int]:
+        """Get children counts for multiple tasks in one query"""
+        if not task_ids:
+            return {}
+
+        result = await self.db.execute(
+            select(Task.parent_id, func.count(Task.id))
+            .where(Task.parent_id.in_(task_ids))
+            .where(Task.is_deleted == False)
+            .group_by(Task.parent_id)
+        )
+
+        counts = {row[0]: row[1] for row in result.all()}
+        # Fill in zeros for tasks with no children
+        return {task_id: counts.get(task_id, 0) for task_id in task_ids}

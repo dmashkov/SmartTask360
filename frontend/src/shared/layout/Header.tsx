@@ -1,3 +1,5 @@
+import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth, useLogout } from "../../modules/auth";
 import { Avatar, Dropdown, DropdownItem, DropdownDivider } from "../ui";
 
@@ -8,6 +10,16 @@ interface HeaderProps {
 export function Header({ onMenuClick }: HeaderProps) {
   const { user } = useAuth();
   const logout = useLogout();
+  const navigate = useNavigate();
+  const [globalSearch, setGlobalSearch] = useState("");
+
+  const handleGlobalSearch = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (globalSearch.trim()) {
+      // Navigate to tasks page with search query
+      navigate(`/tasks?search=${encodeURIComponent(globalSearch.trim())}`);
+    }
+  }, [globalSearch, navigate]);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-gray-200 bg-white px-4 sm:px-6">
@@ -23,9 +35,9 @@ export function Header({ onMenuClick }: HeaderProps) {
         </svg>
       </button>
 
-      {/* Search */}
+      {/* Global Search */}
       <div className="flex-1">
-        <div className="relative max-w-md">
+        <form onSubmit={handleGlobalSearch} className="relative max-w-md">
           <svg
             className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
             fill="none"
@@ -37,10 +49,12 @@ export function Header({ onMenuClick }: HeaderProps) {
           </svg>
           <input
             type="search"
-            placeholder="Поиск задач..."
+            placeholder="Глобальный поиск (Enter для перехода)..."
+            value={globalSearch}
+            onChange={(e) => setGlobalSearch(e.target.value)}
             className="w-full rounded-md border border-gray-300 bg-white pl-10 pr-4 py-2 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
-        </div>
+        </form>
       </div>
 
       {/* Right side */}

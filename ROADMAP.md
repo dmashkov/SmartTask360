@@ -2,7 +2,7 @@
 
 **Планирование сессий разработки**
 
-**Last Updated:** 2026-01-04
+**Last Updated:** 2026-01-04 (Evening Session)
 
 ---
 
@@ -16,11 +16,19 @@
 | Sprint 3: AI Integration | 1 week | 4 sessions | ✅ Completed |
 | Sprint 4: Boards & Notifications | 1 week | 3-4 sessions | ✅ Completed |
 | Sprint 5: Frontend Core | 1 week | 4-5 sessions | ✅ Completed |
-| Sprint 6: Frontend Tasks & Kanban | 2 weeks | 8-10 sessions | ✅ Completed |
+| Sprint 6: Frontend Tasks & Kanban | 2 weeks | 10+ sessions | ✅ Completed + Enhanced |
+| Sprint 6.5: Projects Module | 3 days | 2-3 sessions | ⏳ Next |
+| Sprint 6.6: Gantt Chart | 2 days | 2 sessions | ⏳ Planned |
 | Sprint 7: Polish & Testing | 1 week | 3-4 sessions | ⏳ Planned |
 
-**Total MVP:** ~6 weeks, ~40-45 sessions
-**Completed:** ~35 sessions (Sprint 0-6)
+**Total MVP:** ~7-8 weeks, ~44-50 sessions
+**Completed:** ~37 sessions (Sprint 0-6 + enhancements)
+**Next:** Sprint 6.5 → 6.6 — Projects + Gantt (три режима просмотра задач)
+
+**Sprint 6 Recent Enhancements (2026-01-04):**
+- ✅ Task hierarchy visualization (expand/collapse, lazy loading)
+- ✅ Task urgency indicators (overdue/due today/due soon)
+- ✅ UI refinements (subtasks inline, placeholder tabs, completion result)
 
 ---
 
@@ -954,6 +962,200 @@
 
 ---
 
+### ✅ Session 6.9 — Task Hierarchy & Urgency (2026-01-04)
+**Duration:** 6h
+**Status:** ✅ Completed
+**Date:** 2026-01-04
+
+**Goal:** Visualize task hierarchies and add urgency indicators
+
+**Tasks:**
+- [x] Create TaskExpandButton component (expand/collapse with chevron)
+- [x] Create ParentTaskLink component (navigation to parent)
+- [x] Create ChildTaskNode component (recursive tree node)
+- [x] Create ChildTasksTree container component
+- [x] Add useTaskChildren hook (lazy loading via GET /tasks?parent_id=...)
+- [x] Integrate hierarchy into TaskRow (expand button + indent)
+- [x] Fix duplicate children rendering (filter root tasks only)
+- [x] Restructure TaskDetailPage:
+  - Remove "Подзадачи" tab, make subtasks inline
+  - Position subtasks between Description and Status Actions
+  - Make compact with reduced spacing
+- [x] Add placeholder tabs: Documents, Comments, History
+- [x] Add completion result placeholder (for done tasks)
+- [x] Create getTaskUrgency() utility function:
+  - Calculate urgency: overdue 🔴, due_today 🟠, due_soon 🟡 (1-3 days)
+  - Handle completed tasks (show if late)
+  - Russian pluralization (1 день, 2 дня, 5 дней, недели)
+  - Week-based display for long overdue
+- [x] Add urgency to TaskRow (icon next to due date)
+- [x] Add urgency to TaskDetailPage (badge in header + icon in Details)
+- [x] Add urgency to ChildTaskNode (icon in tree)
+
+**Result:**
+- Task hierarchy fully functional with lazy loading
+- Subtasks render once (root tasks filter working)
+- TaskDetailPage compact and logical
+- Urgency indicators in all views with tooltips
+- All TypeScript compilation passing
+
+**Files created:**
+- `frontend/src/modules/tasks/components/TaskExpandButton.tsx`
+- `frontend/src/modules/tasks/components/ParentTaskLink.tsx`
+- `frontend/src/modules/tasks/components/ChildTaskNode.tsx`
+- `frontend/src/modules/tasks/components/ChildTasksTree.tsx`
+
+**Files modified:**
+- `frontend/src/shared/lib/utils.ts` (added getTaskUrgency, TaskUrgency types)
+- `frontend/src/modules/tasks/components/TaskRow.tsx` (expand, urgency)
+- `frontend/src/modules/tasks/components/TaskList.tsx` (root tasks filter)
+- `frontend/src/pages/TaskDetailPage.tsx` (tabs, subtasks, urgency)
+- `frontend/src/modules/tasks/hooks/useTasks.ts` (added useTaskChildren)
+
+---
+
+## Sprint 6.5: Projects Module
+
+**Goal:** Полноценный модуль проектов для привязки задач и досок
+
+### Session 6.5.1 — Backend Projects (Models, Service, Router)
+**Duration:** 4-5h
+**Status:** ⏳ Planned
+
+**Goal:** Создать backend модуль проектов
+
+**Tasks:**
+- [ ] Create Project model:
+  - id, name, code (unique), description
+  - status (planning, active, on_hold, completed, archived)
+  - owner_id, department_id
+  - start_date, due_date, completed_at
+  - settings (JSONB for custom fields)
+  - is_deleted, created_at, updated_at
+- [ ] Create ProjectMember model (project_id, user_id, role)
+- [ ] Create ProjectStatus, ProjectMemberRole enums
+- [ ] Create schemas (ProjectCreate, ProjectUpdate, ProjectResponse, ProjectWithStats)
+- [ ] Create ProjectService:
+  - CRUD operations
+  - get_project_tasks, get_project_boards
+  - get_project_stats (% completion, task counts by status)
+  - Member management (add, remove, update role)
+- [ ] Create router with 10+ endpoints
+- [ ] Create migration with FK constraints
+- [ ] Register in main.py
+- [ ] Write tests (15+ scenarios)
+
+**Files to create:**
+- `backend/app/modules/projects/__init__.py`
+- `backend/app/modules/projects/models.py`
+- `backend/app/modules/projects/schemas.py`
+- `backend/app/modules/projects/service.py`
+- `backend/app/modules/projects/router.py`
+- `alembic/versions/*_create_projects_table.py`
+- `tests/test_projects_api.py`
+
+---
+
+### Session 6.5.2 — Backend Integration + Frontend Projects
+**Duration:** 4-5h
+**Status:** ⏳ Planned
+
+**Goal:** Интеграция с tasks/boards + frontend модуль
+
+**Tasks:**
+- [ ] Update TaskService.get_all() — add project_id filter
+- [ ] Update GET /tasks — add project_id query param
+- [ ] Update BoardService — add project filter
+- [ ] Create frontend modules/projects/:
+  - types.ts
+  - api.ts
+  - hooks/ (useProjects, useProject, useProjectMutations)
+- [ ] Create components:
+  - ProjectSelect (for forms)
+  - ProjectCard (for list)
+  - ProjectBadge (inline indicator)
+- [ ] Create pages:
+  - ProjectsPage (list + create)
+  - ProjectDetailPage (info, stats, tasks, boards, members)
+- [ ] Integration:
+  - Add ProjectSelect to TaskFormModal
+  - Add project_id filter to TaskFilters
+  - Add "Проекты" to Sidebar
+  - Update Router
+
+**Files to create:**
+- `frontend/src/modules/projects/types.ts`
+- `frontend/src/modules/projects/api.ts`
+- `frontend/src/modules/projects/hooks/*.ts`
+- `frontend/src/modules/projects/components/*.tsx`
+- `frontend/src/pages/projects/*.tsx`
+
+---
+
+## Sprint 6.6: Gantt Chart
+
+**Goal:** Gantt-диаграмма как третий режим просмотра задач проекта
+
+### Session 6.6.1 — Backend Dependencies + Gantt Component
+**Duration:** 4-5h
+**Status:** ⏳ Planned
+
+**Goal:** Зависимости задач + базовый Gantt компонент
+
+**Tasks:**
+- [ ] Create TaskDependency model:
+  - predecessor_id, successor_id
+  - type: FS (finish-to-start), SS, FF, SF
+- [ ] Create schemas and service methods
+- [ ] Add endpoints: POST/DELETE /tasks/{id}/dependencies
+- [ ] Create migration
+- [ ] Install frappe-gantt (lightweight, MIT license)
+- [ ] Create GanttChart wrapper component
+- [ ] Create GanttBar with drag handles
+- [ ] Implement date editing via drag
+
+**Files to create:**
+- `backend/app/modules/tasks/dependencies.py` (or extend models.py)
+- `alembic/versions/*_create_task_dependencies.py`
+- `frontend/src/modules/gantt/GanttChart.tsx`
+- `frontend/src/modules/gantt/GanttBar.tsx`
+
+---
+
+### Session 6.6.2 — Gantt Integration + View Switcher
+**Duration:** 3-4h
+**Status:** ⏳ Planned
+
+**Goal:** Интеграция Gantt в ProjectDetailPage
+
+**Tasks:**
+- [ ] Create ViewSwitcher component (Таблица / Kanban / Gantt)
+- [ ] Add Gantt tab to ProjectDetailPage
+- [ ] Implement dependency arrows visualization
+- [ ] Implement zoom controls (day/week/month)
+- [ ] Implement task click → TaskDetailPage
+- [ ] Sync changes across all three views
+- [ ] Add loading and empty states
+
+**Result:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Project: Website Redesign                                  │
+│  ┌──────────┬──────────┬──────────┐                        │
+│  │ Таблица  │  Kanban  │  Gantt   │  ← ViewSwitcher        │
+│  └──────────┴──────────┴──────────┘                        │
+│                                                             │
+│  [Gantt Chart View]                                         │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Task 1    ████████████                              │   │
+│  │ Task 2         ├──────────────────                  │   │
+│  │ Task 3                    ████████████              │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Sprint 7: AI UI & Polish
 
 **Goal:** AI UI, notifications, dashboard, финальная полировка
@@ -1078,26 +1280,91 @@
 
 ---
 
-## 🎯 Post-MVP Sessions
+## 🎯 Post-MVP: Strategic Layer (Phase 3)
 
-После завершения MVP начинаем Phase 2:
+После завершения MVP начинаем Phase 3 — полная иерархия 360°:
 
-- Projects & Programs module
-- OKR module
-- BSC (Balanced Scorecard)
-- Gantt chart
-- Advanced analytics
-- Saved filters
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     SmartTask360 Hierarchy                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   BSC (Balanced Scorecard)                                      │
+│   └── Strategic Goals (4 perspectives)                          │
+│       └── OKR (Objectives & Key Results)                        │
+│           └── Programs (portfolio of projects)                  │
+│               └── Projects ← MVP включает этот уровень          │
+│                   └── Tasks ← AI SMART Validation               │
+│                       └── Subtasks                              │
+│                           └── Checklists                        │
+│                                                                 │
+│   Each level cascades down with AI assistance                   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-См. [TODO.md](TODO.md) Phase 2 для деталей.
+### Phase 3.1: Programs Module
+- Program model (id, name, description, owner_id, status)
+- ProgramProject association (many-to-many)
+- Programs → Projects hierarchy
+- Program dashboard with aggregated stats
+
+### Phase 3.2: OKR Module
+- Objective model (title, period, owner_id)
+- KeyResult model (objective_id, target, current, unit)
+- OKR → Programs/Projects linking
+- Progress tracking with check-ins
+- OKR cascade view
+
+### Phase 3.3: BSC (Balanced Scorecard) Module
+- 4 Perspectives: Financial, Customer, Internal, Learning & Growth
+- Strategic Goals per perspective
+- KPIs with targets and actuals
+- Strategy map visualization
+- Full cascade: BSC → OKR → Programs → Projects → Tasks
+
+### Phase 3.4: Gantt Chart Advanced (extends MVP)
+- Critical path highlighting
+- Export to PDF/PNG
+- Milestones on timeline
+- Resource allocation view
+- Baseline comparison
+- Progress tracking overlay
+
+### Phase 3.5: Advanced Analytics & Search
+- Task completion trends
+- Team velocity metrics
+- Saved filters (views)
+- Advanced query builder
+
+См. [TODO.md](TODO.md) Phase 3 для деталей.
 
 ---
 
 ## 📊 Progress Tracking
 
-**Completed Sessions:** 1 / ~45
-**Current Sprint:** Sprint 0
-**Current Session:** Session 0.2
+**Completed Sessions:** ~37 / ~50
+**Current Sprint:** Sprint 6 Enhanced → Ready for Sprint 6.5
+**Latest Session:** Session 6.9 — Task Hierarchy & Urgency ✅
+
+**MVP Goal:**
+```
+Project → Tasks → 3 View Modes:
+  ├── Таблица (Table) ✅ есть (+ hierarchy + urgency)
+  ├── Kanban ✅ есть
+  └── Gantt ⏳ Sprint 6.6
+```
+
+**Recent Achievements (2026-01-04):**
+- ✅ Task hierarchy visualization (expand/collapse, lazy loading)
+- ✅ Task urgency indicators (overdue 🔴, due today 🟠, due soon 🟡)
+- ✅ UI enhancements (subtasks inline, compact panels, placeholder tabs)
+- ✅ 5 new components (TaskExpandButton, ParentTaskLink, ChildTaskNode, etc.)
+- ✅ Advanced utilities (getTaskUrgency with Russian pluralization)
 
 **Next Session Preview:**
-Session 0.2 — Infrastructure Setup (Docker, DB, MinIO)
+Session 6.5.1 — Backend Projects (Models, Service, Router)
+- Create Project model with status enum
+- Implement ProjectService with CRUD + stats
+- Add 10+ API endpoints
+- Write comprehensive tests

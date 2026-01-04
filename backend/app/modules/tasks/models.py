@@ -56,7 +56,11 @@ class Task(Base):
     )  # low/medium/high/critical
 
     # Ownership & Assignment
+    # author_id - who physically created the task (immutable)
+    author_id: Mapped[UUID] = mapped_column(nullable=False, index=True)
+    # creator_id - on whose behalf the task was created (can be changed)
     creator_id: Mapped[UUID] = mapped_column(nullable=False, index=True)
+    # assignee_id - who will execute the task (can be changed)
     assignee_id: Mapped[UUID | None] = mapped_column(nullable=True, index=True)
 
     # Hierarchy (ltree)

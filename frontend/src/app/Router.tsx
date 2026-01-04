@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../modules/auth";
 import { MainLayout } from "../shared/layout";
 import { ProtectedRoute } from "./ProtectedRoute";
-import { LoginPage, RegisterPage, DashboardPage, NotFoundPage, TasksPage, TaskDetailPage, BoardsPage, BoardDetailPage } from "../pages";
+import { LoginPage, RegisterPage, DashboardPage, NotFoundPage, TasksPage, TaskDetailPage, BoardsPage, BoardDetailPage, ProjectsPage, ProjectDetailPage } from "../pages";
 import { Loading } from "../shared/ui";
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -88,6 +88,26 @@ export function Router() {
             <ProtectedRoute>
               <MainLayout>
                 <BoardDetailPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projects"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <ProjectsPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projects/:projectId"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <ProjectDetailPage />
               </MainLayout>
             </ProtectedRoute>
           }

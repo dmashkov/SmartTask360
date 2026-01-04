@@ -81,6 +81,7 @@ from app.modules.comments.router import router as comments_router
 from app.modules.departments.router import router as departments_router
 from app.modules.documents.router import router as documents_router
 from app.modules.notifications.router import router as notifications_router
+from app.modules.projects.router import router as projects_router
 from app.modules.tags.router import router as tags_router
 from app.modules.task_history.router import router as task_history_router
 from app.modules.tasks.router import router as tasks_router
@@ -95,6 +96,7 @@ app.include_router(comments_router, prefix="/api/v1")
 app.include_router(departments_router, prefix="/api/v1")
 app.include_router(documents_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
+app.include_router(projects_router, prefix="/api/v1")
 app.include_router(tags_router, prefix="/api/v1")
 app.include_router(task_history_router, prefix="/api/v1")
 app.include_router(tasks_router, prefix="/api/v1")

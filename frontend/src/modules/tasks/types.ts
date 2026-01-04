@@ -28,7 +28,11 @@ export interface Task {
   description: string | null;
   status: TaskStatus;
   priority: TaskPriority;
+  // author_id - who physically created the task (immutable)
+  author_id: string;
+  // creator_id - on whose behalf the task was created (can be changed)
   creator_id: string;
+  // assignee_id - who will execute the task (can be changed)
   assignee_id: string | null;
   parent_id: string | null;
   path: string;
@@ -52,6 +56,7 @@ export interface Task {
   smart_score: Record<string, unknown> | null;
   smart_validated_at: string | null;
   smart_is_valid: boolean | null;
+  children_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -72,6 +77,9 @@ export interface TaskCreate {
   description?: string | null;
   status?: TaskStatus;
   priority?: TaskPriority;
+  // creator_id - on whose behalf (defaults to current user)
+  creator_id?: string | null;
+  // assignee_id - who will execute (defaults to creator_id)
   assignee_id?: string | null;
   parent_id?: string | null;
   department_id?: string | null;
@@ -91,6 +99,8 @@ export interface TaskUpdate {
   description?: string | null;
   status?: TaskStatus;
   priority?: TaskPriority;
+  // creator_id can be changed
+  creator_id?: string | null;
   assignee_id?: string | null;
   parent_id?: string | null;
   department_id?: string | null;
@@ -158,4 +168,20 @@ export interface PaginatedResponse<T> {
   page: number;
   per_page: number;
   pages: number;
+}
+
+// Excel import/export types
+export interface ImportErrorDetail {
+  row: number;
+  field: string;
+  message: string;
+  value: string | null;
+}
+
+export interface ImportResult {
+  success: boolean;
+  total_rows: number;
+  imported: number;
+  skipped: number;
+  errors: ImportErrorDetail[];
 }

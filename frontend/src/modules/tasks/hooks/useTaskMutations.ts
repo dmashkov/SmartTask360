@@ -151,3 +151,72 @@ export function useRemoveTaskTag() {
     },
   });
 }
+
+// Bulk operations
+export function useBulkUpdateStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation<Task[], Error, { taskIds: string[]; status: string }>({
+    mutationFn: async ({ taskIds, status }) => {
+      const results = await Promise.all(
+        taskIds.map((taskId) =>
+          changeTaskStatus(taskId, { status: status as TaskStatusChange["status"] })
+        )
+      );
+      return results;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+    },
+  });
+}
+
+export function useBulkUpdatePriority() {
+  const queryClient = useQueryClient();
+
+  return useMutation<Task[], Error, { taskIds: string[]; priority: string }>({
+    mutationFn: async ({ taskIds, priority }) => {
+      const results = await Promise.all(
+        taskIds.map((taskId) =>
+          updateTask(taskId, { priority: priority as TaskUpdate["priority"] })
+        )
+      );
+      return results;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+    },
+  });
+}
+
+export function useBulkDelete() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void[], Error, string[]>({
+    mutationFn: async (taskIds) => {
+      const results = await Promise.all(taskIds.map((taskId) => deleteTask(taskId)));
+      return results;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+    },
+  });
+}
+
+export function useBulkUpdateAssignee() {
+  const queryClient = useQueryClient();
+
+  return useMutation<Task[], Error, { taskIds: string[]; assigneeId: string | null }>({
+    mutationFn: async ({ taskIds, assigneeId }) => {
+      const results = await Promise.all(
+        taskIds.map((taskId) =>
+          updateTask(taskId, { assignee_id: assigneeId })
+        )
+      );
+      return results;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+    },
+  });
+}

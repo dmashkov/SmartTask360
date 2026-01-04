@@ -117,3 +117,28 @@ class EmailDigest(str, Enum):
 
     def __str__(self) -> str:
         return self.value
+
+
+class ProjectStatus(str, Enum):
+    """Project status enum"""
+
+    PLANNING = "planning"
+    ACTIVE = "active"
+    ON_HOLD = "on_hold"
+    COMPLETED = "completed"
+    ARCHIVED = "archived"
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class ProjectMemberRole(str, Enum):
+    """Project member role enum"""
+
+    OWNER = "owner"
+    ADMIN = "admin"
+    MEMBER = "member"
+    VIEWER = "viewer"
+
+    def __str__(self) -> str:
+        return self.value

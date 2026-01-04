@@ -4,4 +4,6 @@ export { TasksPage } from "./TasksPage";
 export { TaskDetailPage } from "./TaskDetailPage";
 export { BoardsPage } from "./BoardsPage";
 export { BoardDetailPage } from "./BoardDetailPage";
+export { ProjectsPage } from "./ProjectsPage";
+export { ProjectDetailPage } from "./ProjectDetailPage";
 export { NotFoundPage } from "./NotFoundPage";

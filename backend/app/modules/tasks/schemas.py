@@ -19,6 +19,9 @@ class TaskCreate(BaseModel):
     description: str | None = None
     status: TaskStatus = TaskStatus.NEW
     priority: TaskPriority = TaskPriority.MEDIUM
+    # creator_id - on whose behalf the task is created (defaults to current user)
+    creator_id: UUID | None = None
+    # assignee_id - who will execute (defaults to creator_id)
     assignee_id: UUID | None = None
     parent_id: UUID | None = None
     department_id: UUID | None = None
@@ -39,6 +42,8 @@ class TaskUpdate(BaseModel):
     description: str | None = None
     status: TaskStatus | None = None
     priority: TaskPriority | None = None
+    # creator_id can be changed (on whose behalf the task is)
+    creator_id: UUID | None = None
     assignee_id: UUID | None = None
     parent_id: UUID | None = None
     department_id: UUID | None = None
@@ -63,6 +68,9 @@ class TaskResponse(BaseModel):
     description: str | None
     status: str
     priority: str
+    # author_id - who physically created the task (immutable)
+    author_id: UUID
+    # creator_id - on whose behalf the task was created
     creator_id: UUID
     assignee_id: UUID | None
     parent_id: UUID | None
@@ -87,6 +95,7 @@ class TaskResponse(BaseModel):
     smart_score: dict[str, Any] | None
     smart_validated_at: datetime | None
     smart_is_valid: bool | None
+    children_count: int = 0
     created_at: datetime
     updated_at: datetime
 
@@ -135,3 +144,13 @@ class AvailableTransitionsResponse(BaseModel):
 
     current_status: str
     available_statuses: list[str]
+
+
+class UserBrief(BaseModel):
+    """Brief user info for watchers/participants lists"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    email: str

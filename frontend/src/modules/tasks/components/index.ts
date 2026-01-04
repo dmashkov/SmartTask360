@@ -1,6 +1,13 @@
-export { TaskFilters } from "./TaskFilters";
+export { TaskFilters, defaultColumnConfig } from "./TaskFilters";
+export type { ColumnConfig } from "./TaskFilters";
 export { TaskRow } from "./TaskRow";
 export { TaskList } from "./TaskList";
 export { TaskFormModal } from "./TaskFormModal";
 export { TaskTableHeader } from "./TaskTableHeader";
 export type { SortConfig, SortField, SortOrder } from "./TaskTableHeader";
+export { BulkActionsBar } from "./BulkActionsBar";
+export { ImportTasksModal } from "./ImportTasksModal";
+export { TaskExpandButton } from "./TaskExpandButton";
+export { ParentTaskLink } from "./ParentTaskLink";
+export { ChildTaskNode } from "./ChildTaskNode";
+export { ChildTasksTree } from "./ChildTasksTree";

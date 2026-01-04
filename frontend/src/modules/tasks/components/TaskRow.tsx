@@ -1,84 +1,192 @@
 import { Link } from "react-router-dom";
 import { Badge, Avatar, Checkbox } from "../../../shared/ui";
-import { formatDate, formatDateTime } from "../../../shared/lib/utils";
+import { formatDate, formatDateTime, getShortId, getTaskUrgency } from "../../../shared/lib/utils";
 import type { Task } from "../types";
+import type { ColumnConfig } from "./TaskFilters";
+import { type UsersMap, getUserById } from "../../users";
+import { TaskExpandButton } from "./TaskExpandButton";
 
 interface TaskRowProps {
   task: Task;
-  onStatusToggle?: (task: Task) => void;
+  columnConfig: ColumnConfig;
+  usersMap: UsersMap;
+  isSelected?: boolean;
+  onSelect?: (taskId: string, selected: boolean) => void;
+  // Hierarchy props
+  isExpanded?: boolean;
+  isLoadingChildren?: boolean;
+  onToggleExpand?: (taskId: string) => void;
 }
 
-export function TaskRow({ task, onStatusToggle }: TaskRowProps) {
+export function TaskRow({
+  task,
+  columnConfig,
+  usersMap,
+  isSelected = false,
+  onSelect,
+  isExpanded = false,
+  isLoadingChildren = false,
+  onToggleExpand,
+}: TaskRowProps) {
   const isCompleted = task.status === "done";
-  const isOverdue = task.due_date && new Date(task.due_date + "Z") < new Date() && !isCompleted;
+  const urgency = getTaskUrgency({
+    status: task.status,
+    due_date: task.due_date,
+    completed_at: task.completed_at,
+  });
+
+  const author = getUserById(usersMap, task.author_id);
+  const creator = getUserById(usersMap, task.creator_id);
+  const assignee = getUserById(usersMap, task.assignee_id);
+
+  const handleCheckboxChange = () => {
+    onSelect?.(task.id, !isSelected);
+  };
+
+  const handleToggleExpand = () => {
+    onToggleExpand?.(task.id);
+  };
+
+  // Calculate indent based on depth (24px per level)
+  const indentStyle = task.depth > 0 ? { paddingLeft: `${task.depth * 24}px` } : undefined;
 
   return (
-    <div className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50">
-      {/* Checkbox */}
-      <Checkbox
-        checked={isCompleted}
-        onChange={() => onStatusToggle?.(task)}
-      />
+    <div className={`flex items-center gap-3 px-3 py-1.5 hover:bg-gray-50 ${isSelected ? "bg-blue-50" : ""}`}>
+      {/* Expand button + Checkbox in indented container */}
+      <div className="flex items-center gap-1" style={indentStyle}>
+        <TaskExpandButton
+          isExpanded={isExpanded}
+          isLoading={isLoadingChildren}
+          childrenCount={task.children_count}
+          onClick={handleToggleExpand}
+        />
+        <Checkbox
+          checked={isSelected}
+          onChange={handleCheckboxChange}
+        />
+      </div>
 
-      {/* Title */}
+      {/* ID */}
+      {columnConfig.id && (
+        <div className="w-16 shrink-0">
+          <span className="text-xs font-mono text-gray-400" title={task.id}>
+            {getShortId(task.id)}
+          </span>
+        </div>
+      )}
+
+      {/* Title - always visible */}
       <div className="flex-1 min-w-0">
         <Link
           to={`/tasks/${task.id}`}
-          className={`block font-medium hover:text-blue-600 truncate ${
+          className={`text-sm hover:text-blue-600 ${
             isCompleted ? "line-through text-gray-400" : "text-gray-900"
           }`}
         >
           {task.title}
         </Link>
-        {task.depth > 0 && (
-          <span className="text-xs text-gray-400">
-            Подзадача (уровень {task.depth})
+        {/* Show children count for tasks with children */}
+        {task.children_count > 0 && (
+          <span className="text-xs text-gray-400 ml-2">
+            ({task.children_count})
           </span>
         )}
       </div>
+
+      {/* Author - who physically created */}
+      {columnConfig.author && (
+        <div className="w-24 shrink-0">
+          {author ? (
+            <div className="flex items-center gap-1">
+              <Avatar name={author.name} size="xs" />
+              <span className="text-xs text-gray-600 truncate">{author.name}</span>
+            </div>
+          ) : (
+            <span className="text-gray-300 text-xs">—</span>
+          )}
+        </div>
+      )}
+
+      {/* Creator - on whose behalf */}
+      {columnConfig.creator && (
+        <div className="w-24 shrink-0">
+          {creator ? (
+            <div className="flex items-center gap-1">
+              <Avatar name={creator.name} size="xs" />
+              <span className="text-xs text-gray-600 truncate">{creator.name}</span>
+            </div>
+          ) : (
+            <span className="text-gray-300 text-xs">—</span>
+          )}
+        </div>
+      )}
+
+      {/* Assignee - who will execute */}
+      {columnConfig.assignee && (
+        <div className="w-24 shrink-0">
+          {assignee ? (
+            <div className="flex items-center gap-1">
+              <Avatar name={assignee.name} size="xs" />
+              <span className="text-xs text-gray-600 truncate">{assignee.name}</span>
+            </div>
+          ) : (
+            <span className="text-gray-300 text-xs">—</span>
+          )}
+        </div>
+      )}
 
       {/* Due Date */}
-      <div className="w-28 text-sm">
-        {task.due_date ? (
-          <span className={isOverdue ? "text-red-500 font-medium" : "text-gray-600"}>
-            {formatDate(task.due_date)}
-          </span>
-        ) : (
-          <span className="text-gray-400">—</span>
-        )}
-      </div>
+      {columnConfig.dueDate && (
+        <div className="w-32 text-xs flex items-center gap-1">
+          {task.due_date ? (
+            <>
+              <span className="text-gray-600">
+                {formatDate(task.due_date)}
+              </span>
+              {/* Urgency indicator */}
+              {urgency.icon && (
+                <span
+                  className="cursor-help"
+                  title={urgency.tooltip || undefined}
+                >
+                  {urgency.icon}
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-gray-300">—</span>
+          )}
+        </div>
+      )}
 
       {/* Priority */}
-      <div className="w-24">
-        <Badge type="priority" value={task.priority} />
-      </div>
+      {columnConfig.priority && (
+        <div className="w-20">
+          <Badge type="priority" value={task.priority} size="sm" />
+        </div>
+      )}
 
       {/* Status */}
-      <div className="w-28">
-        <Badge type="status" value={task.status} />
-      </div>
+      {columnConfig.status && (
+        <div className="w-24">
+          <Badge type="status" value={task.status} size="sm" />
+        </div>
+      )}
 
       {/* Created */}
-      <div className="w-32 text-sm text-gray-500">
-        {formatDateTime(task.created_at)}
-      </div>
-
-      {/* Assignee */}
-      <div className="w-8">
-        {task.assignee_id ? (
-          <Avatar name="Assignee" size="sm" />
-        ) : (
-          <span className="text-gray-300">—</span>
-        )}
-      </div>
+      {columnConfig.createdAt && (
+        <div className="w-28 text-xs text-gray-500">
+          {formatDateTime(task.created_at)}
+        </div>
+      )}
 
       {/* Actions */}
-      <div className="w-6">
+      <div className="w-5">
         <Link
           to={`/tasks/${task.id}`}
-          className="p-1 text-gray-400 hover:text-gray-600"
+          className="text-gray-400 hover:text-gray-600"
         >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
         </Link>
