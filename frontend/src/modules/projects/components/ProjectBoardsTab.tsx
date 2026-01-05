@@ -7,7 +7,7 @@ import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Spinner, EmptyState, Badge, Avatar } from "../../../shared/ui";
 import { useProjectTasks } from "../hooks";
-import { useChangeTaskStatus } from "../../tasks/hooks";
+import { useChangeTaskStatus, useCreateTask } from "../../tasks/hooks";
 import { formatDate, getTaskUrgency } from "../../../shared/lib/utils";
 import type { Task, TaskStatus } from "../../tasks/types";
 
@@ -74,7 +74,7 @@ interface KanbanColumnProps {
   color: string;
   status: TaskStatus;
   tasks: Task[];
-  width: number;
+  projectId: string;
   onDragStart: (taskId: string, status: TaskStatus) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (targetStatus: TaskStatus) => void;
@@ -85,39 +85,118 @@ function KanbanColumn({
   color,
   status,
   tasks,
-  width,
+  projectId,
   onDragStart,
   onDragOver,
   onDrop,
 }: KanbanColumnProps) {
+  const [isCreating, setIsCreating] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const createTask = useCreateTask();
+
+  const handleCreateTask = async () => {
+    if (!newTaskTitle.trim()) return;
+
+    try {
+      await createTask.mutateAsync({
+        title: newTaskTitle.trim(),
+        status,
+        priority: "medium",
+        project_id: projectId,
+      });
+      setNewTaskTitle("");
+      setIsCreating(false);
+    } catch (error) {
+      console.error("Failed to create task:", error);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleCreateTask();
+    } else if (e.key === "Escape") {
+      setIsCreating(false);
+      setNewTaskTitle("");
+    }
+  };
+
   return (
     <div
-      className="flex-shrink-0 bg-gray-100 rounded-lg"
-      style={{ width: `${width}px` }}
+      className="flex-1 bg-gray-100 rounded-lg"
+      style={{ minWidth: "170px" }}
       onDragOver={onDragOver}
       onDrop={() => onDrop(status)}
     >
       {/* Column Header */}
       <div className="p-3 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: color }}
-          />
-          <h3 className="font-semibold text-gray-900">{name}</h3>
-          <span className="text-sm px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
-            {tasks.length}
-          </span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: color }}
+            />
+            <h3 className="font-semibold text-gray-900">{name}</h3>
+            <span className="text-sm px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
+              {tasks.length}
+            </span>
+          </div>
+          <button
+            onClick={() => setIsCreating(true)}
+            className="p-1 hover:bg-gray-200 rounded transition-colors"
+            title="Добавить задачу"
+          >
+            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
         </div>
       </div>
 
       {/* Column Body */}
       <div className="p-2 space-y-2 min-h-[200px] max-h-[calc(100vh-350px)] overflow-y-auto">
+        {/* Quick create form */}
+        {isCreating && (
+          <div className="bg-white rounded-lg border-2 border-blue-400 p-3 shadow-sm">
+            <input
+              type="text"
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={() => {
+                if (!newTaskTitle.trim()) {
+                  setIsCreating(false);
+                }
+              }}
+              placeholder="Название задачи..."
+              className="w-full text-sm border-none outline-none"
+              autoFocus
+            />
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={handleCreateTask}
+                disabled={!newTaskTitle.trim() || createTask.isPending}
+                className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Создать
+              </button>
+              <button
+                onClick={() => {
+                  setIsCreating(false);
+                  setNewTaskTitle("");
+                }}
+                className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        )}
+
         {tasks.map((task) => (
           <KanbanTaskCard key={task.id} task={task} onDragStart={onDragStart} />
         ))}
 
-        {tasks.length === 0 && (
+        {tasks.length === 0 && !isCreating && (
           <div className="text-center py-8 text-gray-400 text-sm">
             Перетащите задачи сюда
           </div>
@@ -160,36 +239,6 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
 
     return grouped;
   }, [tasksData]);
-
-  // Calculate optimal column width based on task titles
-  const calculateColumnWidth = (tasks: Task[]): number => {
-    if (tasks.length === 0) return 168; // Minimum width for empty columns (-40%)
-
-    // Find the longest title in the column
-    const maxTitleLength = Math.max(
-      ...tasks.map((task) => task.title.length),
-      30 // Minimum character count (-40%)
-    );
-
-    // Calculate width: ~8px per character, with padding and constraints
-    // Min: 168px (~30 chars), Max: 400px (~50 chars)
-    const calculatedWidth = Math.min(
-      Math.max(maxTitleLength * 8, 168),
-      400
-    );
-
-    return calculatedWidth;
-  };
-
-  // Calculate widths for all columns
-  const columnWidths = useMemo(() => {
-    const widths = new Map<TaskStatus, number>();
-    for (const col of STATUS_COLUMNS) {
-      const tasks = tasksByStatus.get(col.status) || [];
-      widths.set(col.status, calculateColumnWidth(tasks));
-    }
-    return widths;
-  }, [tasksByStatus]);
 
   const handleDragStart = (taskId: string, sourceStatus: TaskStatus) => {
     setDragState({ taskId, sourceStatus });
@@ -243,7 +292,7 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
 
   return (
     <div className="p-4 overflow-x-auto">
-      <div className="flex gap-4 pb-4 min-w-max">
+      <div className="flex gap-4 pb-4">
         {STATUS_COLUMNS.map((col) => (
           <KanbanColumn
             key={col.status}
@@ -251,7 +300,7 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
             color={col.color}
             status={col.status}
             tasks={tasksByStatus.get(col.status) || []}
-            width={columnWidths.get(col.status) || 168}
+            projectId={projectId}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
