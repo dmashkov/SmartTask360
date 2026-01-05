@@ -77,6 +77,7 @@ async def get_tasks(
     priority: list[str] | None = Query(default=None),
     search: str | None = None,
     project_id: UUID | None = None,
+    no_project: bool | None = None,
     assignee_id: UUID | None = None,
     creator_id: UUID | None = None,
     is_overdue: bool | None = None,
@@ -93,6 +94,7 @@ async def get_tasks(
     - creator_id: filter by task creator (who set the task)
     - is_overdue: if true, only show overdue tasks
     - parent_id: filter by parent task (for getting children)
+    - no_project: if true, only show tasks without project
     """
     service = TaskService(db)
     tasks = await service.get_all(
@@ -102,6 +104,7 @@ async def get_tasks(
         priority=priority,
         search=search,
         project_id=project_id,
+        no_project=no_project,
         assignee_id=assignee_id,
         creator_id=creator_id,
         is_overdue=is_overdue,

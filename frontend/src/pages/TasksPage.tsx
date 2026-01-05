@@ -7,10 +7,11 @@ import { getTaskChildren } from "../modules/tasks/api";
 import { TaskFilters, TaskList, TaskFormModal, BulkActionsBar, defaultColumnConfig } from "../modules/tasks/components";
 import type { TaskFilters as TaskFiltersType, TaskStatus, TaskPriority, Task } from "../modules/tasks";
 import type { SortConfig, SortField } from "../modules/tasks/components/TaskTableHeader";
-import type { ColumnConfig } from "../modules/tasks/components";
+import type { ColumnConfig, GroupByOption } from "../modules/tasks/components";
 import type { ProjectsMap } from "../modules/tasks/components/TaskRow";
 import { useUsersMap, useUsers } from "../modules/users";
 import { useProjects } from "../modules/projects";
+import { useAuth } from "../modules/auth";
 
 const COLUMN_CONFIG_KEY = "smarttask360_task_columns";
 const ITEMS_PER_PAGE = 20;
@@ -35,12 +36,18 @@ const STATUS_ORDER: Record<string, number> = {
   draft: 7,
 };
 
+const GROUP_BY_KEY = "smarttask360_group_by";
+
 export function TasksPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState<TaskFiltersType>({});
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [sort, setSort] = useState<SortConfig>({ field: "created_at", order: "desc" });
   const [currentPage, setCurrentPage] = useState(1);
+  const [groupBy, setGroupBy] = useState<GroupByOption>(() => {
+    const saved = localStorage.getItem(GROUP_BY_KEY);
+    return (saved as GroupByOption) || "none";
+  });
   const [columnConfig, setColumnConfig] = useState<ColumnConfig>(() => {
     const saved = localStorage.getItem(COLUMN_CONFIG_KEY);
     if (saved) {
@@ -58,16 +65,54 @@ export function TasksPage() {
     localStorage.setItem(COLUMN_CONFIG_KEY, JSON.stringify(columnConfig));
   }, [columnConfig]);
 
-  // Sync search param from URL to filters
+  // Save groupBy to localStorage
   useEffect(() => {
+    localStorage.setItem(GROUP_BY_KEY, groupBy);
+  }, [groupBy]);
+
+  const { user: currentUser } = useAuth();
+
+  // Track the last applied URL params to detect navigation changes
+  const [lastAppliedParams, setLastAppliedParams] = useState<string | null>(null);
+
+  // Sync URL params (role, status, search) to filters when URL changes
+  useEffect(() => {
+    const currentParamsString = searchParams.toString();
+
+    // Only apply when URL actually changes (navigation from sidebar)
+    if (currentParamsString === lastAppliedParams) return;
+
+    const roleFromUrl = searchParams.get("role") as TaskFiltersType["role"] | null;
+    const statusFromUrl = searchParams.get("status") as TaskStatus | null;
     const searchFromUrl = searchParams.get("search");
-    if (searchFromUrl) {
-      setFilters((prev) => ({ ...prev, search: searchFromUrl }));
-      // Clear the URL param after applying
-      searchParams.delete("search");
-      setSearchParams(searchParams, { replace: true });
+
+    // Build new filters from URL params
+    let newFilters: TaskFiltersType = {};
+
+    // Handle role parameter
+    if (roleFromUrl && currentUser) {
+      if (roleFromUrl === "assignee") {
+        newFilters.assignee_id = currentUser.id;
+      } else if (roleFromUrl === "creator") {
+        newFilters.creator_id = currentUser.id;
+      } else if (roleFromUrl === "watcher") {
+        newFilters.role = "watcher";
+      }
     }
-  }, [searchParams, setSearchParams]);
+
+    // Handle status parameter
+    if (statusFromUrl) {
+      newFilters.status = statusFromUrl;
+    }
+
+    // Handle search parameter
+    if (searchFromUrl) {
+      newFilters.search = searchFromUrl;
+    }
+
+    setFilters(newFilters);
+    setLastAppliedParams(currentParamsString);
+  }, [searchParams, currentUser]);
 
   const { data: tasks, isLoading } = useTasks(filters);
   const { data: allTasks } = useTasks(); // All tasks for total count
@@ -273,12 +318,31 @@ export function TasksPage() {
             Управление и отслеживание задач
           </p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
-          <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Новая задача
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Group by toggle */}
+          <button
+            type="button"
+            onClick={() => setGroupBy(groupBy === "project" ? "none" : "project")}
+            className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md border transition-colors ${
+              groupBy === "project"
+                ? "bg-blue-50 text-blue-700 border-blue-200"
+                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+            }`}
+            title={groupBy === "project" ? "Отключить группировку" : "Группировать по проектам"}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+            </svg>
+            По проектам
+          </button>
+
+          <Button onClick={() => setIsCreateModalOpen(true)}>
+            <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Новая задача
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -310,6 +374,7 @@ export function TasksPage() {
         childrenMap={childrenMap}
         onToggleExpand={handleToggleExpand}
         searchQuery={filters.search}
+        groupBy={groupBy}
       />
 
       {/* Bulk Actions Bar */}

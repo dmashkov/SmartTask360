@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../modules/auth";
 import { MainLayout } from "../shared/layout";
 import { ProtectedRoute } from "./ProtectedRoute";
-import { LoginPage, RegisterPage, DashboardPage, NotFoundPage, TasksPage, TaskDetailPage, BoardsPage, BoardDetailPage, ProjectsPage, ProjectDetailPage } from "../pages";
+import { LoginPage, RegisterPage, DashboardPage, NotFoundPage, TasksPage, TaskDetailPage, BoardsPage, BoardDetailPage, ProjectsPage, ProjectDetailPage, InboxPage, FavoritesPage } from "../pages";
 import { Loading } from "../shared/ui";
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -48,6 +48,27 @@ export function Router() {
             <ProtectedRoute>
               <MainLayout>
                 <DashboardPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        {/* Personal Cabinet routes */}
+        <Route
+          path="/inbox"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <InboxPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/favorites"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <FavoritesPage />
               </MainLayout>
             </ProtectedRoute>
           }
@@ -118,8 +139,8 @@ export function Router() {
             <ProtectedRoute>
               <MainLayout>
                 <div className="text-center py-12">
-                  <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
-                  <p className="text-gray-600 mt-2">Coming soon...</p>
+                  <h1 className="text-2xl font-bold text-gray-900">Документы</h1>
+                  <p className="text-gray-600 mt-2">В разработке...</p>
                 </div>
               </MainLayout>
             </ProtectedRoute>
@@ -131,8 +152,8 @@ export function Router() {
             <ProtectedRoute>
               <MainLayout>
                 <div className="text-center py-12">
-                  <h1 className="text-2xl font-bold text-gray-900">Team</h1>
-                  <p className="text-gray-600 mt-2">Coming soon...</p>
+                  <h1 className="text-2xl font-bold text-gray-900">Команда</h1>
+                  <p className="text-gray-600 mt-2">В разработке...</p>
                 </div>
               </MainLayout>
             </ProtectedRoute>
@@ -144,8 +165,21 @@ export function Router() {
             <ProtectedRoute>
               <MainLayout>
                 <div className="text-center py-12">
-                  <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-                  <p className="text-gray-600 mt-2">Coming soon...</p>
+                  <h1 className="text-2xl font-bold text-gray-900">Настройки</h1>
+                  <p className="text-gray-600 mt-2">В разработке...</p>
+                </div>
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <div className="text-center py-12">
+                  <h1 className="text-2xl font-bold text-gray-900">Отчёты</h1>
+                  <p className="text-gray-600 mt-2">Функционал будет доступен в Phase 2</p>
                 </div>
               </MainLayout>
             </ProtectedRoute>

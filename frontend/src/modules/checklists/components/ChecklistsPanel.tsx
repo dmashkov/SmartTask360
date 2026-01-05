@@ -13,6 +13,7 @@ import {
   useToggleChecklistItem,
   useUpdateChecklistItem,
   useDeleteChecklistItem,
+  useMoveChecklistItem,
 } from "../hooks";
 
 interface ChecklistsPanelProps {
@@ -37,6 +38,7 @@ export function ChecklistsPanel({ taskId, disabled = false }: ChecklistsPanelPro
   const toggleItem = useToggleChecklistItem(taskId);
   const updateItem = useUpdateChecklistItem(taskId);
   const deleteItem = useDeleteChecklistItem(taskId);
+  const moveItem = useMoveChecklistItem(taskId);
 
   const handleAddChecklist = () => {
     const trimmed = newChecklistTitle.trim();
@@ -96,9 +98,9 @@ export function ChecklistsPanel({ taskId, disabled = false }: ChecklistsPanelPro
           setNewChecklistTitle(getDefaultTitle());
           setIsAddingChecklist(true);
         }}
-        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600 transition-colors"
+        className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 transition-colors"
       >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
         Добавить чеклист
@@ -107,14 +109,14 @@ export function ChecklistsPanel({ taskId, disabled = false }: ChecklistsPanelPro
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-1">
       {/* Header - only show if has checklists */}
       {hasChecklists && (
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">Чеклисты</span>
+          <div className="flex items-center gap-1">
+            <span className="text-xs font-medium text-gray-700">Чеклисты</span>
             {data && data.total_items > 0 && (
-              <span className="text-xs text-gray-500">
+              <span className="text-[10px] text-gray-500">
                 {data.completed_items}/{data.total_items}
               </span>
             )}
@@ -125,17 +127,17 @@ export function ChecklistsPanel({ taskId, disabled = false }: ChecklistsPanelPro
                 setNewChecklistTitle(getDefaultTitle());
                 setIsAddingChecklist(true);
               }}
-              className="text-xs text-blue-600 hover:text-blue-700"
+              className="text-[10px] text-blue-600 hover:text-blue-700"
             >
-              + Добавить
+              + добавить
             </button>
           )}
         </div>
       )}
 
-      {/* Add new checklist form */}
+      {/* Add new checklist form - ultra compact */}
       {isAddingChecklist && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+        <div className="bg-gray-50 border border-gray-200 rounded p-1.5">
           <input
             type="text"
             value={newChecklistTitle}
@@ -143,13 +145,13 @@ export function ChecklistsPanel({ taskId, disabled = false }: ChecklistsPanelPro
             onKeyDown={handleKeyDown}
             placeholder="Название чеклиста..."
             autoFocus
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full border border-gray-300 rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           />
-          <div className="mt-2 flex gap-2">
+          <div className="mt-1 flex gap-1">
             <button
               onClick={handleAddChecklist}
               disabled={!newChecklistTitle.trim() || createChecklist.isPending}
-              className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-2 py-0.5 text-[10px] bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {createChecklist.isPending ? "..." : "Создать"}
             </button>
@@ -158,7 +160,7 @@ export function ChecklistsPanel({ taskId, disabled = false }: ChecklistsPanelPro
                 setNewChecklistTitle("");
                 setIsAddingChecklist(false);
               }}
-              className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200 rounded transition-colors"
+              className="px-2 py-0.5 text-[10px] text-gray-600 hover:bg-gray-200 rounded transition-colors"
             >
               Отмена
             </button>
@@ -166,9 +168,9 @@ export function ChecklistsPanel({ taskId, disabled = false }: ChecklistsPanelPro
         </div>
       )}
 
-      {/* Checklists */}
+      {/* Checklists - ultra compact spacing */}
       {hasChecklists && (
-        <div className="space-y-2">
+        <div className="space-y-1">
           {checklists
             .sort((a, b) => a.position - b.position)
             .map((checklist) => (
@@ -189,6 +191,15 @@ export function ChecklistsPanel({ taskId, disabled = false }: ChecklistsPanelPro
                 onDeleteItem={(itemId) => deleteItem.mutate(itemId)}
                 onAddItem={(content) =>
                   createItem.mutate({ checklist_id: checklist.id, content })
+                }
+                onMoveItem={(itemId, oldIndex, newIndex) =>
+                  moveItem.mutate({
+                    itemId,
+                    data: { new_position: newIndex },
+                    checklistId: checklist.id,
+                    oldIndex,
+                    newIndex,
+                  })
                 }
               />
             ))}

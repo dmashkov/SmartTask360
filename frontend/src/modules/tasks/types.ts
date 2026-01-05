@@ -6,6 +6,7 @@ export type TaskStatus =
   | "in_progress"
   | "on_hold"
   | "in_review"
+  | "rework"  // Returned from review for corrections
   | "done"
   | "cancelled";
 
@@ -150,6 +151,8 @@ export interface TaskFilters {
   parent_id?: string | null;
   department_id?: string;
   project_id?: string;
+  /** Filter tasks without project */
+  no_project?: boolean;
   is_milestone?: boolean;
   is_overdue?: boolean;
   search?: string;

@@ -139,12 +139,22 @@ class ChecklistService:
             if parent_item.checklist_id != item_data.checklist_id:
                 raise ValueError("Parent item must be in the same checklist")
 
+        # Calculate position: append to end of siblings (max position + 1)
+        max_position_result = await self.db.execute(
+            select(func.max(ChecklistItem.position)).where(
+                ChecklistItem.checklist_id == item_data.checklist_id,
+                ChecklistItem.parent_id == item_data.parent_id,
+            )
+        )
+        max_position = max_position_result.scalar()
+        new_position = (max_position + 1) if max_position is not None else 0
+
         # Create item
         item = ChecklistItem(
             checklist_id=item_data.checklist_id,
             parent_id=item_data.parent_id,
             content=item_data.content,
-            position=item_data.position,
+            position=new_position,
             is_completed=False,
             depth=parent_item.depth + 1 if parent_item else 0,
             path="",  # Will be set after flush
@@ -205,7 +215,8 @@ class ChecklistService:
         self, item_id: UUID, new_parent_id: UUID | None, new_position: int
     ) -> ChecklistItem | None:
         """
-        Move item to new parent (or root) and update path for item and all descendants
+        Move item to new parent (or root) and update positions of siblings.
+        Uses array-based reordering for flat structure.
         """
         item = await self.get_item_by_id(item_id)
         if not item:
@@ -225,10 +236,59 @@ class ChecklistService:
                 raise ValueError("Cannot move item to different checklist")
 
         old_path = item.path
+        old_position = item.position
+        old_parent_id = item.parent_id
 
-        # Update parent and position
+        # Get all siblings at the target level (same parent)
+        siblings_query = select(ChecklistItem).where(
+            ChecklistItem.checklist_id == item.checklist_id,
+            ChecklistItem.parent_id == new_parent_id,
+        ).order_by(ChecklistItem.position)
+
+        siblings_result = await self.db.execute(siblings_query)
+        siblings = list(siblings_result.scalars().all())
+
+        # If moving within same parent, reorder in place
+        if old_parent_id == new_parent_id:
+            # Remove item from current position and insert at new position
+            siblings_without_item = [s for s in siblings if s.id != item.id]
+
+            # Clamp new_position to valid range
+            new_position = max(0, min(new_position, len(siblings_without_item)))
+
+            # Insert item at new position
+            siblings_without_item.insert(new_position, item)
+
+            # Update positions for all siblings
+            for idx, sibling in enumerate(siblings_without_item):
+                sibling.position = idx
+        else:
+            # Moving to different parent
+            # First, update positions in old parent's children
+            old_siblings_query = select(ChecklistItem).where(
+                ChecklistItem.checklist_id == item.checklist_id,
+                ChecklistItem.parent_id == old_parent_id,
+                ChecklistItem.id != item.id,
+            ).order_by(ChecklistItem.position)
+
+            old_siblings_result = await self.db.execute(old_siblings_query)
+            old_siblings = list(old_siblings_result.scalars().all())
+
+            # Reindex old siblings
+            for idx, sibling in enumerate(old_siblings):
+                sibling.position = idx
+
+            # Add item to new parent's children
+            new_siblings = [s for s in siblings if s.id != item.id]
+            new_position = max(0, min(new_position, len(new_siblings)))
+            new_siblings.insert(new_position, item)
+
+            # Update positions for new siblings
+            for idx, sibling in enumerate(new_siblings):
+                sibling.position = idx
+
+        # Update parent reference
         item.parent_id = new_parent_id
-        item.position = new_position
 
         # Update depth and path
         if new_parent:
@@ -240,17 +300,18 @@ class ChecklistService:
 
         item.path = new_path
 
-        # Update paths of all descendants
-        descendants = await self.db.execute(
-            select(ChecklistItem).where(
-                ChecklistItem.path.like(f"{old_path}.%")
+        # Update paths of all descendants (if item had children)
+        if old_path != new_path:
+            descendants = await self.db.execute(
+                select(ChecklistItem).where(
+                    ChecklistItem.path.like(f"{old_path}.%")
+                )
             )
-        )
-        for descendant in descendants.scalars().all():
-            # Replace old path prefix with new path
-            descendant.path = descendant.path.replace(old_path, new_path, 1)
-            # Update depth
-            descendant.depth = descendant.path.count(".")
+            for descendant in descendants.scalars().all():
+                # Replace old path prefix with new path
+                descendant.path = descendant.path.replace(old_path, new_path, 1)
+                # Update depth
+                descendant.depth = descendant.path.count(".")
 
         await self.db.commit()
         await self.db.refresh(item)

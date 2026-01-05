@@ -42,6 +42,7 @@ class TaskStatus(str, Enum):
     IN_PROGRESS = "in_progress"
     ON_HOLD = "on_hold"
     IN_REVIEW = "in_review"
+    REWORK = "rework"  # Returned from review for corrections
     DONE = "done"
     CANCELLED = "cancelled"
 

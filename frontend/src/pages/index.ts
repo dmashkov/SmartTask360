@@ -6,4 +6,6 @@ export { BoardsPage } from "./BoardsPage";
 export { BoardDetailPage } from "./BoardDetailPage";
 export { ProjectsPage } from "./ProjectsPage";
 export { ProjectDetailPage } from "./ProjectDetailPage";
+export { InboxPage } from "./InboxPage";
+export { FavoritesPage } from "./FavoritesPage";
 export { NotFoundPage } from "./NotFoundPage";

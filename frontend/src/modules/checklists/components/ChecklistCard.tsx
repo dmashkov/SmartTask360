@@ -1,8 +1,22 @@
 /**
- * ChecklistCard — Single checklist with items
+ * ChecklistCard — Single checklist with items and drag-n-drop reordering
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import type { ChecklistWithItems } from "../types";
 import { ChecklistItemRow } from "./ChecklistItemRow";
 
@@ -14,6 +28,7 @@ interface ChecklistCardProps {
   onUpdateItem: (itemId: string, content: string) => void;
   onDeleteItem: (itemId: string) => void;
   onAddItem: (content: string) => void;
+  onMoveItem?: (itemId: string, oldIndex: number, newIndex: number) => void;
   disabled?: boolean;
 }
 
@@ -25,12 +40,34 @@ export function ChecklistCard({
   onUpdateItem,
   onDeleteItem,
   onAddItem,
+  onMoveItem,
   disabled = false,
 }: ChecklistCardProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(checklist.title);
   const [newItemValue, setNewItemValue] = useState("");
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Sorted items for display and DnD
+  const sortedItems = useMemo(() => {
+    return checklist.items
+      .filter((item) => !item.parent_id) // Only root items for flat structure
+      .sort((a, b) => a.position - b.position);
+  }, [checklist.items]);
+
+  const itemIds = useMemo(() => sortedItems.map((item) => item.id), [sortedItems]);
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Calculate progress
   const totalItems = checklist.items.length;
@@ -69,18 +106,32 @@ export function ChecklistCard({
     }
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id && onMoveItem) {
+      const oldIndex = sortedItems.findIndex((item) => item.id === active.id);
+      const newIndex = sortedItems.findIndex((item) => item.id === over.id);
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        // Pass both old and new indices for optimistic update
+        onMoveItem(active.id as string, oldIndex, newIndex);
+      }
+    }
+  };
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-gray-100">
-        <div className="flex items-center gap-2 flex-1">
+      {/* Header - ultra compact */}
+      <div className="flex items-center justify-between px-2 py-1 border-b border-gray-100">
+        <div className="flex items-center gap-1 flex-1">
           {/* Collapse toggle */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors"
           >
             <svg
-              className={`w-4 h-4 transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
+              className={`w-3 h-3 transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -98,19 +149,19 @@ export function ChecklistCard({
               onBlur={handleTitleSave}
               onKeyDown={handleTitleKeyDown}
               autoFocus
-              className="flex-1 font-medium text-gray-800 border border-blue-400 rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="flex-1 text-xs font-medium text-gray-800 border border-blue-400 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           ) : (
-            <h4
+            <span
               onDoubleClick={() => !disabled && setIsEditingTitle(true)}
-              className="font-medium text-gray-800 cursor-default"
+              className="text-xs font-medium text-gray-800 cursor-default"
             >
               {checklist.title}
-            </h4>
+            </span>
           )}
 
           {/* Progress badge */}
-          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+          <span className="text-[10px] text-gray-500 bg-gray-100 px-1 py-0.5 rounded">
             {completedItems}/{totalItems}
           </span>
         </div>
@@ -119,10 +170,10 @@ export function ChecklistCard({
         {!disabled && (
           <button
             onClick={onDelete}
-            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+            className="text-gray-400 hover:text-red-500 transition-colors"
             title="Удалить чеклист"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -144,44 +195,42 @@ export function ChecklistCard({
         </div>
       )}
 
-      {/* Items */}
+      {/* Items - ultra compact */}
       {!isCollapsed && (
-        <div className="p-2">
-          {/* Items list */}
-          <div className="space-y-0.5">
-            {checklist.items
-              .filter((item) => !item.parent_id) // Only root items for flat structure
-              .sort((a, b) => a.position - b.position)
-              .map((item) => (
-                <ChecklistItemRow
-                  key={item.id}
-                  item={item}
-                  onToggle={onToggleItem}
-                  onUpdate={onUpdateItem}
-                  onDelete={onDeleteItem}
-                  disabled={disabled}
-                />
-              ))}
-          </div>
+        <div className="px-1 py-0.5">
+          {/* Items list with DnD */}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+              <div>
+                {sortedItems.map((item) => (
+                  <ChecklistItemRow
+                    key={item.id}
+                    item={item}
+                    onToggle={onToggleItem}
+                    onUpdate={onUpdateItem}
+                    onDelete={onDeleteItem}
+                    disabled={disabled}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
 
-          {/* Add new item */}
+          {/* Add new item - ultra compact */}
           {!disabled && (
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-0.5 flex items-center gap-1 px-0.5">
               <input
                 type="text"
                 value={newItemValue}
                 onChange={(e) => setNewItemValue(e.target.value)}
                 onKeyDown={handleAddItemKeyDown}
-                placeholder="Добавить пункт..."
-                className="flex-1 text-sm border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="+ добавить..."
+                className="flex-1 text-xs border-0 border-b border-gray-200 px-1 py-0.5 focus:outline-none focus:border-blue-500 bg-transparent"
               />
-              <button
-                onClick={handleAddItem}
-                disabled={!newItemValue.trim()}
-                className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Добавить
-              </button>
             </div>
           )}
         </div>

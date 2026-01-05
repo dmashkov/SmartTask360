@@ -42,6 +42,7 @@ class TaskService:
         priority: str | list[str] | None = None,
         search: str | None = None,
         project_id: UUID | None = None,
+        no_project: bool | None = None,
         assignee_id: UUID | None = None,
         creator_id: UUID | None = None,
         is_overdue: bool | None = None,
@@ -69,7 +70,10 @@ class TaskService:
             query = query.where(
                 Task.title.ilike(search_pattern) | Task.description.ilike(search_pattern)
             )
-        if project_id:
+        if no_project:
+            # Filter tasks without project
+            query = query.where(Task.project_id.is_(None))
+        elif project_id:
             query = query.where(Task.project_id == project_id)
         if assignee_id:
             query = query.where(Task.assignee_id == assignee_id)

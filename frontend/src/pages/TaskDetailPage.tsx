@@ -15,10 +15,11 @@ import {
 } from "../shared/ui";
 import { cn, formatDate, formatDateTime, getShortId, copyToClipboard, getTaskUrl, getTaskUrgency } from "../shared/lib/utils";
 import { useTask, useChangeTaskStatus, useDeleteTask, useTaskWatchers, useTaskParticipants } from "../modules/tasks";
-import { TaskFormModal, ParentTaskLink, ChildTasksTree } from "../modules/tasks/components";
+import { TaskFormModal, ParentTaskLink, ChildTasksTree, StatusChangeModal, requiresStatusChangeModal, TaskDetailTabs } from "../modules/tasks/components";
 import type { TaskStatus } from "../modules/tasks";
 import { useUsersMap, getUserById } from "../modules/users";
 import { ChecklistsPanel } from "../modules/checklists";
+import { useProject } from "../modules/projects";
 
 // Status labels for dropdown
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
@@ -26,6 +27,7 @@ const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
   { value: "assigned", label: "Назначена" },
   { value: "in_progress", label: "В работе" },
   { value: "in_review", label: "На проверке" },
+  { value: "rework", label: "На доработке" },
   { value: "on_hold", label: "На паузе" },
   { value: "done", label: "Готово" },
 ];
@@ -36,6 +38,11 @@ export function TaskDetailPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreateSubtaskModalOpen, setIsCreateSubtaskModalOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  // Status change modal state
+  const [statusChangeModal, setStatusChangeModal] = useState<{
+    isOpen: boolean;
+    newStatus: TaskStatus | null;
+  }>({ isOpen: false, newStatus: null });
 
   const { data: task, isLoading, error } = useTask(taskId || "");
   const { data: watchers = [] } = useTaskWatchers(taskId || "");
@@ -43,6 +50,9 @@ export function TaskDetailPage() {
   const changeStatus = useChangeTaskStatus();
   const deleteTask = useDeleteTask();
   const { usersMap } = useUsersMap();
+
+  // Fetch project info if task has project_id
+  const { data: project } = useProject(task?.project_id || "", !!task?.project_id);
 
   // Get user details
   const author = task ? getUserById(usersMap, task.author_id) : undefined;
@@ -76,9 +86,24 @@ export function TaskDetailPage() {
   }
 
   const handleStatusChange = (newStatus: TaskStatus) => {
-    changeStatus.mutate({
+    // Check if this status change requires a modal
+    if (requiresStatusChangeModal(newStatus)) {
+      setStatusChangeModal({ isOpen: true, newStatus });
+    } else {
+      // Simple status change without modal
+      changeStatus.mutate({
+        taskId: task.id,
+        data: { status: newStatus },
+      });
+    }
+  };
+
+  const handleStatusChangeConfirm = async (comment: string) => {
+    if (!statusChangeModal.newStatus) return;
+
+    await changeStatus.mutateAsync({
       taskId: task.id,
-      data: { status: newStatus },
+      data: { status: statusChangeModal.newStatus, comment },
     });
   };
 
@@ -100,6 +125,12 @@ export function TaskDetailPage() {
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-gray-500">
         <Link to="/tasks" className="hover:text-gray-700">Задачи</Link>
+        {project && (
+          <>
+            <span>/</span>
+            <Link to={`/projects/${project.id}`} className="hover:text-gray-700">{project.name}</Link>
+          </>
+        )}
         <span>/</span>
         <span className="text-gray-900 truncate max-w-xs">{task.title}</span>
       </nav>
@@ -245,9 +276,6 @@ export function TaskDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Checklists Section */}
-          <ChecklistsPanel taskId={task.id} />
-
           {/* Subtasks Section */}
           {task.children_count > 0 && (
             <Card>
@@ -272,10 +300,13 @@ export function TaskDetailPage() {
             </Card>
           )}
 
+          {/* Checklists Section */}
+          <ChecklistsPanel taskId={task.id} />
+
           {/* Completion Result (for done tasks) */}
           {task.status === "done" && (
             <Card>
-              <CardHeader>
+              <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
                   <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -283,13 +314,8 @@ export function TaskDetailPage() {
                   <CardTitle>Результат выполнения</CardTitle>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <p className="text-gray-400 italic">Функционал находится в разработке</p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Здесь будет текст результата и прикреплённые документы
-                  </p>
-                </div>
+              <CardContent className="pt-0">
+                <p className="text-gray-400 italic text-sm">Функционал находится в разработке</p>
               </CardContent>
             </Card>
           )}
@@ -317,6 +343,9 @@ export function TaskDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Tabs: Comments, History, Documents */}
+          <TaskDetailTabs taskId={task.id} />
         </div>
 
         {/* Compact Sidebar */}
@@ -344,6 +373,22 @@ export function TaskDetailPage() {
                     <Avatar name={creator.name} size="sm" />
                     <span className="text-sm font-medium truncate max-w-[120px]">{creator.name}</span>
                   </div>
+                ) : (
+                  <span className="text-sm text-gray-400">—</span>
+                )}
+              </div>
+
+              {/* Project */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">Проект</span>
+                {project ? (
+                  <Link
+                    to={`/projects/${project.id}`}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-700 truncate max-w-[140px]"
+                    title={project.name}
+                  >
+                    {project.name}
+                  </Link>
                 ) : (
                   <span className="text-sm text-gray-400">—</span>
                 )}
@@ -473,6 +518,18 @@ export function TaskDetailPage() {
         onClose={() => setIsCreateSubtaskModalOpen(false)}
         parentId={task.id}
       />
+
+      {/* Status Change Modal */}
+      {statusChangeModal.newStatus && (
+        <StatusChangeModal
+          isOpen={statusChangeModal.isOpen}
+          onClose={() => setStatusChangeModal({ isOpen: false, newStatus: null })}
+          taskId={task.id}
+          currentStatus={task.status}
+          newStatus={statusChangeModal.newStatus}
+          onConfirm={handleStatusChangeConfirm}
+        />
+      )}
     </div>
   );
 }

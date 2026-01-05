@@ -6,7 +6,7 @@ import { ImportTasksModal } from "./ImportTasksModal";
 import { useUsers } from "../../users";
 import { useAuth } from "../../auth";
 import { SavedViewsDropdown } from "../../views";
-import { ProjectSelect } from "../../projects";
+import { ProjectSelect, NO_PROJECT_VALUE } from "../../projects";
 
 // Custom debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -294,8 +294,16 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
 
   const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
-    onFiltersChange({ ...filters, project_id: value || undefined });
+    if (value === NO_PROJECT_VALUE) {
+      // Filter tasks without project
+      onFiltersChange({ ...filters, project_id: undefined, no_project: true });
+    } else {
+      onFiltersChange({ ...filters, project_id: value || undefined, no_project: undefined });
+    }
   };
+
+  // Get current project filter value for select
+  const projectFilterValue = filters.no_project ? NO_PROJECT_VALUE : (filters.project_id || "");
 
   const handleClearFilters = () => {
     setSearch("");
@@ -326,7 +334,7 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
   }, [filters, currentUser]);
 
   const hasFilters = filters.status || filters.priority || filters.search ||
-    filters.assignee_id || filters.creator_id || filters.is_overdue || filters.project_id;
+    filters.assignee_id || filters.creator_id || filters.is_overdue || filters.project_id || filters.no_project;
 
   const activeFiltersCount = [
     filters.status,
@@ -336,6 +344,7 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
     filters.creator_id,
     filters.is_overdue,
     filters.project_id,
+    filters.no_project,
   ].filter(Boolean).length;
 
   return (
@@ -569,9 +578,10 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
             {/* Row 2: Project filter */}
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <ProjectSelect
-                value={filters.project_id || ""}
+                value={projectFilterValue}
                 onChange={handleProjectChange}
                 placeholder="Все проекты"
+                showNoProject
               />
             </div>
 

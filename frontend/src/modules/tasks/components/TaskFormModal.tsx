@@ -13,7 +13,7 @@ import { useCreateTask, useUpdateTask } from "../hooks";
 import type { Task, TaskCreate, TaskUpdate, TaskPriority } from "../types";
 import { useUsers } from "../../users";
 import { useAuth } from "../../auth";
-import { ProjectSelect } from "../../projects";
+import { ProjectSelect, NO_PROJECT_VALUE } from "../../projects";
 
 const priorityOptions = [
   { value: "low", label: "Низкий" },
@@ -59,6 +59,7 @@ export function TaskFormModal({ isOpen, onClose, task, parentId, defaultProjectI
   useEffect(() => {
     if (isOpen) {
       if (task) {
+        // Edit mode: load task values
         setTitle(task.title);
         setDescription(task.description || "");
         setPriority(task.priority);
@@ -66,8 +67,10 @@ export function TaskFormModal({ isOpen, onClose, task, parentId, defaultProjectI
         setEstimatedHours(task.estimated_hours?.toString() || "");
         setCreatorId(task.creator_id || "");
         setAssigneeId(task.assignee_id || "");
-        setProjectId(task.project_id || "");
+        // For project: if task has no project, use NO_PROJECT_VALUE marker
+        setProjectId(task.project_id || NO_PROJECT_VALUE);
       } else {
+        // Create mode: set defaults
         setTitle("");
         setDescription("");
         setPriority("medium");
@@ -76,7 +79,8 @@ export function TaskFormModal({ isOpen, onClose, task, parentId, defaultProjectI
         // Default creator and assignee to current user
         setCreatorId(currentUser?.id || "");
         setAssigneeId(currentUser?.id || "");
-        setProjectId(defaultProjectId || "");
+        // Default project: if provided use it, otherwise "Без проекта"
+        setProjectId(defaultProjectId || NO_PROJECT_VALUE);
       }
     }
   }, [isOpen, task, defaultProjectId, currentUser]);
@@ -101,7 +105,8 @@ export function TaskFormModal({ isOpen, onClose, task, parentId, defaultProjectI
       parent_id: parentId || null,
       creator_id: creatorId || null,
       assignee_id: assigneeId || null,
-      project_id: projectId || null,
+      // Convert NO_PROJECT_VALUE marker to null for API
+      project_id: projectId === NO_PROJECT_VALUE ? null : (projectId || null),
     };
 
     try {
@@ -149,6 +154,7 @@ export function TaskFormModal({ isOpen, onClose, task, parentId, defaultProjectI
           <ProjectSelect
             value={projectId}
             onChange={(e) => setProjectId(e.target.value)}
+            allowEmpty={false}
           />
 
           <div className="grid grid-cols-2 gap-4">

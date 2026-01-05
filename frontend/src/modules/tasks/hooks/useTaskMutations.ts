@@ -26,7 +26,11 @@ export function useCreateTask() {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
       // Invalidate project tasks cache if task belongs to a project
       if (task.project_id) {
-        queryClient.invalidateQueries({ queryKey: projectKeys.tasks(task.project_id) });
+        // Use partial key to invalidate all project task queries regardless of status filter
+        queryClient.invalidateQueries({
+          queryKey: [...projectKeys.detail(task.project_id), "tasks"],
+          exact: false
+        });
         // Also invalidate project stats
         queryClient.invalidateQueries({ queryKey: projectKeys.detail(task.project_id) });
       }
@@ -44,7 +48,11 @@ export function useUpdateTask() {
       queryClient.setQueryData(taskKeys.detail(task.id), task);
       // Invalidate project tasks cache if task belongs to a project
       if (task.project_id) {
-        queryClient.invalidateQueries({ queryKey: projectKeys.tasks(task.project_id) });
+        // Use partial key to invalidate all project task queries regardless of status filter
+        queryClient.invalidateQueries({
+          queryKey: [...projectKeys.detail(task.project_id), "tasks"],
+          exact: false
+        });
         queryClient.invalidateQueries({ queryKey: projectKeys.detail(task.project_id) });
       }
     },
@@ -70,6 +78,14 @@ export function useAcceptTask() {
     onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
       queryClient.setQueryData(taskKeys.detail(task.id), task);
+      // Invalidate project tasks cache if task belongs to a project
+      if (task.project_id) {
+        queryClient.invalidateQueries({
+          queryKey: [...projectKeys.detail(task.project_id), "tasks"],
+          exact: false
+        });
+        queryClient.invalidateQueries({ queryKey: projectKeys.detail(task.project_id) });
+      }
     },
   });
 }
@@ -82,6 +98,14 @@ export function useRejectTask() {
     onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
       queryClient.setQueryData(taskKeys.detail(task.id), task);
+      // Invalidate project tasks cache if task belongs to a project
+      if (task.project_id) {
+        queryClient.invalidateQueries({
+          queryKey: [...projectKeys.detail(task.project_id), "tasks"],
+          exact: false
+        });
+        queryClient.invalidateQueries({ queryKey: projectKeys.detail(task.project_id) });
+      }
     },
   });
 }
@@ -94,6 +118,15 @@ export function useChangeTaskStatus() {
     onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
       queryClient.setQueryData(taskKeys.detail(task.id), task);
+      // Invalidate project tasks cache if task belongs to a project
+      if (task.project_id) {
+        // Use partial key to invalidate all project task queries regardless of status filter
+        queryClient.invalidateQueries({
+          queryKey: [...projectKeys.detail(task.project_id), "tasks"],
+          exact: false
+        });
+        queryClient.invalidateQueries({ queryKey: projectKeys.detail(task.project_id) });
+      }
     },
   });
 }

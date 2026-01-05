@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, get_db
-from app.core.types import ProjectMemberRole, ProjectStatus
+from app.core.types import ProjectMemberRole, ProjectStatus, UserRole
 from app.modules.projects.schemas import (
     ProjectCreate,
     ProjectFilters,
@@ -160,11 +160,12 @@ async def update_project(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Check permission: owner or admin
-    has_permission = await service.has_role(
+    # Check permission: system admin, project owner, or project admin
+    is_system_admin = str(current_user.role) == UserRole.ADMIN.value
+    has_project_permission = await service.has_role(
         project_id, current_user.id, [ProjectMemberRole.OWNER, ProjectMemberRole.ADMIN]
     )
-    if not has_permission and project.owner_id != current_user.id:
+    if not is_system_admin and not has_project_permission and project.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to update this project")
 
     # Check code uniqueness if changing
@@ -193,8 +194,9 @@ async def delete_project(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Only owner can delete
-    if project.owner_id != current_user.id:
+    # Only owner or system admin can delete
+    is_system_admin = str(current_user.role) == UserRole.ADMIN.value
+    if not is_system_admin and project.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only owner can delete the project")
 
     await service.delete(project_id)
@@ -237,11 +239,12 @@ async def add_project_member(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Check permission: owner or admin
-    has_permission = await service.has_role(
+    # Check permission: system admin, project owner, or project admin
+    is_system_admin = str(current_user.role) == UserRole.ADMIN.value
+    has_project_permission = await service.has_role(
         project_id, current_user.id, [ProjectMemberRole.OWNER, ProjectMemberRole.ADMIN]
     )
-    if not has_permission:
+    if not is_system_admin and not has_project_permission:
         raise HTTPException(status_code=403, detail="Not authorized to add members")
 
     # Cannot add another owner
@@ -267,11 +270,12 @@ async def update_project_member(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Check permission: owner or admin
-    has_permission = await service.has_role(
+    # Check permission: system admin, project owner, or project admin
+    is_system_admin = str(current_user.role) == UserRole.ADMIN.value
+    has_project_permission = await service.has_role(
         project_id, current_user.id, [ProjectMemberRole.OWNER, ProjectMemberRole.ADMIN]
     )
-    if not has_permission:
+    if not is_system_admin and not has_project_permission:
         raise HTTPException(status_code=403, detail="Not authorized to update members")
 
     # Cannot change owner role
@@ -303,11 +307,12 @@ async def remove_project_member(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Check permission: owner or admin
-    has_permission = await service.has_role(
+    # Check permission: system admin, project owner, or project admin (or self-remove)
+    is_system_admin = str(current_user.role) == UserRole.ADMIN.value
+    has_project_permission = await service.has_role(
         project_id, current_user.id, [ProjectMemberRole.OWNER, ProjectMemberRole.ADMIN]
     )
-    if not has_permission and current_user.id != user_id:
+    if not is_system_admin and not has_project_permission and current_user.id != user_id:
         raise HTTPException(status_code=403, detail="Not authorized to remove members")
 
     # Cannot remove owner

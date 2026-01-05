@@ -54,7 +54,10 @@ export {
 export {
   ProjectStatusBadge,
   ProjectCard,
+  ProjectRow,
+  ProjectTableHeader,
   ProjectSelect,
+  NO_PROJECT_VALUE,
   ProjectFormModal,
   ProjectTasksTab,
   ProjectBoardsTab,
