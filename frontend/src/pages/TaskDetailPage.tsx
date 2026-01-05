@@ -123,30 +123,36 @@ export function TaskDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb with back to Kanban button */}
+      {/* Breadcrumb - Project > Task */}
       <div className="flex items-center justify-between gap-4">
         <nav className="flex items-center gap-2 text-sm text-gray-500">
-          <Link to="/tasks" className="hover:text-gray-700">Задачи</Link>
-          {project && (
+          {project ? (
             <>
+              <Link to={`/projects/${project.id}?view=kanban`} className="hover:text-gray-700">
+                {project.name}
+              </Link>
               <span>/</span>
-              <Link to={`/projects/${project.id}?view=tasks`} className="hover:text-gray-700">{project.name}</Link>
+              <span className="text-gray-900 truncate max-w-xs">{task.title}</span>
+            </>
+          ) : (
+            <>
+              <Link to="/tasks" className="hover:text-gray-700">Задачи</Link>
+              <span>/</span>
+              <span className="text-gray-900 truncate max-w-xs">{task.title}</span>
             </>
           )}
-          <span>/</span>
-          <span className="text-gray-900 truncate max-w-xs">{task.title}</span>
         </nav>
 
-        {/* Back to Kanban button */}
+        {/* Link to project tasks list */}
         {project && (
           <Link
-            to={`/projects/${project.id}?view=kanban`}
+            to={`/projects/${project.id}?view=tasks`}
             className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
             </svg>
-            <span>К Канбан</span>
+            <span>Задачи проекта</span>
           </Link>
         )}
       </div>
