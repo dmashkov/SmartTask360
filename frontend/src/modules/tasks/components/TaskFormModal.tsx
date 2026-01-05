@@ -155,6 +155,14 @@ export function TaskFormModal({ isOpen, onClose, task, parentId, defaultProjectI
           taskId: task.id,
           data: data as TaskUpdate,
         });
+
+        // Upload files if any (for edit mode)
+        if (selectedFiles.length > 0) {
+          for (const { file } of selectedFiles) {
+            await uploadDocument(task.id, file, undefined, "attachment");
+          }
+        }
+
         onClose();
       } else {
         // Create task first
