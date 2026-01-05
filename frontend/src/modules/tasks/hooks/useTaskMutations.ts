@@ -46,6 +46,8 @@ export function useUpdateTask() {
     onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
       queryClient.setQueryData(taskKeys.detail(task.id), task);
+      // Invalidate task history (update creates history entries)
+      queryClient.invalidateQueries({ queryKey: ["task-history", task.id] });
       // Invalidate project tasks cache if task belongs to a project
       if (task.project_id) {
         // Use partial key to invalidate all project task queries regardless of status filter
@@ -78,6 +80,8 @@ export function useAcceptTask() {
     onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
       queryClient.setQueryData(taskKeys.detail(task.id), task);
+      // Invalidate task history (accept creates history entry)
+      queryClient.invalidateQueries({ queryKey: ["task-history", task.id] });
       // Invalidate project tasks cache if task belongs to a project
       if (task.project_id) {
         queryClient.invalidateQueries({
@@ -98,6 +102,8 @@ export function useRejectTask() {
     onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
       queryClient.setQueryData(taskKeys.detail(task.id), task);
+      // Invalidate task history (reject creates history entry)
+      queryClient.invalidateQueries({ queryKey: ["task-history", task.id] });
       // Invalidate project tasks cache if task belongs to a project
       if (task.project_id) {
         queryClient.invalidateQueries({
@@ -118,6 +124,8 @@ export function useChangeTaskStatus() {
     onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
       queryClient.setQueryData(taskKeys.detail(task.id), task);
+      // Invalidate task history (status change creates history entry)
+      queryClient.invalidateQueries({ queryKey: ["task-history", task.id] });
       // Invalidate project tasks cache if task belongs to a project
       if (task.project_id) {
         // Use partial key to invalidate all project task queries regardless of status filter

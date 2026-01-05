@@ -20,7 +20,10 @@ export function useCreateComment() {
   return useMutation({
     mutationFn: (data: CommentCreate) => createComment(data),
     onSuccess: (_data, variables) => {
+      // Invalidate comments cache
       queryClient.invalidateQueries({ queryKey: ["comments", variables.task_id] });
+      // Invalidate task history cache (comment creates history entry)
+      queryClient.invalidateQueries({ queryKey: ["task-history", variables.task_id] });
     },
   });
 }
