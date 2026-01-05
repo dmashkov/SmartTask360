@@ -120,8 +120,17 @@ export function ProjectMembersTab({ projectId, isOwner = false }: ProjectMembers
   const updateMember = useUpdateProjectMember();
   const removeMember = useRemoveProjectMember();
 
+  // Validate projectId
+  if (!projectId) {
+    return (
+      <div className="p-4 text-center text-red-600">
+        Ошибка: ID проекта не указан
+      </div>
+    );
+  }
+
   // Get IDs of existing members for filtering in invite modal
-  const existingMemberIds = members.map((m) => m.user_id);
+  const existingMemberIds = Array.isArray(members) ? members.map((m) => m.user_id) : [];
 
   const handleChangeRole = async (userId: string, role: ProjectMemberRole) => {
     try {
@@ -156,9 +165,15 @@ export function ProjectMembersTab({ projectId, isOwner = false }: ProjectMembers
   }
 
   if (error) {
+    console.error("ProjectMembersTab error:", error);
     return (
-      <div className="p-4 text-center text-red-600">
-        Ошибка загрузки участников
+      <div className="p-4 text-center">
+        <div className="text-red-600 font-medium mb-2">
+          Ошибка загрузки участников
+        </div>
+        <div className="text-sm text-gray-500">
+          {error instanceof Error ? error.message : "Неизвестная ошибка"}
+        </div>
       </div>
     );
   }
