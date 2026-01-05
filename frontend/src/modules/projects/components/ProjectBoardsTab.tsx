@@ -10,6 +10,7 @@ import { useProjectTasks } from "../hooks";
 import { useChangeTaskStatus, useCreateTask } from "../../tasks/hooks";
 import { formatDate, getTaskUrgency } from "../../../shared/lib/utils";
 import type { Task, TaskStatus } from "../../tasks/types";
+import { useAuth } from "../../auth";
 
 interface ProjectBoardsTabProps {
   projectId: string;
@@ -93,17 +94,26 @@ function KanbanColumn({
   const [isCreating, setIsCreating] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const createTask = useCreateTask();
+  const { user } = useAuth();
 
   const handleCreateTask = async () => {
     if (!newTaskTitle.trim()) return;
 
     try {
-      await createTask.mutateAsync({
+      // Only assign to current user if status is not "new"
+      const taskData: any = {
         title: newTaskTitle.trim(),
         status,
         priority: "medium",
         project_id: projectId,
-      });
+      };
+
+      // Assign to current user for all statuses except "new"
+      if (status !== "new" && user?.id) {
+        taskData.assignee_id = user.id;
+      }
+
+      await createTask.mutateAsync(taskData);
       setNewTaskTitle("");
       setIsCreating(false);
     } catch (error) {
