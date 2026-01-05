@@ -14,6 +14,8 @@ interface HistorySectionProps {
   taskId: string;
   /** When embedded in tabs, hide header and always show content */
   embedded?: boolean;
+  /** Callback when comment link is clicked (to switch tabs) */
+  onCommentLinkClick?: () => void;
 }
 
 // Translate action names
@@ -137,7 +139,13 @@ function getChangeDescription(entry: TaskHistoryEntry): ChangeDescription {
   return { text: actionLabels[entry.action] || entry.action };
 }
 
-function HistoryTable({ history }: { history: TaskHistoryEntry[] }) {
+function HistoryTable({
+  history,
+  onCommentLinkClick,
+}: {
+  history: TaskHistoryEntry[];
+  onCommentLinkClick?: () => void;
+}) {
   const { usersMap } = useUsersMap();
 
   return (
@@ -183,14 +191,21 @@ function HistoryTable({ history }: { history: TaskHistoryEntry[] }) {
                       className="text-blue-600 hover:text-blue-800 hover:underline"
                       onClick={(e) => {
                         e.preventDefault();
-                        const commentElement = document.getElementById(`comment-${changeDescription.commentId}`);
-                        if (commentElement) {
-                          commentElement.scrollIntoView({ behavior: "smooth", block: "center" });
-                          commentElement.classList.add("bg-yellow-100");
-                          setTimeout(() => {
-                            commentElement.classList.remove("bg-yellow-100");
-                          }, 2000);
+                        // Switch to comments tab first
+                        if (onCommentLinkClick) {
+                          onCommentLinkClick();
                         }
+                        // Wait for tab switch and DOM update, then scroll
+                        setTimeout(() => {
+                          const commentElement = document.getElementById(`comment-${changeDescription.commentId}`);
+                          if (commentElement) {
+                            commentElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                            commentElement.classList.add("bg-yellow-100");
+                            setTimeout(() => {
+                              commentElement.classList.remove("bg-yellow-100");
+                            }, 2000);
+                          }
+                        }, 100);
                       }}
                     >
                       {changeDescription.text} →
@@ -213,7 +228,7 @@ function HistoryTable({ history }: { history: TaskHistoryEntry[] }) {
   );
 }
 
-export function HistorySection({ taskId, embedded = false }: HistorySectionProps) {
+export function HistorySection({ taskId, embedded = false, onCommentLinkClick }: HistorySectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { data: history = [], isLoading } = useTaskHistory(taskId);
 
@@ -223,7 +238,7 @@ export function HistorySection({ taskId, embedded = false }: HistorySectionProps
       <Spinner size="sm" />
     </div>
   ) : history.length > 0 ? (
-    <HistoryTable history={history} />
+    <HistoryTable history={history} onCommentLinkClick={onCommentLinkClick} />
   ) : (
     <p className="text-sm text-gray-400 italic py-2">История пуста</p>
   );

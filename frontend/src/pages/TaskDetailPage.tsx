@@ -16,7 +16,7 @@ import {
 import { cn, formatDate, formatDateTime, getShortId, copyToClipboard, getTaskUrl, getTaskUrgency } from "../shared/lib/utils";
 import { useTask, useChangeTaskStatus, useDeleteTask, useTaskWatchers, useTaskParticipants } from "../modules/tasks";
 import { TaskFormModal, ParentTaskLink, ChildTasksTree, StatusChangeModal, requiresStatusChangeModal, TaskDetailTabs } from "../modules/tasks/components";
-import type { TaskStatus } from "../modules/tasks";
+import type { TaskStatus, TabId } from "../modules/tasks";
 import { useUsersMap, getUserById } from "../modules/users";
 import { ChecklistsPanel } from "../modules/checklists";
 import { useProject } from "../modules/projects";
@@ -38,6 +38,7 @@ export function TaskDetailPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreateSubtaskModalOpen, setIsCreateSubtaskModalOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>("comments");
   // Status change modal state
   const [statusChangeModal, setStatusChangeModal] = useState<{
     isOpen: boolean;
@@ -362,7 +363,11 @@ export function TaskDetailPage() {
           )}
 
           {/* Tabs: Comments, History, Documents */}
-          <TaskDetailTabs taskId={task.id} />
+          <TaskDetailTabs
+            taskId={task.id}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
         </div>
 
         {/* Compact Sidebar */}

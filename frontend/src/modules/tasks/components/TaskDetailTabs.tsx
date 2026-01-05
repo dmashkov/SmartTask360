@@ -8,7 +8,7 @@ import { CommentsSection } from "../../comments";
 import { HistorySection } from "../../task-history";
 import { DocumentsSection } from "../../documents";
 
-type TabId = "comments" | "history" | "documents";
+export type TabId = "comments" | "history" | "documents";
 
 interface Tab {
   id: TabId;
@@ -48,10 +48,22 @@ const TABS: Tab[] = [
 
 interface TaskDetailTabsProps {
   taskId: string;
+  activeTab?: TabId;
+  onTabChange?: (tab: TabId) => void;
 }
 
-export function TaskDetailTabs({ taskId }: TaskDetailTabsProps) {
-  const [activeTab, setActiveTab] = useState<TabId>("comments");
+export function TaskDetailTabs({ taskId, activeTab: controlledActiveTab, onTabChange }: TaskDetailTabsProps) {
+  const [internalActiveTab, setInternalActiveTab] = useState<TabId>("comments");
+
+  // Use controlled or uncontrolled mode
+  const activeTab = controlledActiveTab !== undefined ? controlledActiveTab : internalActiveTab;
+  const setActiveTab = (tab: TabId) => {
+    if (onTabChange) {
+      onTabChange(tab);
+    } else {
+      setInternalActiveTab(tab);
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg border border-gray-200">
@@ -83,7 +95,11 @@ export function TaskDetailTabs({ taskId }: TaskDetailTabsProps) {
           <CommentsSection taskId={taskId} embedded />
         )}
         {activeTab === "history" && (
-          <HistorySection taskId={taskId} embedded />
+          <HistorySection
+            taskId={taskId}
+            embedded
+            onCommentLinkClick={() => setActiveTab("comments")}
+          />
         )}
         {activeTab === "documents" && (
           <DocumentsSection taskId={taskId} embedded />

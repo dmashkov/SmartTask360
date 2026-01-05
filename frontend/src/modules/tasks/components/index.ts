@@ -6,6 +6,7 @@ export type { GroupByOption } from "./TaskList";
 export { TaskFormModal } from "./TaskFormModal";
 export { StatusChangeModal, requiresStatusChangeModal } from "./StatusChangeModal";
 export { TaskDetailTabs } from "./TaskDetailTabs";
+export type { TabId } from "./TaskDetailTabs";
 export { TaskTableHeader } from "./TaskTableHeader";
 export type { SortConfig, SortField, SortOrder } from "./TaskTableHeader";
 export { BulkActionsBar } from "./BulkActionsBar";
