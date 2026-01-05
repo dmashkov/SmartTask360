@@ -179,12 +179,12 @@ class TaskService:
 
         - author_id: always set to current_user_id (who physically creates the task)
         - creator_id: set from task_data or defaults to current_user_id (on whose behalf)
-        - assignee_id: set from task_data or defaults to creator_id
+        - assignee_id: set from task_data or None if not specified
         """
         # Determine creator_id (defaults to current user)
         effective_creator_id = task_data.creator_id or current_user_id
-        # Determine assignee_id (defaults to creator_id)
-        effective_assignee_id = task_data.assignee_id if task_data.assignee_id is not None else effective_creator_id
+        # Determine assignee_id (use provided value or None)
+        effective_assignee_id = task_data.assignee_id
 
         # Calculate path and depth
         if task_data.parent_id:
