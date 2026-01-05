@@ -1,8 +1,11 @@
-import { useState, useRef, useEffect } from "react";
-import { Input, Select, Button, Checkbox, Modal, ModalHeader, ModalBody, ModalFooter } from "../../../shared/ui";
-import type { TaskFilters as TaskFiltersType, TaskStatus, TaskPriority } from "../types";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { Input, Button, Checkbox, Modal, ModalHeader, ModalBody, ModalFooter } from "../../../shared/ui";
+import type { TaskFilters as TaskFiltersType, TaskStatus, TaskPriority, TaskRoleFilter } from "../types";
 import { useExportTasks } from "../hooks";
 import { ImportTasksModal } from "./ImportTasksModal";
+import { useUsers } from "../../users";
+import { useAuth } from "../../auth";
+import { SavedViewsDropdown } from "../../views";
 
 // Custom debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -25,9 +28,9 @@ function useDebounce<T>(value: T, delay: number): T {
 export interface ColumnConfig {
   id: boolean;
   title: boolean;
-  author: boolean;      // who physically created (immutable)
-  creator: boolean;     // on whose behalf (can be changed)
-  assignee: boolean;    // who will execute
+  author: boolean;
+  creator: boolean;
+  assignee: boolean;
   dueDate: boolean;
   priority: boolean;
   status: boolean;
@@ -58,7 +61,6 @@ const columnLabels: Record<keyof ColumnConfig, string> = {
   createdAt: "Создана",
 };
 
-// Order of columns in the modal
 const columnOrder: Array<keyof ColumnConfig> = [
   "id",
   "title",
@@ -71,8 +73,8 @@ const columnOrder: Array<keyof ColumnConfig> = [
   "createdAt",
 ];
 
-const statusOptions = [
-  { value: "", label: "Все статусы" },
+// Status options with labels
+const allStatuses: { value: TaskStatus; label: string }[] = [
   { value: "new", label: "Новая" },
   { value: "assigned", label: "Назначена" },
   { value: "in_progress", label: "В работе" },
@@ -82,12 +84,25 @@ const statusOptions = [
   { value: "cancelled", label: "Отменена" },
 ];
 
+// "Done" and "cancelled" are considered completed
+const completedStatuses: TaskStatus[] = ["done", "cancelled"];
+const activeStatuses: TaskStatus[] = ["new", "assigned", "in_progress", "in_review", "on_hold"];
+
+// Priority options
 const priorityOptions = [
   { value: "", label: "Все приоритеты" },
   { value: "low", label: "Низкий" },
   { value: "medium", label: "Средний" },
   { value: "high", label: "Высокий" },
   { value: "critical", label: "Критический" },
+];
+
+// Role filter options
+const roleOptions: { value: TaskRoleFilter; label: string }[] = [
+  { value: "all", label: "Все задачи" },
+  { value: "assignee", label: "Мне" },
+  { value: "creator", label: "Мои" },
+  { value: "watcher", label: "Слежу" },
 ];
 
 interface TaskFiltersProps {
@@ -98,40 +113,60 @@ interface TaskFiltersProps {
 }
 
 export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnConfigChange }: TaskFiltersProps) {
+  const { user: currentUser } = useAuth();
+  const { data: users = [] } = useUsers();
+
   const [search, setSearch] = useState(filters.search || "");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [tempColumnConfig, setTempColumnConfig] = useState<ColumnConfig>(columnConfig);
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
 
   const exportTasks = useExportTasks();
 
   // Debounce search input (300ms delay)
   const debouncedSearch = useDebounce(search, 300);
 
-  // Close menu when clicking outside
+  // Get current selected statuses as array
+  const selectedStatuses: TaskStatus[] = useMemo(() => {
+    if (!filters.status) return [];
+    return Array.isArray(filters.status) ? filters.status : [filters.status];
+  }, [filters.status]);
+
+  // Check if "hide completed" is active (no done/cancelled in selected)
+  const hideCompleted = useMemo(() => {
+    if (selectedStatuses.length === 0) return false;
+    return !selectedStatuses.some(s => completedStatuses.includes(s));
+  }, [selectedStatuses]);
+
+  // Close menus when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false);
+      }
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+        setIsStatusDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Sync search from filters (for global search)
+  // Sync search from filters
   useEffect(() => {
     if (filters.search !== undefined && filters.search !== search) {
       setSearch(filters.search);
     }
   }, [filters.search]);
 
-  // Apply debounced search to filters (min 3 characters or empty)
+  // Apply debounced search to filters
   useEffect(() => {
     const currentSearch = filters.search || "";
-    // Only search if: empty (clear filter) or at least 3 characters
     const shouldSearch = debouncedSearch === "" || debouncedSearch.length >= 3;
     if (shouldSearch && debouncedSearch !== currentSearch) {
       onFiltersChange({ ...filters, search: debouncedSearch || undefined });
@@ -146,7 +181,6 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
   }, [isColumnModalOpen, columnConfig]);
 
   const handleColumnToggle = (column: keyof ColumnConfig) => {
-    // Don't allow hiding title column
     if (column === "title") return;
     setTempColumnConfig((prev) => ({
       ...prev,
@@ -166,7 +200,6 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Immediately apply search on form submit (Enter key)
     onFiltersChange({ ...filters, search: search || undefined });
   };
 
@@ -174,9 +207,79 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
     setSearch(e.target.value);
   };
 
-  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value as TaskStatus | "";
-    onFiltersChange({ ...filters, status: value || undefined });
+  // Status multi-select handlers
+  const handleStatusToggle = (status: TaskStatus) => {
+    let newStatuses: TaskStatus[];
+    if (selectedStatuses.includes(status)) {
+      newStatuses = selectedStatuses.filter(s => s !== status);
+    } else {
+      newStatuses = [...selectedStatuses, status];
+    }
+
+    onFiltersChange({
+      ...filters,
+      status: newStatuses.length > 0 ? newStatuses : undefined,
+    });
+  };
+
+  const handleHideCompletedToggle = () => {
+    if (hideCompleted) {
+      // Show all statuses (clear filter)
+      onFiltersChange({ ...filters, status: undefined });
+    } else {
+      // Hide completed - only show active statuses
+      onFiltersChange({ ...filters, status: activeStatuses });
+    }
+  };
+
+  const handleOverdueToggle = () => {
+    onFiltersChange({
+      ...filters,
+      is_overdue: filters.is_overdue ? undefined : true,
+    });
+  };
+
+  const handleRoleChange = (role: TaskRoleFilter) => {
+    if (!currentUser) return;
+
+    let newFilters: TaskFiltersType = { ...filters };
+
+    // Clear previous role-related filters
+    delete newFilters.assignee_id;
+    delete newFilters.creator_id;
+    delete newFilters.role;
+
+    if (role === "all") {
+      // No additional filters
+    } else if (role === "assignee") {
+      newFilters.assignee_id = currentUser.id;
+    } else if (role === "creator") {
+      newFilters.creator_id = currentUser.id;
+    } else if (role === "watcher") {
+      // TODO: This needs a different API endpoint or filter
+      // For now, we'll just set a role marker
+      newFilters.role = "watcher";
+    }
+
+    onFiltersChange(newFilters);
+  };
+
+  const handleAssigneeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    onFiltersChange({
+      ...filters,
+      assignee_id: value || undefined,
+      role: undefined, // Clear role when manually selecting user
+    });
+  };
+
+  const handleCreatorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    onFiltersChange({
+      ...filters,
+      creator_id: value || undefined,
+      role: undefined, // Clear role when manually selecting user
+    });
   };
 
   const handlePriorityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -204,11 +307,30 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
     setIsImportModalOpen(true);
   };
 
-  const hasFilters = filters.status || filters.priority || filters.search;
+  // Determine current role from filters
+  const currentRole: TaskRoleFilter = useMemo(() => {
+    if (filters.role === "watcher") return "watcher";
+    if (filters.assignee_id === currentUser?.id && !filters.creator_id) return "assignee";
+    if (filters.creator_id === currentUser?.id && !filters.assignee_id) return "creator";
+    return "all";
+  }, [filters, currentUser]);
+
+  const hasFilters = filters.status || filters.priority || filters.search ||
+    filters.assignee_id || filters.creator_id || filters.is_overdue;
+
+  const activeFiltersCount = [
+    filters.status,
+    filters.priority,
+    filters.search,
+    filters.assignee_id,
+    filters.creator_id,
+    filters.is_overdue,
+  ].filter(Boolean).length;
 
   return (
     <>
       <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
+        {/* Row 1: Search + Quick Actions */}
         <div className="flex flex-col sm:flex-row gap-4">
           <form onSubmit={handleSearchSubmit} className="flex-1">
             <Input
@@ -223,23 +345,50 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
             />
           </form>
 
-          <div className="flex gap-2">
-            <Select
-              options={statusOptions}
-              value={filters.status || ""}
-              onChange={handleStatusChange}
-              className="w-40"
-            />
+          <div className="flex gap-2 items-center">
+            {/* Role quick filter */}
+            <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+              {roleOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleRoleChange(option.value)}
+                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                    currentRole === option.value
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-gray-700 hover:bg-gray-50"
+                  } ${option.value !== "all" ? "border-l border-gray-200" : ""}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
 
-            <Select
-              options={priorityOptions}
-              value={filters.priority || ""}
-              onChange={handlePriorityChange}
-              className="w-40"
+            {/* Expand filters button */}
+            <Button
+              variant="outline"
+              onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+              className="relative"
+            >
+              <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+              </svg>
+              Фильтры
+              {activeFiltersCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </Button>
+
+            {/* Saved Views */}
+            <SavedViewsDropdown
+              currentFilters={filters}
+              onApplyView={onFiltersChange}
             />
 
             {hasFilters && (
-              <Button variant="ghost" onClick={handleClearFilters}>
+              <Button variant="ghost" onClick={handleClearFilters} className="text-gray-500">
                 Сбросить
               </Button>
             )}
@@ -296,6 +445,136 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
             </div>
           </div>
         </div>
+
+        {/* Row 2: Expanded Filters */}
+        {isFiltersExpanded && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Status multi-select dropdown */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Статус</label>
+                <div className="relative" ref={statusDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+                    className="w-full flex items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <span className={selectedStatuses.length > 0 ? "text-gray-900" : "text-gray-500"}>
+                      {selectedStatuses.length === 0
+                        ? "Все статусы"
+                        : selectedStatuses.length === 1
+                        ? allStatuses.find(s => s.value === selectedStatuses[0])?.label
+                        : `Выбрано: ${selectedStatuses.length}`}
+                    </span>
+                    <svg className={`h-4 w-4 text-gray-400 transition-transform ${isStatusDropdownOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    </svg>
+                  </button>
+                  {isStatusDropdownOpen && (
+                    <div className="absolute z-20 mt-1 w-full bg-white rounded-lg border border-gray-200 shadow-lg py-1">
+                      {allStatuses.map((status) => (
+                        <label
+                          key={status.value}
+                          className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50"
+                        >
+                          <Checkbox
+                            checked={selectedStatuses.includes(status.value)}
+                            onChange={() => handleStatusToggle(status.value)}
+                          />
+                          <span className="text-sm text-gray-700">{status.label}</span>
+                        </label>
+                      ))}
+                      {selectedStatuses.length > 0 && (
+                        <>
+                          <div className="border-t border-gray-100 my-1" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onFiltersChange({ ...filters, status: undefined });
+                              setIsStatusDropdownOpen(false);
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-gray-50"
+                          >
+                            Сбросить выбор
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Assignee select */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Исполнитель</label>
+                <select
+                  value={filters.assignee_id || ""}
+                  onChange={handleAssigneeChange}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">Все исполнители</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Creator select */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Постановщик</label>
+                <select
+                  value={filters.creator_id || ""}
+                  onChange={handleCreatorChange}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">Все постановщики</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Priority select */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Приоритет</label>
+                <select
+                  value={Array.isArray(filters.priority) ? "" : (filters.priority || "")}
+                  onChange={handlePriorityChange}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  {priorityOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Additional toggles */}
+            <div className="mt-4 flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={hideCompleted}
+                  onChange={handleHideCompletedToggle}
+                />
+                <span className="text-sm text-gray-700">Скрыть завершенные</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={filters.is_overdue || false}
+                  onChange={handleOverdueToggle}
+                />
+                <span className="text-sm text-gray-700">Только просроченные</span>
+              </label>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Column Settings Modal */}

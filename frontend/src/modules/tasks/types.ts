@@ -138,6 +138,9 @@ export interface AvailableTransitions {
   available_statuses: string[];
 }
 
+// Task role filter - user's role in the task
+export type TaskRoleFilter = "all" | "assignee" | "creator" | "watcher";
+
 // Task filters for list queries
 export interface TaskFilters {
   status?: TaskStatus | TaskStatus[];
@@ -148,9 +151,12 @@ export interface TaskFilters {
   department_id?: string;
   project_id?: string;
   is_milestone?: boolean;
+  is_overdue?: boolean;
   search?: string;
   due_date_from?: string;
   due_date_to?: string;
+  // Frontend-only filter for role (transforms to assignee_id/creator_id)
+  role?: TaskRoleFilter;
 }
 
 // Pagination params

@@ -86,6 +86,7 @@ from app.modules.tags.router import router as tags_router
 from app.modules.task_history.router import router as task_history_router
 from app.modules.tasks.router import router as tasks_router
 from app.modules.users.router import router as users_router
+from app.modules.views.router import router as views_router
 from app.modules.workflow.router import router as workflow_router
 
 app.include_router(ai_router, prefix="/api/v1")
@@ -101,4 +102,5 @@ app.include_router(tags_router, prefix="/api/v1")
 app.include_router(task_history_router, prefix="/api/v1")
 app.include_router(tasks_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
+app.include_router(views_router, prefix="/api/v1")
 app.include_router(workflow_router, prefix="/api/v1")

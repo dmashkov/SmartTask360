@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, useLogout } from "../../modules/auth";
 import { Avatar, Dropdown, DropdownItem, DropdownDivider } from "../ui";
@@ -12,12 +12,28 @@ export function Header({ onMenuClick }: HeaderProps) {
   const logout = useLogout();
   const navigate = useNavigate();
   const [globalSearch, setGlobalSearch] = useState("");
+  const [showTooltip, setShowTooltip] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard shortcut: Cmd/Ctrl + K to focus search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const handleGlobalSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (globalSearch.trim()) {
       // Navigate to tasks page with search query
       navigate(`/tasks?search=${encodeURIComponent(globalSearch.trim())}`);
+      setGlobalSearch("");
+      inputRef.current?.blur();
     }
   }, [globalSearch, navigate]);
 
@@ -48,12 +64,31 @@ export function Header({ onMenuClick }: HeaderProps) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
           <input
+            ref={inputRef}
             type="search"
-            placeholder="Глобальный поиск (Enter для перехода)..."
+            placeholder="Поиск задач..."
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
-            className="w-full rounded-md border border-gray-300 bg-white pl-10 pr-4 py-2 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            onFocus={() => setShowTooltip(true)}
+            onBlur={() => setShowTooltip(false)}
+            className="w-full rounded-md border border-gray-300 bg-white pl-10 pr-16 py-2 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
+          {/* Keyboard shortcut hint */}
+          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center gap-1 rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs text-gray-400">
+            <span className="text-xs">⌘</span>K
+          </kbd>
+          {/* Tooltip on focus */}
+          {showTooltip && (
+            <div className="absolute top-full left-0 mt-1 w-64 rounded-md bg-gray-800 px-3 py-2 text-xs text-white shadow-lg z-50">
+              <p className="font-medium">Поиск по задачам</p>
+              <p className="mt-1 text-gray-300">
+                Введите запрос и нажмите Enter для перехода к списку задач с результатами поиска.
+              </p>
+              <p className="mt-1.5 text-gray-400 text-[10px]">
+                Полнотекстовый поиск в разработке
+              </p>
+            </div>
+          )}
         </form>
       </div>
 

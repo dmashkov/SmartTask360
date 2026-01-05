@@ -6,7 +6,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import Boolean, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.core.types import UserRole
@@ -39,6 +39,9 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(
         nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
+
+    # Relationships
+    views = relationship("UserView", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<User {self.email} ({self.role})>"

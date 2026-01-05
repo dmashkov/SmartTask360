@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Badge, Avatar, Checkbox } from "../../../shared/ui";
-import { formatDate, formatDateTime, getShortId, getTaskUrgency } from "../../../shared/lib/utils";
+import { formatDate, formatDateTime, getShortId, getTaskUrgency, getHighlightParts } from "../../../shared/lib/utils";
 import type { Task } from "../types";
 import type { ColumnConfig } from "./TaskFilters";
 import { type UsersMap, getUserById } from "../../users";
@@ -16,6 +16,8 @@ interface TaskRowProps {
   isExpanded?: boolean;
   isLoadingChildren?: boolean;
   onToggleExpand?: (taskId: string) => void;
+  // Search highlight
+  searchQuery?: string;
 }
 
 export function TaskRow({
@@ -27,6 +29,7 @@ export function TaskRow({
   isExpanded = false,
   isLoadingChildren = false,
   onToggleExpand,
+  searchQuery = "",
 }: TaskRowProps) {
   const isCompleted = task.status === "done";
   const urgency = getTaskUrgency({
@@ -83,7 +86,15 @@ export function TaskRow({
             isCompleted ? "line-through text-gray-400" : "text-gray-900"
           }`}
         >
-          {task.title}
+          {getHighlightParts(task.title, searchQuery).map((part, i) =>
+            part.isHighlight ? (
+              <mark key={i} className="bg-yellow-200 text-gray-900 rounded px-0.5">
+                {part.text}
+              </mark>
+            ) : (
+              <span key={i}>{part.text}</span>
+            )
+          )}
         </Link>
         {/* Show children count for tasks with children */}
         {task.children_count > 0 && (

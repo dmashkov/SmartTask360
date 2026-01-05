@@ -138,6 +138,56 @@ export function getShortId(uuid: string): string {
 }
 
 /**
+ * Highlight search text in a string
+ * Returns an array of parts with highlight flags for React rendering
+ */
+export interface HighlightPart {
+  text: string;
+  isHighlight: boolean;
+}
+
+export function getHighlightParts(text: string, searchQuery: string): HighlightPart[] {
+  if (!searchQuery || searchQuery.length < 3) {
+    return [{ text, isHighlight: false }];
+  }
+
+  const parts: HighlightPart[] = [];
+  const lowerText = text.toLowerCase();
+  const lowerQuery = searchQuery.toLowerCase();
+  let lastIndex = 0;
+
+  let index = lowerText.indexOf(lowerQuery);
+  while (index !== -1) {
+    // Add text before match
+    if (index > lastIndex) {
+      parts.push({
+        text: text.slice(lastIndex, index),
+        isHighlight: false,
+      });
+    }
+
+    // Add matched text
+    parts.push({
+      text: text.slice(index, index + searchQuery.length),
+      isHighlight: true,
+    });
+
+    lastIndex = index + searchQuery.length;
+    index = lowerText.indexOf(lowerQuery, lastIndex);
+  }
+
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push({
+      text: text.slice(lastIndex),
+      isHighlight: false,
+    });
+  }
+
+  return parts.length > 0 ? parts : [{ text, isHighlight: false }];
+}
+
+/**
  * Copy text to clipboard and return success status
  */
 export async function copyToClipboard(text: string): Promise<boolean> {

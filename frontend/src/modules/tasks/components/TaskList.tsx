@@ -26,6 +26,8 @@ interface TaskListProps {
   loadingChildrenIds?: Set<string>;
   childrenMap?: Map<string, Task[]>;
   onToggleExpand?: (taskId: string) => void;
+  // Search highlight
+  searchQuery?: string;
 }
 
 export function TaskList({
@@ -46,6 +48,7 @@ export function TaskList({
   loadingChildrenIds = new Set(),
   childrenMap = new Map(),
   onToggleExpand,
+  searchQuery = "",
 }: TaskListProps) {
   const hasFilters = totalAllItems !== undefined && totalItems !== undefined && totalItems !== totalAllItems;
 
@@ -66,6 +69,7 @@ export function TaskList({
         isExpanded={isExpanded}
         isLoadingChildren={isLoadingChildren}
         onToggleExpand={onToggleExpand}
+        searchQuery={searchQuery}
       />,
     ];
 

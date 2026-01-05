@@ -38,10 +38,14 @@ class TaskService:
         skip: int = 0,
         limit: int = 100,
         include_deleted: bool = False,
-        status: str | None = None,
-        priority: str | None = None,
+        status: str | list[str] | None = None,
+        priority: str | list[str] | None = None,
         search: str | None = None,
         project_id: UUID | None = None,
+        assignee_id: UUID | None = None,
+        creator_id: UUID | None = None,
+        is_overdue: bool | None = None,
+        parent_id: UUID | None = None,
     ) -> list[Task]:
         """Get all tasks with optional filters, ordered by path (hierarchical order)"""
         query = select(Task)
@@ -51,9 +55,15 @@ class TaskService:
 
         # Apply filters
         if status:
-            query = query.where(Task.status == status)
+            if isinstance(status, list):
+                query = query.where(Task.status.in_(status))
+            else:
+                query = query.where(Task.status == status)
         if priority:
-            query = query.where(Task.priority == priority)
+            if isinstance(priority, list):
+                query = query.where(Task.priority.in_(priority))
+            else:
+                query = query.where(Task.priority == priority)
         if search:
             search_pattern = f"%{search}%"
             query = query.where(
@@ -61,6 +71,18 @@ class TaskService:
             )
         if project_id:
             query = query.where(Task.project_id == project_id)
+        if assignee_id:
+            query = query.where(Task.assignee_id == assignee_id)
+        if creator_id:
+            query = query.where(Task.creator_id == creator_id)
+        if is_overdue:
+            # Tasks that are overdue: due_date < now AND status not in (done, cancelled)
+            query = query.where(
+                Task.due_date < func.current_date(),
+                Task.status.notin_(["done", "cancelled"]),
+            )
+        if parent_id is not None:
+            query = query.where(Task.parent_id == parent_id)
 
         query = query.order_by(Task.path).offset(skip).limit(limit)
 

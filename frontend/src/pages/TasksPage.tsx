@@ -296,6 +296,7 @@ export function TasksPage() {
         loadingChildrenIds={loadingChildrenIds}
         childrenMap={childrenMap}
         onToggleExpand={handleToggleExpand}
+        searchQuery={filters.search}
       />
 
       {/* Bulk Actions Bar */}

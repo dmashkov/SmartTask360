@@ -4,7 +4,7 @@ SmartTask360 — Tasks API endpoints
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -73,14 +73,27 @@ def task_to_response(task, children_count: int = 0) -> TaskResponse:
 async def get_tasks(
     skip: int = 0,
     limit: int = 100,
-    status: str | None = None,
-    priority: str | None = None,
+    status: list[str] | None = Query(default=None),
+    priority: list[str] | None = Query(default=None),
     search: str | None = None,
     project_id: UUID | None = None,
+    assignee_id: UUID | None = None,
+    creator_id: UUID | None = None,
+    is_overdue: bool | None = None,
+    parent_id: UUID | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get all tasks with optional filters (hierarchical order by path)"""
+    """Get all tasks with optional filters (hierarchical order by path)
+
+    Filters:
+    - status: list of statuses to include (e.g., ?status=new&status=in_progress)
+    - priority: list of priorities to include
+    - assignee_id: filter by task executor
+    - creator_id: filter by task creator (who set the task)
+    - is_overdue: if true, only show overdue tasks
+    - parent_id: filter by parent task (for getting children)
+    """
     service = TaskService(db)
     tasks = await service.get_all(
         skip=skip,
@@ -89,6 +102,10 @@ async def get_tasks(
         priority=priority,
         search=search,
         project_id=project_id,
+        assignee_id=assignee_id,
+        creator_id=creator_id,
+        is_overdue=is_overdue,
+        parent_id=parent_id,
     )
 
     # Get children counts for all tasks in one query
