@@ -74,6 +74,7 @@ interface KanbanColumnProps {
   color: string;
   status: TaskStatus;
   tasks: Task[];
+  width: number;
   onDragStart: (taskId: string, status: TaskStatus) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (targetStatus: TaskStatus) => void;
@@ -84,13 +85,15 @@ function KanbanColumn({
   color,
   status,
   tasks,
+  width,
   onDragStart,
   onDragOver,
   onDrop,
 }: KanbanColumnProps) {
   return (
     <div
-      className="flex-shrink-0 w-72 bg-gray-100 rounded-lg"
+      className="flex-shrink-0 bg-gray-100 rounded-lg"
+      style={{ width: `${width}px` }}
       onDragOver={onDragOver}
       onDrop={() => onDrop(status)}
     >
@@ -158,6 +161,36 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
     return grouped;
   }, [tasksData]);
 
+  // Calculate optimal column width based on task titles
+  const calculateColumnWidth = (tasks: Task[]): number => {
+    if (tasks.length === 0) return 280; // Minimum width for empty columns
+
+    // Find the longest title in the column
+    const maxTitleLength = Math.max(
+      ...tasks.map((task) => task.title.length),
+      50 // Minimum character count
+    );
+
+    // Calculate width: ~8px per character, with padding and constraints
+    // Min: 280px (50 chars), Max: 480px (60 chars)
+    const calculatedWidth = Math.min(
+      Math.max(maxTitleLength * 8, 280),
+      480
+    );
+
+    return calculatedWidth;
+  };
+
+  // Calculate widths for all columns
+  const columnWidths = useMemo(() => {
+    const widths = new Map<TaskStatus, number>();
+    for (const col of STATUS_COLUMNS) {
+      const tasks = tasksByStatus.get(col.status) || [];
+      widths.set(col.status, calculateColumnWidth(tasks));
+    }
+    return widths;
+  }, [tasksByStatus]);
+
   const handleDragStart = (taskId: string, sourceStatus: TaskStatus) => {
     setDragState({ taskId, sourceStatus });
   };
@@ -218,6 +251,7 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
             color={col.color}
             status={col.status}
             tasks={tasksByStatus.get(col.status) || []}
+            width={columnWidths.get(col.status) || 280}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
