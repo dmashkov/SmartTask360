@@ -20,6 +20,8 @@ from app.modules.tasks.schemas import (
     UserBrief,
 )
 from app.modules.users.models import User
+from app.modules.task_history.service import TaskHistoryService
+from app.modules.task_history.schemas import TaskHistoryCreate
 
 
 class TaskService:
@@ -254,6 +256,22 @@ class TaskService:
 
         await self.db.commit()
         await self.db.refresh(task)
+
+        # Record history entry for task creation
+        history_service = TaskHistoryService(self.db)
+        await history_service.create_entry(
+            TaskHistoryCreate(
+                task_id=task.id,
+                user_id=current_user_id,
+                action="created",
+                field_name=None,
+                old_value=None,
+                new_value=None,
+                extra_data={"title": task.title, "status": task.status},
+            )
+        )
+        await self.db.commit()
+
         return task
 
     async def update(self, task_id: UUID, task_data: TaskUpdate) -> Task | None:
@@ -361,10 +379,28 @@ class TaskService:
         elif new_status == TaskStatus.DONE.value and not task.completed_at:
             task.completed_at = datetime.utcnow()
 
+        # Save completion result when completing or sending to review
+        if status_data.comment and new_status in (TaskStatus.DONE.value, TaskStatus.IN_REVIEW.value):
+            task.completion_result = status_data.comment
+
         await self.db.commit()
         await self.db.refresh(task)
 
-        # TODO: Log status change in task_history
+        # Log status change in task_history
+        history_service = TaskHistoryService(self.db)
+        await history_service.create_entry(
+            TaskHistoryCreate(
+                task_id=task.id,
+                user_id=user_id,
+                action="status_changed",
+                field_name="status",
+                old_value={"status": old_status},
+                new_value={"status": new_status},
+                extra_data={"comment": status_data.comment} if status_data.comment else None,
+            )
+        )
+        await self.db.commit()
+
         # TODO: Create notification for assignee/creator
 
         return task

@@ -123,9 +123,12 @@ export function StatusChangeModal({
     setError(null);
 
     try {
-      // First, upload all files
+      // First, upload all files as results
       for (const { file } of selectedFiles) {
-        await uploadDocument.mutateAsync({ file });
+        await uploadDocument.mutateAsync({
+          file,
+          document_type: "result", // Mark as result files
+        });
       }
 
       // Then change status with comment

@@ -2,6 +2,8 @@
  * SmartTask360 — Documents types
  */
 
+export type DocumentType = "requirement" | "attachment" | "result";
+
 export interface Document {
   id: string;
   task_id: string;
@@ -11,6 +13,7 @@ export interface Document {
   mime_type: string;
   file_size: number;
   description: string | null;
+  document_type: DocumentType;
   created_at: string;
 }
 
@@ -18,6 +21,7 @@ export interface DocumentUpload {
   task_id: string;
   file: File;
   description?: string;
+  document_type?: DocumentType;
 }
 
 export interface DocumentUpdate {

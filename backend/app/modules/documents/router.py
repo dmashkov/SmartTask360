@@ -79,6 +79,7 @@ async def upload_document(
     task_id: UUID = Form(...),
     file: UploadFile = File(...),
     description: str | None = Form(None),
+    document_type: str = Form("attachment"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -89,6 +90,7 @@ async def upload_document(
     - task_id: UUID of the task
     - file: The file to upload
     - description: Optional description
+    - document_type: Type of document (requirement | attachment | result), default: attachment
     """
     service = DocumentService(db)
 
@@ -125,6 +127,7 @@ async def upload_document(
             content_type=file.content_type or "application/octet-stream",
             file_size=file_size,
             description=description,
+            document_type=document_type,
         )
         return document
     except Exception as e:

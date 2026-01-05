@@ -80,19 +80,13 @@ export function TaskDetailTabs({ taskId }: TaskDetailTabsProps) {
       {/* Tab Content */}
       <div className="p-0">
         {activeTab === "comments" && (
-          <div className="[&>div]:border-0 [&>div]:rounded-none [&>div]:shadow-none">
-            <CommentsSection taskId={taskId} />
-          </div>
+          <CommentsSection taskId={taskId} embedded />
         )}
         {activeTab === "history" && (
-          <div className="[&>div]:border-0 [&>div]:rounded-none [&>div]:shadow-none">
-            <HistorySection taskId={taskId} />
-          </div>
+          <HistorySection taskId={taskId} embedded />
         )}
         {activeTab === "documents" && (
-          <div className="[&>div]:border-0 [&>div]:rounded-none [&>div]:shadow-none">
-            <DocumentsSection taskId={taskId} />
-          </div>
+          <DocumentsSection taskId={taskId} embedded />
         )}
       </div>
     </div>

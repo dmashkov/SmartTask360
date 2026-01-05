@@ -122,18 +122,33 @@ export function TaskDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-gray-500">
-        <Link to="/tasks" className="hover:text-gray-700">Задачи</Link>
+      {/* Breadcrumb with back to Kanban button */}
+      <div className="flex items-center justify-between gap-4">
+        <nav className="flex items-center gap-2 text-sm text-gray-500">
+          <Link to="/tasks" className="hover:text-gray-700">Задачи</Link>
+          {project && (
+            <>
+              <span>/</span>
+              <Link to={`/projects/${project.id}?view=tasks`} className="hover:text-gray-700">{project.name}</Link>
+            </>
+          )}
+          <span>/</span>
+          <span className="text-gray-900 truncate max-w-xs">{task.title}</span>
+        </nav>
+
+        {/* Back to Kanban button */}
         {project && (
-          <>
-            <span>/</span>
-            <Link to={`/projects/${project.id}`} className="hover:text-gray-700">{project.name}</Link>
-          </>
+          <Link
+            to={`/projects/${project.id}?view=kanban`}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>К Канбан</span>
+          </Link>
         )}
-        <span>/</span>
-        <span className="text-gray-900 truncate max-w-xs">{task.title}</span>
-      </nav>
+      </div>
 
       {/* Parent Task Link */}
       {task.parent_id && <ParentTaskLink parentId={task.parent_id} />}
@@ -303,19 +318,21 @@ export function TaskDetailPage() {
           {/* Checklists Section */}
           <ChecklistsPanel taskId={task.id} />
 
-          {/* Completion Result (for done tasks) */}
-          {task.status === "done" && (
+          {/* Completion Result (for done or in_review tasks with result) */}
+          {(task.status === "done" || task.status === "in_review") && task.completion_result && (
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
                   <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <CardTitle>Результат выполнения</CardTitle>
+                  <CardTitle>
+                    Результат выполнения
+                  </CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <p className="text-gray-400 italic text-sm">Функционал находится в разработке</p>
+                <p className="text-gray-700 whitespace-pre-wrap">{task.completion_result}</p>
               </CardContent>
             </Card>
           )}

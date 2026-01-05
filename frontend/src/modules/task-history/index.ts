@@ -8,4 +8,4 @@ export * from "./api";
 export { useTaskHistory } from "./hooks/useTaskHistory";
 
 // Components
-export { HistoryItem, HistorySection } from "./components";
+export { HistorySection } from "./components";

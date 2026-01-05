@@ -1,79 +1,185 @@
 /**
- * SmartTask360 — Project Boards Tab
- * Displays list of boards belonging to a project
+ * SmartTask360 — Project Kanban Tab
+ * Displays inline kanban board for a project with status-based columns
  */
 
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Spinner, EmptyState, Button } from "../../../shared/ui";
-import { useProjectBoards } from "../hooks";
-import type { ProjectBoard } from "../api";
+import { Spinner, EmptyState, Badge, Avatar } from "../../../shared/ui";
+import { useProjectTasks } from "../hooks";
+import { useChangeTaskStatus } from "../../tasks/hooks";
+import { formatDate, getTaskUrgency } from "../../../shared/lib/utils";
+import type { Task, TaskStatus } from "../../tasks/types";
 
 interface ProjectBoardsTabProps {
   projectId: string;
 }
 
-function BoardCard({ board }: { board: ProjectBoard }) {
+// Status columns configuration for MVP (without Scrum statuses)
+const STATUS_COLUMNS: { status: TaskStatus; name: string; color: string }[] = [
+  { status: "new", name: "Новые", color: "#3B82F6" },
+  { status: "assigned", name: "Назначено", color: "#8B5CF6" },
+  { status: "in_progress", name: "В работе", color: "#F59E0B" },
+  { status: "in_review", name: "На проверке", color: "#EC4899" },
+  { status: "rework", name: "На доработке", color: "#F97316" },
+  { status: "done", name: "Готово", color: "#10B981" },
+];
+
+interface KanbanTaskCardProps {
+  task: Task;
+  onDragStart: (taskId: string, status: TaskStatus) => void;
+}
+
+function KanbanTaskCard({ task, onDragStart }: KanbanTaskCardProps) {
+  const urgency = task.due_date ? getTaskUrgency(task) : null;
+
   return (
-    <Link
-      to={`/boards/${board.id}`}
-      className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all"
+    <div
+      draggable
+      onDragStart={() => onDragStart(task.id, task.status)}
+      className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:shadow-md transition-shadow cursor-grab"
     >
-      <div className="flex items-start justify-between mb-2">
-        <h3 className="font-medium text-gray-900">{board.name}</h3>
-        {board.is_default && (
-          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-            По умолчанию
+      <Link to={`/tasks/${task.id}`} className="block">
+        <h4 className="font-medium text-gray-900 text-sm line-clamp-2 hover:text-blue-600">
+          {task.title}
+        </h4>
+
+        <div className="flex items-center justify-between mt-3">
+          <div className="flex items-center gap-1">
+            <Badge type="priority" value={task.priority} />
+          </div>
+
+          <div className="flex items-center gap-2">
+            {task.due_date && (
+              <span
+                className={`text-xs flex items-center gap-1 ${
+                  urgency?.colorClass || "text-gray-500"
+                }`}
+                title={urgency?.tooltip || undefined}
+              >
+                {urgency?.icon && <span>{urgency.icon}</span>}
+                {formatDate(task.due_date)}
+              </span>
+            )}
+            {task.assignee_id && <Avatar name="A" size="xs" />}
+          </div>
+        </div>
+      </Link>
+    </div>
+  );
+}
+
+interface KanbanColumnProps {
+  name: string;
+  color: string;
+  status: TaskStatus;
+  tasks: Task[];
+  onDragStart: (taskId: string, status: TaskStatus) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (targetStatus: TaskStatus) => void;
+}
+
+function KanbanColumn({
+  name,
+  color,
+  status,
+  tasks,
+  onDragStart,
+  onDragOver,
+  onDrop,
+}: KanbanColumnProps) {
+  return (
+    <div
+      className="flex-shrink-0 w-72 bg-gray-100 rounded-lg"
+      onDragOver={onDragOver}
+      onDrop={() => onDrop(status)}
+    >
+      {/* Column Header */}
+      <div className="p-3 border-b border-gray-200">
+        <div className="flex items-center gap-2">
+          <div
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: color }}
+          />
+          <h3 className="font-semibold text-gray-900">{name}</h3>
+          <span className="text-sm px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
+            {tasks.length}
           </span>
+        </div>
+      </div>
+
+      {/* Column Body */}
+      <div className="p-2 space-y-2 min-h-[200px] max-h-[calc(100vh-350px)] overflow-y-auto">
+        {tasks.map((task) => (
+          <KanbanTaskCard key={task.id} task={task} onDragStart={onDragStart} />
+        ))}
+
+        {tasks.length === 0 && (
+          <div className="text-center py-8 text-gray-400 text-sm">
+            Перетащите задачи сюда
+          </div>
         )}
       </div>
-
-      {board.description && (
-        <p className="text-sm text-gray-500 mb-3 line-clamp-2">
-          {board.description}
-        </p>
-      )}
-
-      <div className="flex items-center gap-4 text-xs text-gray-500">
-        <div className="flex items-center gap-1">
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth="1.5"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z"
-            />
-          </svg>
-          <span>{board.columns_count} колонок</span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth="1.5"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <span>{board.tasks_count} задач</span>
-        </div>
-      </div>
-    </Link>
+    </div>
   );
 }
 
 export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
-  const { data: boards = [], isLoading, error } = useProjectBoards(projectId);
+  const { data: tasksData, isLoading, error } = useProjectTasks(projectId);
+  const changeStatus = useChangeTaskStatus();
+
+  const [dragState, setDragState] = useState<{
+    taskId: string;
+    sourceStatus: TaskStatus;
+  } | null>(null);
+
+  // Group tasks by status
+  const tasksByStatus = useMemo(() => {
+    const grouped = new Map<TaskStatus, Task[]>();
+
+    // Initialize all columns
+    for (const col of STATUS_COLUMNS) {
+      grouped.set(col.status, []);
+    }
+
+    // Group tasks, filtering out cancelled and draft
+    if (tasksData?.items) {
+      for (const task of tasksData.items) {
+        if (task.status === "cancelled" || task.status === "draft") continue;
+        if (task.status === "on_hold") continue; // Skip on_hold for MVP
+
+        const tasks = grouped.get(task.status);
+        if (tasks) {
+          tasks.push(task);
+        }
+      }
+    }
+
+    return grouped;
+  }, [tasksData]);
+
+  const handleDragStart = (taskId: string, sourceStatus: TaskStatus) => {
+    setDragState({ taskId, sourceStatus });
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (targetStatus: TaskStatus) => {
+    if (!dragState) return;
+
+    const { taskId, sourceStatus } = dragState;
+
+    if (sourceStatus !== targetStatus) {
+      changeStatus.mutate({
+        taskId,
+        data: { status: targetStatus },
+      });
+    }
+
+    setDragState(null);
+  };
 
   if (isLoading) {
     return (
@@ -86,43 +192,37 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
   if (error) {
     return (
       <div className="p-4 text-center text-red-600">
-        Ошибка загрузки досок
+        Ошибка загрузки задач
       </div>
     );
   }
 
-  if (boards.length === 0) {
+  const totalTasks = tasksData?.items?.length || 0;
+
+  if (totalTasks === 0) {
     return (
       <EmptyState
-        title="Нет досок"
-        description="В этом проекте пока нет досок"
-        action={
-          <Link to={`/boards?project_id=${projectId}`}>
-            <Button variant="outline" size="sm">
-              Создать доску
-            </Button>
-          </Link>
-        }
+        title="Нет задач"
+        description="Создайте задачи в проекте, чтобы увидеть их на канбан-доске"
       />
     );
   }
 
   return (
-    <div className="p-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {boards.map((board) => (
-          <BoardCard key={board.id} board={board} />
+    <div className="p-4 overflow-x-auto">
+      <div className="flex gap-4 pb-4 min-w-max">
+        {STATUS_COLUMNS.map((col) => (
+          <KanbanColumn
+            key={col.status}
+            name={col.name}
+            color={col.color}
+            status={col.status}
+            tasks={tasksByStatus.get(col.status) || []}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          />
         ))}
-      </div>
-
-      {/* Link to boards section */}
-      <div className="mt-4 text-center">
-        <Link
-          to={`/boards?project_id=${projectId}`}
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
-          Открыть в разделе Доски
-        </Link>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@
  */
 
 import { api } from "../../shared/api";
-import type { Document, DocumentStats } from "./types";
+import type { Document, DocumentStats, DocumentType } from "./types";
 
 export async function getTaskDocuments(taskId: string): Promise<Document[]> {
   const { data } = await api.get<Document[]>(`/documents/tasks/${taskId}/documents`);
@@ -18,11 +18,13 @@ export async function getTaskDocumentStats(taskId: string): Promise<DocumentStat
 export async function uploadDocument(
   taskId: string,
   file: File,
-  description?: string
+  description?: string,
+  document_type: DocumentType = "attachment"
 ): Promise<Document> {
   const formData = new FormData();
   formData.append("task_id", taskId);
   formData.append("file", file);
+  formData.append("document_type", document_type);
   if (description) {
     formData.append("description", description);
   }

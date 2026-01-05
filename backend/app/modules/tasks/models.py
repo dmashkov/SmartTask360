@@ -104,6 +104,11 @@ class Task(Base):
     )  # unclear/no_resources/unrealistic_deadline/conflict/wrong_assignee/other
     rejection_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Completion
+    completion_result: Mapped[str | None] = mapped_column(
+        Text, nullable=True
+    )  # Result/comment when task is completed or sent to review
+
     # SMART Validation
     smart_score: Mapped[dict | None] = mapped_column(
         JSONB, nullable=True

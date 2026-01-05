@@ -60,6 +60,7 @@ def task_to_response(task, children_count: int = 0) -> TaskResponse:
         acceptance_deadline=task.acceptance_deadline,
         rejection_reason=task.rejection_reason,
         rejection_comment=task.rejection_comment,
+        completion_result=task.completion_result,
         smart_score=task.smart_score,
         smart_validated_at=task.smart_validated_at,
         smart_is_valid=task.smart_is_valid,

@@ -52,6 +52,14 @@ class Document(Base):
     # Optional metadata
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Document type (when was it attached)
+    document_type: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="attachment",
+        index=True,
+    )  # requirement | attachment | result
+
     created_at: Mapped[datetime] = mapped_column(nullable=False, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow

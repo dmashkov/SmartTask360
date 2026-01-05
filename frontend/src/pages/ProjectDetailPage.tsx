@@ -2,8 +2,8 @@
  * SmartTask360 — Project detail page
  */
 
-import { useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import {
   Button,
   Spinner,
@@ -21,12 +21,13 @@ import {
 } from "../modules/projects";
 import { useAuth } from "../modules/auth";
 
-type ViewMode = "tasks" | "boards" | "members";
+type ViewMode = "tasks" | "kanban" | "members";
 
 export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { data: project, isLoading, error } = useProject(projectId || "");
   const deleteProject = useDeleteProject();
@@ -34,8 +35,15 @@ export function ProjectDetailPage() {
   // Check if current user is owner
   const isOwner = user?.id === project?.owner_id;
 
-  const [viewMode, setViewMode] = useState<ViewMode>("tasks");
+  // Get initial view mode from URL, default to "tasks"
+  const initialViewMode = (searchParams.get("view") as ViewMode) || "tasks";
+  const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Update URL when view mode changes
+  useEffect(() => {
+    setSearchParams({ view: viewMode }, { replace: true });
+  }, [viewMode, setSearchParams]);
 
   const handleDelete = async () => {
     if (!projectId) return;
@@ -210,14 +218,14 @@ export function ProjectDetailPage() {
               Задачи ({project.stats.total_tasks})
             </button>
             <button
-              onClick={() => setViewMode("boards")}
+              onClick={() => setViewMode("kanban")}
               className={`py-3 px-2 border-b-2 text-sm font-medium transition-colors ${
-                viewMode === "boards"
+                viewMode === "kanban"
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
-              Доски ({project.stats.total_boards})
+              Канбан
             </button>
             <button
               onClick={() => setViewMode("members")}
@@ -238,7 +246,7 @@ export function ProjectDetailPage() {
             <ProjectTasksTab projectId={projectId} />
           )}
 
-          {viewMode === "boards" && projectId && (
+          {viewMode === "kanban" && projectId && (
             <ProjectBoardsTab projectId={projectId} />
           )}
 

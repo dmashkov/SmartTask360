@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.comments.models import Comment
 from app.modules.comments.schemas import CommentCreate, CommentUpdate
+from app.modules.task_history.service import TaskHistoryService
+from app.modules.task_history.schemas import TaskHistoryCreate
 
 
 class CommentService:
@@ -66,6 +68,22 @@ class CommentService:
         )
 
         self.db.add(comment)
+        await self.db.flush()
+
+        # Record history entry for comment creation
+        history_service = TaskHistoryService(self.db)
+        await history_service.create_entry(
+            TaskHistoryCreate(
+                task_id=comment_data.task_id,
+                user_id=author_id,
+                action="commented",
+                field_name=None,
+                old_value=None,
+                new_value=None,
+                extra_data={"comment_id": str(comment.id)},
+            )
+        )
+
         await self.db.commit()
         await self.db.refresh(comment)
         return comment

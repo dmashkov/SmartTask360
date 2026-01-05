@@ -4,6 +4,7 @@ export { Input, type InputProps } from "./Input";
 export { Textarea, type TextareaProps } from "./Textarea";
 export { Select, type SelectProps, type SelectOption } from "./Select";
 export { Checkbox, type CheckboxProps } from "./Checkbox";
+export { FileUploadZone, type DocumentType } from "./FileUploadZone";
 
 // Display components
 export { Badge, type BadgeProps } from "./Badge";

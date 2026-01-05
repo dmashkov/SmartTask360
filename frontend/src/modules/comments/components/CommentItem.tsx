@@ -49,7 +49,7 @@ export function CommentItem({ comment, taskId }: CommentItemProps) {
   };
 
   return (
-    <div className="flex gap-3 py-3">
+    <div id={`comment-${comment.id}`} className="flex gap-3 py-3 transition-colors">
       {/* Avatar */}
       <div className="shrink-0">
         {isAI ? (

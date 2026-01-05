@@ -90,9 +90,10 @@ class TaskResponse(BaseModel):
     actual_hours: Decimal | None
     accepted_at: datetime | None
     acceptance_deadline: datetime | None
-    rejection_reason: str | None
-    rejection_comment: str | None
-    smart_score: dict[str, Any] | None
+    rejection_reason: str | None = None
+    rejection_comment: str | None = None
+    completion_result: str | None = None
+    smart_score: dict[str, Any] | None = None
     smart_validated_at: datetime | None
     smart_is_valid: bool | None
     children_count: int = 0

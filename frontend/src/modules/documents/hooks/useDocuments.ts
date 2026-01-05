@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getTaskDocuments, uploadDocument, deleteDocument, getDocumentDownloadUrl } from "../api";
+import type { DocumentType } from "../types";
 
 export function useTaskDocuments(taskId: string) {
   return useQuery({
@@ -17,8 +18,8 @@ export function useUploadDocument(taskId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ file, description }: { file: File; description?: string }) =>
-      uploadDocument(taskId, file, description),
+    mutationFn: ({ file, description, document_type }: { file: File; description?: string; document_type?: DocumentType }) =>
+      uploadDocument(taskId, file, description, document_type),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["documents", taskId] });
     },

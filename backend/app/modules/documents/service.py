@@ -49,6 +49,7 @@ class DocumentService:
         content_type: str,
         file_size: int,
         description: str | None = None,
+        document_type: str = "attachment",
     ) -> Document:
         """
         Upload document to MinIO and save metadata to database
@@ -61,6 +62,7 @@ class DocumentService:
             content_type: MIME type
             file_size: File size in bytes
             description: Optional description
+            document_type: Type of document (requirement | attachment | result)
         """
         # Generate unique filename to avoid collisions
         file_ext = os.path.splitext(filename)[1]
@@ -87,6 +89,7 @@ class DocumentService:
             file_size=file_size,
             storage_path=storage_path,
             description=description,
+            document_type=document_type,
         )
 
         self.db.add(document)

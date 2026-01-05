@@ -13,6 +13,7 @@ class DocumentUpload(BaseModel):
 
     task_id: UUID
     description: str | None = None
+    document_type: str = "attachment"  # requirement | attachment | result
 
 
 class DocumentUpdate(BaseModel):
@@ -35,6 +36,7 @@ class DocumentResponse(BaseModel):
     file_size: int
     storage_path: str
     description: str | None
+    document_type: str = "attachment"
     created_at: datetime
     updated_at: datetime
 
@@ -52,6 +54,7 @@ class DocumentListItem(BaseModel):
     mime_type: str
     file_size: int
     description: str | None
+    document_type: str = "attachment"
     created_at: datetime
 
 
