@@ -9,6 +9,9 @@ import {
   CardContent,
   Loading,
   Avatar,
+  Dropdown,
+  DropdownItem,
+  DropdownDivider,
 } from "../shared/ui";
 import { cn, formatDate, formatDateTime, getShortId, copyToClipboard, getTaskUrl, getTaskUrgency } from "../shared/lib/utils";
 import { useTask, useChangeTaskStatus, useDeleteTask, useTaskWatchers, useTaskParticipants } from "../modules/tasks";
@@ -17,7 +20,15 @@ import type { TaskStatus } from "../modules/tasks";
 import { useUsersMap, getUserById } from "../modules/users";
 import { ChecklistsPanel } from "../modules/checklists";
 
-type TaskDetailTab = "main" | "documents" | "comments" | "history";
+// Status labels for dropdown
+const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
+  { value: "new", label: "Новая" },
+  { value: "assigned", label: "Назначена" },
+  { value: "in_progress", label: "В работе" },
+  { value: "in_review", label: "На проверке" },
+  { value: "on_hold", label: "На паузе" },
+  { value: "done", label: "Готово" },
+];
 
 export function TaskDetailPage() {
   const { taskId } = useParams<{ taskId: string }>();
@@ -25,7 +36,6 @@ export function TaskDetailPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreateSubtaskModalOpen, setIsCreateSubtaskModalOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<TaskDetailTab>("main");
 
   const { data: task, isLoading, error } = useTask(taskId || "");
   const { data: watchers = [] } = useTaskWatchers(taskId || "");
@@ -106,7 +116,6 @@ export function TaskDetailPage() {
             </span>
             <h1 className="text-2xl font-bold text-gray-900">{task.title}</h1>
             <Badge type="priority" value={task.priority} />
-            <Badge type="status" value={task.status} />
             {/* Urgency indicator */}
             {urgency.label && (
               <span
@@ -127,94 +136,99 @@ export function TaskDetailPage() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCopyLink}
-            title="Скопировать ссылку"
+          {/* Quick Status Change Dropdown */}
+          <Dropdown
+            align="right"
+            trigger={
+              <button
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
+                disabled={changeStatus.isPending}
+              >
+                <Badge type="status" value={task.status} />
+                <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+            }
           >
-            {linkCopied ? (
-              <>
-                <svg className="h-4 w-4 mr-1 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                </svg>
-                Скопировано
-              </>
-            ) : (
-              <>
-                <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
-                </svg>
-                Ссылка
-              </>
-            )}
-          </Button>
-          <Button variant="outline" onClick={() => setIsEditModalOpen(true)}>
+            {STATUS_OPTIONS.map(({ value, label }) => (
+              <DropdownItem
+                key={value}
+                onClick={() => handleStatusChange(value)}
+                disabled={task.status === value}
+                icon={
+                  task.status === value ? (
+                    <svg className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  ) : undefined
+                }
+              >
+                {label}
+              </DropdownItem>
+            ))}
+          </Dropdown>
+
+          <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
             Редактировать
           </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Удалить
-          </Button>
+
+          {/* More Actions Dropdown */}
+          <Dropdown
+            align="right"
+            trigger={
+              <Button variant="outline" size="sm">
+                Ещё
+                <svg className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+              </Button>
+            }
+          >
+            <DropdownItem
+              onClick={handleCopyLink}
+              icon={
+                linkCopied ? (
+                  <svg className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                  </svg>
+                )
+              }
+            >
+              {linkCopied ? "Скопировано!" : "Скопировать ссылку"}
+            </DropdownItem>
+            <DropdownItem
+              onClick={() => setIsCreateSubtaskModalOpen(true)}
+              icon={
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              }
+            >
+              Добавить подзадачу
+            </DropdownItem>
+            <DropdownDivider />
+            <DropdownItem
+              onClick={handleDelete}
+              danger
+              icon={
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+              }
+            >
+              Удалить задачу
+            </DropdownItem>
+          </Dropdown>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex gap-8">
-          <button
-            type="button"
-            onClick={() => setActiveTab("main")}
-            className={cn(
-              "py-4 px-1 border-b-2 font-medium text-sm transition-colors",
-              activeTab === "main"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            )}
-          >
-            Основное
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("documents")}
-            className={cn(
-              "py-4 px-1 border-b-2 font-medium text-sm transition-colors",
-              activeTab === "documents"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            )}
-          >
-            Документы
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("comments")}
-            className={cn(
-              "py-4 px-1 border-b-2 font-medium text-sm transition-colors",
-              activeTab === "comments"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            )}
-          >
-            Комментарии
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("history")}
-            className={cn(
-              "py-4 px-1 border-b-2 font-medium text-sm transition-colors",
-              activeTab === "history"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            )}
-          >
-            История
-          </button>
-        </nav>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === "main" ? (
-        <div className="flex gap-6">
+      {/* Main Content */}
+      <div className="flex gap-6">
           {/* Main content - flexible width */}
           <div className="flex-1 min-w-0 space-y-6">
             {/* Description */}
@@ -232,11 +246,7 @@ export function TaskDetailPage() {
           </Card>
 
           {/* Checklists Section */}
-          <Card>
-            <CardContent className="pt-6">
-              <ChecklistsPanel taskId={task.id} />
-            </CardContent>
-          </Card>
+          <ChecklistsPanel taskId={task.id} />
 
           {/* Subtasks Section */}
           {task.children_count > 0 && (
@@ -261,35 +271,6 @@ export function TaskDetailPage() {
               </CardContent>
             </Card>
           )}
-
-          {/* Status Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Изменить статус</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { value: "new", label: "Новая" },
-                  { value: "assigned", label: "Назначена" },
-                  { value: "in_progress", label: "В работе" },
-                  { value: "in_review", label: "На проверке" },
-                  { value: "on_hold", label: "На паузе" },
-                  { value: "done", label: "Готово" },
-                ].map(({ value, label }) => (
-                  <Button
-                    key={value}
-                    variant={task.status === value ? "primary" : "outline"}
-                    size="sm"
-                    onClick={() => handleStatusChange(value as TaskStatus)}
-                    disabled={changeStatus.isPending}
-                  >
-                    {label}
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Completion Result (for done tasks) */}
           {task.status === "done" && (
@@ -338,231 +319,146 @@ export function TaskDetailPage() {
           )}
         </div>
 
-        {/* Sidebar */}
-        <div className="w-80 shrink-0 space-y-6">
-          {/* People */}
+        {/* Compact Sidebar */}
+        <div className="w-72 shrink-0">
           <Card>
-            <CardHeader>
-              <CardTitle>Участники</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-500">Автор</label>
-                <div className="mt-1 flex items-center gap-2">
-                  {author ? (
-                    <>
-                      <Avatar name={author.name} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{author.name}</p>
-                        <p className="text-xs text-gray-500 truncate">{author.email}</p>
-                      </div>
-                    </>
-                  ) : (
-                    <span className="text-gray-400">Не определён</span>
-                  )}
-                </div>
+            <CardContent className="p-4 space-y-4">
+              {/* Assignee - most important */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">Исполнитель</span>
+                {assignee ? (
+                  <div className="flex items-center gap-2">
+                    <Avatar name={assignee.name} size="sm" />
+                    <span className="text-sm font-medium truncate max-w-[120px]">{assignee.name}</span>
+                  </div>
+                ) : (
+                  <span className="text-sm text-gray-400">Не назначен</span>
+                )}
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-gray-500">Постановщик</label>
-                <div className="mt-1 flex items-center gap-2">
-                  {creator ? (
-                    <>
-                      <Avatar name={creator.name} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{creator.name}</p>
-                        <p className="text-xs text-gray-500 truncate">{creator.email}</p>
-                      </div>
-                    </>
-                  ) : (
-                    <span className="text-gray-400">Не определён</span>
-                  )}
-                </div>
+              {/* Creator */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">Постановщик</span>
+                {creator ? (
+                  <div className="flex items-center gap-2">
+                    <Avatar name={creator.name} size="sm" />
+                    <span className="text-sm font-medium truncate max-w-[120px]">{creator.name}</span>
+                  </div>
+                ) : (
+                  <span className="text-sm text-gray-400">—</span>
+                )}
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-gray-500">Исполнитель</label>
-                <div className="mt-1 flex items-center gap-2">
-                  {assignee ? (
-                    <>
-                      <Avatar name={assignee.name} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{assignee.name}</p>
-                        <p className="text-xs text-gray-500 truncate">{assignee.email}</p>
-                      </div>
-                    </>
-                  ) : (
-                    <span className="text-gray-400">Не назначен</span>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Детали</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-500">Срок выполнения</label>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className={urgency.status === "overdue" ? "text-red-600" : "text-gray-900"}>
-                    {task.due_date ? formatDate(task.due_date) : "Не указан"}
+              {/* Due Date */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">Срок</span>
+                <div className="flex items-center gap-1">
+                  <span className={cn("text-sm font-medium", urgency.status === "overdue" && "text-red-600")}>
+                    {task.due_date ? formatDate(task.due_date) : "—"}
                   </span>
                   {urgency.icon && (
-                    <span
-                      className="cursor-help"
-                      title={urgency.tooltip || undefined}
-                    >
+                    <span className="cursor-help" title={urgency.tooltip || undefined}>
                       {urgency.icon}
                     </span>
                   )}
                 </div>
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-gray-500">Оценка времени</label>
-                <div className="mt-1 text-gray-900">
-                  {task.estimated_hours ? `${task.estimated_hours} ч.` : "Не указано"}
+              {/* Time Estimate */}
+              {(task.estimated_hours || task.actual_hours) && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500">Время</span>
+                  <span className="text-sm">
+                    {task.actual_hours ? `${task.actual_hours}` : "0"} / {task.estimated_hours || "—"} ч.
+                  </span>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <label className="text-sm font-medium text-gray-500">Фактическое время</label>
-                <div className="mt-1 text-gray-900">
-                  {task.actual_hours ? `${task.actual_hours} ч.` : "Не учтено"}
-                </div>
-              </div>
-
+              {/* Milestone badge */}
               {task.is_milestone && (
-                <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500">Тип</span>
                   <Badge type="status" value="milestone" className="bg-purple-100 text-purple-800">
                     Веха
                   </Badge>
                 </div>
               )}
-            </CardContent>
-          </Card>
 
-          {/* Participants (Co-executors) */}
-          {participants.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Соисполнители</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {participants.map((user) => (
-                    <div key={user.id} className="flex items-center gap-2">
-                      <Avatar name={user.name} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
-                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+              {/* Divider if has additional people */}
+              {(participants.length > 0 || watchers.length > 0 || author) && (
+                <div className="border-t border-gray-100 pt-3 mt-3">
+                  {/* Author if different from creator */}
+                  {author && author.id !== creator?.id && (
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-500">Автор</span>
+                      <div className="flex items-center gap-2">
+                        <Avatar name={author.name} size="sm" />
+                        <span className="text-sm truncate max-w-[120px]">{author.name}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  )}
 
-          {/* Watchers */}
-          {watchers.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Наблюдатели</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {watchers.map((user) => (
-                    <div key={user.id} className="flex items-center gap-2">
-                      <Avatar name={user.name} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
-                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                  {/* Participants */}
+                  {participants.length > 0 && (
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="text-sm text-gray-500">Соисполнители</span>
+                      <div className="flex flex-wrap justify-end gap-1">
+                        {participants.slice(0, 3).map((user) => (
+                          <Avatar key={user.id} name={user.name} size="sm" title={user.name} />
+                        ))}
+                        {participants.length > 3 && (
+                          <span className="text-xs text-gray-500 self-center">+{participants.length - 3}</span>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  )}
 
-          {/* Dates */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Хронология</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Создана</span>
-                <span className="text-gray-900">{formatDateTime(task.created_at)}</span>
-              </div>
-              {task.started_at && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Начата</span>
-                  <span className="text-gray-900">{formatDateTime(task.started_at)}</span>
+                  {/* Watchers */}
+                  {watchers.length > 0 && (
+                    <div className="flex items-start justify-between">
+                      <span className="text-sm text-gray-500">Наблюдатели</span>
+                      <div className="flex flex-wrap justify-end gap-1">
+                        {watchers.slice(0, 3).map((user) => (
+                          <Avatar key={user.id} name={user.name} size="sm" title={user.name} />
+                        ))}
+                        {watchers.length > 3 && (
+                          <span className="text-xs text-gray-500 self-center">+{watchers.length - 3}</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-              {task.accepted_at && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Принята</span>
-                  <span className="text-gray-900">{formatDateTime(task.accepted_at)}</span>
+
+              {/* Timeline - collapsible */}
+              <div className="border-t border-gray-100 pt-3 mt-3">
+                <div className="text-xs text-gray-500 space-y-1">
+                  <div className="flex justify-between">
+                    <span>Создана</span>
+                    <span>{formatDateTime(task.created_at)}</span>
+                  </div>
+                  {task.started_at && (
+                    <div className="flex justify-between">
+                      <span>Начата</span>
+                      <span>{formatDateTime(task.started_at)}</span>
+                    </div>
+                  )}
+                  {task.completed_at && (
+                    <div className="flex justify-between">
+                      <span>Завершена</span>
+                      <span>{formatDateTime(task.completed_at)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span>Обновлена</span>
+                    <span>{formatDateTime(task.updated_at)}</span>
+                  </div>
                 </div>
-              )}
-              {task.completed_at && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Завершена</span>
-                  <span className="text-gray-900">{formatDateTime(task.completed_at)}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-gray-500">Обновлена</span>
-                <span className="text-gray-900">{formatDateTime(task.updated_at)}</span>
               </div>
             </CardContent>
           </Card>
         </div>
-        </div>
-      ) : activeTab === "documents" ? (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">Документы</h3>
-              <p className="mt-1 text-sm text-gray-500">Функционал находится в разработке</p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : activeTab === "comments" ? (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">Комментарии</h3>
-              <p className="mt-1 text-sm text-gray-500">Функционал находится в разработке</p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">История изменений</h3>
-              <p className="mt-1 text-sm text-gray-500">Функционал находится в разработке</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      </div>
 
       {/* Edit Modal */}
       <TaskFormModal

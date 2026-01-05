@@ -69,12 +69,15 @@ export function TaskTableHeader({ sort, onSortChange, columnConfig }: TaskTableH
   return (
     <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
       <div className="flex items-center gap-3 px-3 py-1.5">
-        {/* Checkbox placeholder */}
-        <div className="w-4" />
+        {/* Expand button + Checkbox placeholder (matches TaskRow) */}
+        <div className="flex items-center gap-1">
+          <div className="w-4" />
+          <div className="w-4" />
+        </div>
 
         {/* ID */}
         {columnConfig.id && (
-          <div className="w-16 shrink-0">
+          <div className="w-16 shrink-0 text-left">
             <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">ID</span>
           </div>
         )}
@@ -91,28 +94,28 @@ export function TaskTableHeader({ sort, onSortChange, columnConfig }: TaskTableH
 
         {/* Author - who physically created */}
         {columnConfig.author && (
-          <div className="w-24 shrink-0">
+          <div className="w-24 shrink-0 text-left">
             <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Автор</span>
           </div>
         )}
 
         {/* Creator - on whose behalf */}
         {columnConfig.creator && (
-          <div className="w-24 shrink-0">
+          <div className="w-24 shrink-0 text-left">
             <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Постановщик</span>
           </div>
         )}
 
         {/* Assignee - who will execute */}
         {columnConfig.assignee && (
-          <div className="w-24 shrink-0">
+          <div className="w-24 shrink-0 text-left">
             <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Исполнитель</span>
           </div>
         )}
 
         {/* Due Date */}
         {columnConfig.dueDate && (
-          <div className="w-24">
+          <div className="w-32 text-left">
             <HeaderCell
               field="due_date"
               label="Срок"
@@ -124,7 +127,7 @@ export function TaskTableHeader({ sort, onSortChange, columnConfig }: TaskTableH
 
         {/* Priority */}
         {columnConfig.priority && (
-          <div className="w-20">
+          <div className="w-20 text-left">
             <HeaderCell
               field="priority"
               label="Приоритет"
@@ -136,7 +139,7 @@ export function TaskTableHeader({ sort, onSortChange, columnConfig }: TaskTableH
 
         {/* Status */}
         {columnConfig.status && (
-          <div className="w-24">
+          <div className="w-24 text-left">
             <HeaderCell
               field="status"
               label="Статус"
@@ -148,7 +151,7 @@ export function TaskTableHeader({ sort, onSortChange, columnConfig }: TaskTableH
 
         {/* Created */}
         {columnConfig.createdAt && (
-          <div className="w-28">
+          <div className="w-28 text-left">
             <HeaderCell
               field="created_at"
               label="Создана"
