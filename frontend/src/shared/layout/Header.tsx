@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, useLogout } from "../../modules/auth";
+import { NotificationBell } from "../../modules/notifications";
 import { Avatar, Dropdown, DropdownItem, DropdownDivider } from "../ui";
 
 interface HeaderProps {
@@ -95,17 +96,7 @@ export function Header({ onMenuClick }: HeaderProps) {
       {/* Right side */}
       <div className="flex items-center gap-4">
         {/* Notifications */}
-        <button
-          type="button"
-          className="relative p-2 text-gray-500 hover:text-gray-700"
-        >
-          <span className="sr-only">Уведомления</span>
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-          </svg>
-          {/* Notification badge */}
-          <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
-        </button>
+        <NotificationBell />
 
         {/* User menu */}
         {user && (

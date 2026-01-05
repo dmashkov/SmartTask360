@@ -4,12 +4,13 @@
  */
 
 import { useState } from "react";
-import { Spinner, Avatar, EmptyState } from "../../../shared/ui";
+import { Spinner, Avatar, EmptyState, Button } from "../../../shared/ui";
 import {
   useProjectMembers,
   useUpdateProjectMember,
   useRemoveProjectMember,
 } from "../hooks";
+import { InviteMemberModal } from "./InviteMemberModal";
 import type { ProjectMemberWithUser, ProjectMemberRole } from "../types";
 
 interface ProjectMembersTabProps {
@@ -114,9 +115,13 @@ function MemberRow({
 }
 
 export function ProjectMembersTab({ projectId, isOwner = false }: ProjectMembersTabProps) {
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const { data: members = [], isLoading, error } = useProjectMembers(projectId);
   const updateMember = useUpdateProjectMember();
   const removeMember = useRemoveProjectMember();
+
+  // Get IDs of existing members for filtering in invite modal
+  const existingMemberIds = members.map((m) => m.user_id);
 
   const handleChangeRole = async (userId: string, role: ProjectMemberRole) => {
     try {
@@ -160,10 +165,28 @@ export function ProjectMembersTab({ projectId, isOwner = false }: ProjectMembers
 
   if (members.length === 0) {
     return (
-      <EmptyState
-        title="Нет участников"
-        description="В проекте пока нет участников"
-      />
+      <>
+        <EmptyState
+          title="Нет участников"
+          description="В проекте пока нет участников"
+          action={
+            isOwner ? (
+              <Button onClick={() => setIsInviteModalOpen(true)}>
+                <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
+                </svg>
+                Пригласить участника
+              </Button>
+            ) : undefined
+          }
+        />
+        <InviteMemberModal
+          isOpen={isInviteModalOpen}
+          onClose={() => setIsInviteModalOpen(false)}
+          projectId={projectId}
+          existingMemberIds={existingMemberIds}
+        />
+      </>
     );
   }
 
@@ -174,24 +197,52 @@ export function ProjectMembersTab({ projectId, isOwner = false }: ProjectMembers
   });
 
   return (
-    <div>
-      {/* Members list */}
-      <div className="divide-y divide-gray-100">
-        {sortedMembers.map((member) => (
-          <MemberRow
-            key={member.user_id}
-            member={member}
-            canManage={isOwner}
-            onChangeRole={(role) => handleChangeRole(member.user_id, role)}
-            onRemove={() => handleRemoveMember(member.user_id)}
-          />
-        ))}
+    <>
+      <div>
+        {/* Header with invite button */}
+        {isOwner && (
+          <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">
+              Участники проекта
+            </span>
+            <Button
+              size="sm"
+              onClick={() => setIsInviteModalOpen(true)}
+            >
+              <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
+              </svg>
+              Пригласить
+            </Button>
+          </div>
+        )}
+
+        {/* Members list */}
+        <div className="divide-y divide-gray-100">
+          {sortedMembers.map((member) => (
+            <MemberRow
+              key={member.user_id}
+              member={member}
+              canManage={isOwner}
+              onChangeRole={(role) => handleChangeRole(member.user_id, role)}
+              onRemove={() => handleRemoveMember(member.user_id)}
+            />
+          ))}
+        </div>
+
+        {/* Footer with stats */}
+        <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 text-sm text-gray-500">
+          Всего участников: {members.length}
+        </div>
       </div>
 
-      {/* Footer with stats */}
-      <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 text-sm text-gray-500">
-        Всего участников: {members.length}
-      </div>
-    </div>
+      {/* Invite Member Modal */}
+      <InviteMemberModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        projectId={projectId}
+        existingMemberIds={existingMemberIds}
+      />
+    </>
   );
 }

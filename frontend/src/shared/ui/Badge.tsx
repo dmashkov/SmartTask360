@@ -2,12 +2,12 @@ import { cn } from "../lib/utils";
 
 export interface BadgeProps {
   children?: React.ReactNode;
-  variant?: "default" | "status" | "priority";
+  variant?: "default" | "status" | "priority" | "projectStatus";
   color?: string;
   size?: "sm" | "md";
   className?: string;
   // Alternative API for convenience
-  type?: "status" | "priority";
+  type?: "status" | "priority" | "projectStatus";
   value?: string;
 }
 
@@ -51,6 +51,22 @@ const priorityLabels: Record<string, string> = {
   urgent: "Срочный",
 };
 
+const projectStatusColors: Record<string, string> = {
+  planning: "bg-purple-100 text-purple-700",
+  active: "bg-green-100 text-green-700",
+  on_hold: "bg-gray-100 text-gray-700",
+  completed: "bg-blue-100 text-blue-700",
+  archived: "bg-gray-100 text-gray-500",
+};
+
+const projectStatusLabels: Record<string, string> = {
+  planning: "Планирование",
+  active: "Активный",
+  on_hold: "На паузе",
+  completed: "Завершён",
+  archived: "Архив",
+};
+
 function Badge({
   children,
   variant = "default",
@@ -69,6 +85,8 @@ function Badge({
       if (effectiveVariant === "status") return statusColors[effectiveColor] || statusColors.draft;
       if (effectiveVariant === "priority")
         return priorityColors[effectiveColor] || priorityColors.medium;
+      if (effectiveVariant === "projectStatus")
+        return projectStatusColors[effectiveColor] || projectStatusColors.planning;
     }
     return "bg-gray-100 text-gray-700";
   };
@@ -77,6 +95,7 @@ function Badge({
   const getLabel = (v: string) => {
     if (effectiveVariant === "status") return statusLabels[v] || v.replace(/_/g, " ");
     if (effectiveVariant === "priority") return priorityLabels[v] || v.replace(/_/g, " ");
+    if (effectiveVariant === "projectStatus") return projectStatusLabels[v] || v.replace(/_/g, " ");
     return v.replace(/_/g, " ");
   };
   const displayText = children || (value ? getLabel(value) : "");

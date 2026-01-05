@@ -7,3 +7,4 @@ export { ProjectFormModal } from "./ProjectFormModal";
 export { ProjectTasksTab } from "./ProjectTasksTab";
 export { ProjectBoardsTab } from "./ProjectBoardsTab";
 export { ProjectMembersTab } from "./ProjectMembersTab";
+export { InviteMemberModal } from "./InviteMemberModal";
