@@ -15,6 +15,7 @@ import { useTask, useChangeTaskStatus, useDeleteTask, useTaskWatchers, useTaskPa
 import { TaskFormModal, ParentTaskLink, ChildTasksTree } from "../modules/tasks/components";
 import type { TaskStatus } from "../modules/tasks";
 import { useUsersMap, getUserById } from "../modules/users";
+import { ChecklistsPanel } from "../modules/checklists";
 
 type TaskDetailTab = "main" | "documents" | "comments" | "history";
 
@@ -227,6 +228,13 @@ export function TaskDetailPage() {
               ) : (
                 <p className="text-gray-400 italic">Описание не указано</p>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Checklists Section */}
+          <Card>
+            <CardContent className="pt-6">
+              <ChecklistsPanel taskId={task.id} />
             </CardContent>
           </Card>
 

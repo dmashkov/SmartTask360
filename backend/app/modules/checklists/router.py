@@ -29,15 +29,15 @@ router = APIRouter(prefix="/checklists", tags=["checklists"])
 # ========== Checklist endpoints ==========
 
 
-@router.get("/tasks/{task_id}/checklists", response_model=list[ChecklistResponse])
+@router.get("/tasks/{task_id}/checklists", response_model=list[ChecklistWithItemsResponse])
 async def get_task_checklists(
     task_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get all checklists for a task"""
+    """Get all checklists for a task with items"""
     service = ChecklistService(db)
-    checklists = await service.get_task_checklists(task_id)
+    checklists = await service.get_task_checklists_with_items(task_id)
     return checklists
 
 

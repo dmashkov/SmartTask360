@@ -52,6 +52,16 @@ class ChecklistService:
         )
         return list(result.scalars().all())
 
+    async def get_task_checklists_with_items(self, task_id: UUID) -> list[Checklist]:
+        """Get all checklists for a task with items loaded (ordered by position)"""
+        result = await self.db.execute(
+            select(Checklist)
+            .where(Checklist.task_id == task_id)
+            .options(selectinload(Checklist.items))
+            .order_by(Checklist.position, Checklist.created_at)
+        )
+        return list(result.scalars().all())
+
     async def create_checklist(self, checklist_data: ChecklistCreate) -> Checklist:
         """Create new checklist"""
         checklist = Checklist(
