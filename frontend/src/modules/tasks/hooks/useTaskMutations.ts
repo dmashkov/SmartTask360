@@ -14,6 +14,7 @@ import {
   removeTaskTag,
 } from "../api";
 import { taskKeys } from "./useTasks";
+import { projectKeys } from "../../projects/hooks/useProjects";
 import type { Task, TaskCreate, TaskUpdate, TaskAccept, TaskReject, TaskStatusChange } from "../types";
 
 export function useCreateTask() {
@@ -21,8 +22,14 @@ export function useCreateTask() {
 
   return useMutation<Task, Error, TaskCreate>({
     mutationFn: createTask,
-    onSuccess: () => {
+    onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      // Invalidate project tasks cache if task belongs to a project
+      if (task.project_id) {
+        queryClient.invalidateQueries({ queryKey: projectKeys.tasks(task.project_id) });
+        // Also invalidate project stats
+        queryClient.invalidateQueries({ queryKey: projectKeys.detail(task.project_id) });
+      }
     },
   });
 }
@@ -35,6 +42,11 @@ export function useUpdateTask() {
     onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
       queryClient.setQueryData(taskKeys.detail(task.id), task);
+      // Invalidate project tasks cache if task belongs to a project
+      if (task.project_id) {
+        queryClient.invalidateQueries({ queryKey: projectKeys.tasks(task.project_id) });
+        queryClient.invalidateQueries({ queryKey: projectKeys.detail(task.project_id) });
+      }
     },
   });
 }

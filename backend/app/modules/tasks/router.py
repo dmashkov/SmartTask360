@@ -351,7 +351,7 @@ async def create_task(
     service = TaskService(db)
 
     try:
-        task = await service.create(task_data, creator_id=current_user.id)
+        task = await service.create(task_data, current_user_id=current_user.id)
         # Newly created task has 0 children
         return task_to_response(task, 0)
     except ValueError as e:

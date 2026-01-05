@@ -10,10 +10,12 @@ import type {
   ProjectWithStats,
   ProjectListItem,
   ProjectMember,
+  ProjectMemberWithUser,
   ProjectMemberCreate,
   ProjectMemberUpdate,
   ProjectFilters,
 } from "./types";
+import type { Task } from "../tasks/types";
 
 // ============================================================
 // Project CRUD
@@ -82,8 +84,8 @@ export async function deleteProject(projectId: string): Promise<void> {
 // ============================================================
 
 // Get project members
-export async function getProjectMembers(projectId: string): Promise<ProjectMember[]> {
-  const response = await api.get<ProjectMember[]>(`/projects/${projectId}/members`);
+export async function getProjectMembers(projectId: string): Promise<ProjectMemberWithUser[]> {
+  const response = await api.get<ProjectMemberWithUser[]>(`/projects/${projectId}/members`);
   return response.data;
 }
 
@@ -124,8 +126,8 @@ export async function removeProjectMember(
 // Project Tasks & Boards
 // ============================================================
 
-interface TaskListResponse {
-  items: unknown[];
+export interface ProjectTasksResponse {
+  items: Task[];
   total: number;
   skip: number;
   limit: number;
@@ -137,20 +139,32 @@ export async function getProjectTasks(
   status?: string,
   skip = 0,
   limit = 50
-): Promise<TaskListResponse> {
+): Promise<ProjectTasksResponse> {
   const params = new URLSearchParams();
   if (status) params.append("status", status);
   params.append("skip", String(skip));
   params.append("limit", String(limit));
 
-  const response = await api.get<TaskListResponse>(
+  const response = await api.get<ProjectTasksResponse>(
     `/projects/${projectId}/tasks?${params.toString()}`
   );
   return response.data;
 }
 
+// Board types for project boards
+export interface ProjectBoard {
+  id: string;
+  name: string;
+  description: string | null;
+  project_id: string;
+  is_default: boolean;
+  columns_count: number;
+  tasks_count: number;
+  created_at: string;
+}
+
 // Get project boards
-export async function getProjectBoards(projectId: string): Promise<unknown[]> {
-  const response = await api.get<unknown[]>(`/projects/${projectId}/boards`);
+export async function getProjectBoards(projectId: string): Promise<ProjectBoard[]> {
+  const response = await api.get<ProjectBoard[]>(`/projects/${projectId}/boards`);
   return response.data;
 }

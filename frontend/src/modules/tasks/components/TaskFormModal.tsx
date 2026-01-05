@@ -12,6 +12,8 @@ import {
 import { useCreateTask, useUpdateTask } from "../hooks";
 import type { Task, TaskCreate, TaskUpdate, TaskPriority } from "../types";
 import { useUsers } from "../../users";
+import { useAuth } from "../../auth";
+import { ProjectSelect } from "../../projects";
 
 const priorityOptions = [
   { value: "low", label: "Низкий" },
@@ -25,13 +27,15 @@ interface TaskFormModalProps {
   onClose: () => void;
   task?: Task | null;
   parentId?: string | null;
+  defaultProjectId?: string | null;
 }
 
-export function TaskFormModal({ isOpen, onClose, task, parentId }: TaskFormModalProps) {
+export function TaskFormModal({ isOpen, onClose, task, parentId, defaultProjectId }: TaskFormModalProps) {
   const isEdit = !!task;
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const { data: users = [] } = useUsers();
+  const { user: currentUser } = useAuth();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -40,6 +44,7 @@ export function TaskFormModal({ isOpen, onClose, task, parentId }: TaskFormModal
   const [estimatedHours, setEstimatedHours] = useState("");
   const [creatorId, setCreatorId] = useState<string>("");
   const [assigneeId, setAssigneeId] = useState<string>("");
+  const [projectId, setProjectId] = useState<string>("");
 
   // Build user options for select
   const userOptions = [
@@ -61,17 +66,20 @@ export function TaskFormModal({ isOpen, onClose, task, parentId }: TaskFormModal
         setEstimatedHours(task.estimated_hours?.toString() || "");
         setCreatorId(task.creator_id || "");
         setAssigneeId(task.assignee_id || "");
+        setProjectId(task.project_id || "");
       } else {
         setTitle("");
         setDescription("");
         setPriority("medium");
         setDueDate("");
         setEstimatedHours("");
-        setCreatorId("");
-        setAssigneeId("");
+        // Default creator and assignee to current user
+        setCreatorId(currentUser?.id || "");
+        setAssigneeId(currentUser?.id || "");
+        setProjectId(defaultProjectId || "");
       }
     }
-  }, [isOpen, task]);
+  }, [isOpen, task, defaultProjectId, currentUser]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +101,7 @@ export function TaskFormModal({ isOpen, onClose, task, parentId }: TaskFormModal
       parent_id: parentId || null,
       creator_id: creatorId || null,
       assignee_id: assigneeId || null,
+      project_id: projectId || null,
     };
 
     try {
@@ -135,6 +144,11 @@ export function TaskFormModal({ isOpen, onClose, task, parentId }: TaskFormModal
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Описание задачи (необязательно)"
             rows={4}
+          />
+
+          <ProjectSelect
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
           />
 
           <div className="grid grid-cols-2 gap-4">

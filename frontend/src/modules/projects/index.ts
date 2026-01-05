@@ -6,6 +6,7 @@ export type {
   ProjectCreate,
   ProjectUpdate,
   ProjectMember,
+  ProjectMemberWithUser,
   ProjectMemberCreate,
   ProjectMemberUpdate,
   ProjectFilters,
@@ -13,6 +14,8 @@ export type {
   ProjectMemberRole,
   ProjectStats,
 } from "./types";
+
+export type { ProjectTasksResponse, ProjectBoard } from "./api";
 
 // API
 export {
@@ -53,4 +56,7 @@ export {
   ProjectCard,
   ProjectSelect,
   ProjectFormModal,
+  ProjectTasksTab,
+  ProjectBoardsTab,
+  ProjectMembersTab,
 } from "./components";

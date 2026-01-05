@@ -6,6 +6,7 @@ import { ImportTasksModal } from "./ImportTasksModal";
 import { useUsers } from "../../users";
 import { useAuth } from "../../auth";
 import { SavedViewsDropdown } from "../../views";
+import { ProjectSelect } from "../../projects";
 
 // Custom debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -28,6 +29,7 @@ function useDebounce<T>(value: T, delay: number): T {
 export interface ColumnConfig {
   id: boolean;
   title: boolean;
+  project: boolean;
   author: boolean;
   creator: boolean;
   assignee: boolean;
@@ -40,6 +42,7 @@ export interface ColumnConfig {
 export const defaultColumnConfig: ColumnConfig = {
   id: true,
   title: true,
+  project: true,
   author: false,
   creator: false,
   assignee: true,
@@ -52,6 +55,7 @@ export const defaultColumnConfig: ColumnConfig = {
 const columnLabels: Record<keyof ColumnConfig, string> = {
   id: "ID",
   title: "Наименование",
+  project: "Проект",
   author: "Автор",
   creator: "Постановщик",
   assignee: "Исполнитель",
@@ -64,6 +68,7 @@ const columnLabels: Record<keyof ColumnConfig, string> = {
 const columnOrder: Array<keyof ColumnConfig> = [
   "id",
   "title",
+  "project",
   "author",
   "creator",
   "assignee",
@@ -287,6 +292,11 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
     onFiltersChange({ ...filters, priority: value || undefined });
   };
 
+  const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    onFiltersChange({ ...filters, project_id: value || undefined });
+  };
+
   const handleClearFilters = () => {
     setSearch("");
     onFiltersChange({});
@@ -316,7 +326,7 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
   }, [filters, currentUser]);
 
   const hasFilters = filters.status || filters.priority || filters.search ||
-    filters.assignee_id || filters.creator_id || filters.is_overdue;
+    filters.assignee_id || filters.creator_id || filters.is_overdue || filters.project_id;
 
   const activeFiltersCount = [
     filters.status,
@@ -325,6 +335,7 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
     filters.assignee_id,
     filters.creator_id,
     filters.is_overdue,
+    filters.project_id,
   ].filter(Boolean).length;
 
   return (
@@ -553,6 +564,15 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* Row 2: Project filter */}
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <ProjectSelect
+                value={filters.project_id || ""}
+                onChange={handleProjectChange}
+                placeholder="Все проекты"
+              />
             </div>
 
             {/* Additional toggles */}

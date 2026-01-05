@@ -15,16 +15,24 @@ import {
   useDeleteProject,
   ProjectStatusBadge,
   ProjectFormModal,
+  ProjectTasksTab,
+  ProjectBoardsTab,
+  ProjectMembersTab,
 } from "../modules/projects";
+import { useAuth } from "../modules/auth";
 
 type ViewMode = "tasks" | "boards" | "members";
 
 export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const { data: project, isLoading, error } = useProject(projectId || "");
   const deleteProject = useDeleteProject();
+
+  // Check if current user is owner
+  const isOwner = user?.id === project?.owner_id;
 
   const [viewMode, setViewMode] = useState<ViewMode>("tasks");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -289,35 +297,17 @@ export function ProjectDetailPage() {
         </div>
 
         {/* View Content */}
-        <div className="p-6">
-          {viewMode === "tasks" && (
-            <div className="text-center py-8 text-gray-500">
-              <p>Список задач проекта</p>
-              <Link
-                to={`/tasks?project_id=${projectId}`}
-                className="text-blue-600 hover:text-blue-700 mt-2 inline-block"
-              >
-                Открыть в разделе Задачи
-              </Link>
-            </div>
+        <div>
+          {viewMode === "tasks" && projectId && (
+            <ProjectTasksTab projectId={projectId} />
           )}
 
-          {viewMode === "boards" && (
-            <div className="text-center py-8 text-gray-500">
-              <p>Доски проекта</p>
-              <Link
-                to={`/boards?project_id=${projectId}`}
-                className="text-blue-600 hover:text-blue-700 mt-2 inline-block"
-              >
-                Открыть в разделе Доски
-              </Link>
-            </div>
+          {viewMode === "boards" && projectId && (
+            <ProjectBoardsTab projectId={projectId} />
           )}
 
-          {viewMode === "members" && (
-            <div className="text-center py-8 text-gray-500">
-              <p>Управление участниками будет реализовано</p>
-            </div>
+          {viewMode === "members" && projectId && (
+            <ProjectMembersTab projectId={projectId} isOwner={isOwner} />
           )}
         </div>
       </div>

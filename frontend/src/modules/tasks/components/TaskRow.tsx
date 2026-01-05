@@ -6,10 +6,19 @@ import type { ColumnConfig } from "./TaskFilters";
 import { type UsersMap, getUserById } from "../../users";
 import { TaskExpandButton } from "./TaskExpandButton";
 
+// Projects map type for displaying project names
+export type ProjectsMap = Map<string, { id: string; name: string; code: string }>;
+
+export function getProjectById(projectsMap: ProjectsMap, projectId: string | null): { id: string; name: string; code: string } | null {
+  if (!projectId) return null;
+  return projectsMap.get(projectId) || null;
+}
+
 interface TaskRowProps {
   task: Task;
   columnConfig: ColumnConfig;
   usersMap: UsersMap;
+  projectsMap?: ProjectsMap;
   isSelected?: boolean;
   onSelect?: (taskId: string, selected: boolean) => void;
   // Hierarchy props
@@ -24,6 +33,7 @@ export function TaskRow({
   task,
   columnConfig,
   usersMap,
+  projectsMap = new Map(),
   isSelected = false,
   onSelect,
   isExpanded = false,
@@ -41,6 +51,7 @@ export function TaskRow({
   const author = getUserById(usersMap, task.author_id);
   const creator = getUserById(usersMap, task.creator_id);
   const assignee = getUserById(usersMap, task.assignee_id);
+  const project = getProjectById(projectsMap, task.project_id);
 
   const handleCheckboxChange = () => {
     onSelect?.(task.id, !isSelected);
@@ -103,6 +114,23 @@ export function TaskRow({
           </span>
         )}
       </div>
+
+      {/* Project */}
+      {columnConfig.project && (
+        <div className="w-28 shrink-0">
+          {project ? (
+            <Link
+              to={`/projects/${project.id}`}
+              className="text-xs text-blue-600 hover:text-blue-700 truncate block"
+              title={project.name}
+            >
+              {project.code}
+            </Link>
+          ) : (
+            <span className="text-gray-300 text-xs">—</span>
+          )}
+        </div>
+      )}
 
       {/* Author - who physically created */}
       {columnConfig.author && (

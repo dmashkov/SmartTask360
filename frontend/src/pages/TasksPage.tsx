@@ -8,7 +8,9 @@ import { TaskFilters, TaskList, TaskFormModal, BulkActionsBar, defaultColumnConf
 import type { TaskFilters as TaskFiltersType, TaskStatus, TaskPriority, Task } from "../modules/tasks";
 import type { SortConfig, SortField } from "../modules/tasks/components/TaskTableHeader";
 import type { ColumnConfig } from "../modules/tasks/components";
+import type { ProjectsMap } from "../modules/tasks/components/TaskRow";
 import { useUsersMap, useUsers } from "../modules/users";
+import { useProjects } from "../modules/projects";
 
 const COLUMN_CONFIG_KEY = "smarttask360_task_columns";
 const ITEMS_PER_PAGE = 20;
@@ -73,6 +75,16 @@ export function TasksPage() {
   const { data: users = [] } = useUsers();
 
   const totalAllItems = allTasks?.length;
+  const { data: projects = [] } = useProjects();
+
+  // Build projectsMap for TaskList
+  const projectsMap: ProjectsMap = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; code: string }>();
+    for (const project of projects) {
+      map.set(project.id, { id: project.id, name: project.name, code: project.code });
+    }
+    return map;
+  }, [projects]);
 
   // Bulk operations
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -285,6 +297,7 @@ export function TasksPage() {
         onSortChange={handleSortChange}
         columnConfig={columnConfig}
         usersMap={usersMap}
+        projectsMap={projectsMap}
         currentPage={currentPage}
         totalPages={totalPages}
         totalItems={totalItems}

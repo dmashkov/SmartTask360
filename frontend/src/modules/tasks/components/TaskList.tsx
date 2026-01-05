@@ -1,5 +1,5 @@
 import { Card, CardContent, EmptyState, EmptyStateIcons, Loading, Pagination } from "../../../shared/ui";
-import { TaskRow } from "./TaskRow";
+import { TaskRow, type ProjectsMap } from "./TaskRow";
 import { TaskTableHeader, type SortConfig, type SortField } from "./TaskTableHeader";
 import type { ColumnConfig } from "./TaskFilters";
 import type { Task } from "../types";
@@ -12,6 +12,7 @@ interface TaskListProps {
   onSortChange: (field: SortField) => void;
   columnConfig: ColumnConfig;
   usersMap: UsersMap;
+  projectsMap?: ProjectsMap;
   // Pagination
   currentPage?: number;
   totalPages?: number;
@@ -37,6 +38,7 @@ export function TaskList({
   onSortChange,
   columnConfig,
   usersMap,
+  projectsMap = new Map(),
   currentPage = 1,
   totalPages = 1,
   totalItems,
@@ -64,6 +66,7 @@ export function TaskList({
         task={task}
         columnConfig={columnConfig}
         usersMap={usersMap}
+        projectsMap={projectsMap}
         isSelected={selectedIds.has(task.id)}
         onSelect={onSelectionChange}
         isExpanded={isExpanded}

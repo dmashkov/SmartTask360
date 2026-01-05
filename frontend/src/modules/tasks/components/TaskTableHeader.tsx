@@ -92,6 +92,13 @@ export function TaskTableHeader({ sort, onSortChange, columnConfig }: TaskTableH
           />
         </div>
 
+        {/* Project */}
+        {columnConfig.project && (
+          <div className="w-28 shrink-0 text-left">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Проект</span>
+          </div>
+        )}
+
         {/* Author - who physically created */}
         {columnConfig.author && (
           <div className="w-24 shrink-0 text-left">
