@@ -163,19 +163,19 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
 
   // Calculate optimal column width based on task titles
   const calculateColumnWidth = (tasks: Task[]): number => {
-    if (tasks.length === 0) return 280; // Minimum width for empty columns
+    if (tasks.length === 0) return 168; // Minimum width for empty columns (-40%)
 
     // Find the longest title in the column
     const maxTitleLength = Math.max(
       ...tasks.map((task) => task.title.length),
-      50 // Minimum character count
+      30 // Minimum character count (-40%)
     );
 
     // Calculate width: ~8px per character, with padding and constraints
-    // Min: 280px (50 chars), Max: 480px (60 chars)
+    // Min: 168px (~30 chars), Max: 400px (~50 chars)
     const calculatedWidth = Math.min(
-      Math.max(maxTitleLength * 8, 280),
-      480
+      Math.max(maxTitleLength * 8, 168),
+      400
     );
 
     return calculatedWidth;
@@ -251,7 +251,7 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
             color={col.color}
             status={col.status}
             tasks={tasksByStatus.get(col.status) || []}
-            width={columnWidths.get(col.status) || 280}
+            width={columnWidths.get(col.status) || 168}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
