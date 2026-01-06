@@ -2,7 +2,7 @@
 
 **Планирование сессий разработки**
 
-**Last Updated:** 2026-01-06 (Document Management Session)
+**Last Updated:** 2026-01-06 (Session 9: @Mentions & Comments)
 
 ---
 
@@ -18,15 +18,38 @@
 | Sprint 5: Frontend Core | 1 week | 4-5 sessions | ✅ Completed |
 | Sprint 6: Frontend Tasks & Kanban | 2 weeks | 10+ sessions | ✅ Completed + Enhanced |
 | Sprint 7: Document Management | 1 day | 1 session | ✅ Completed |
-| Sprint 8: Projects Module | 3 days | 2-3 sessions | ⏳ Next |
-| Sprint 9: Gantt Chart | 2 days | 2 sessions | ⏳ Planned |
-| Sprint 10: Polish & Testing | 1 week | 3-4 sessions | ⏳ Planned |
+| Sprint 8: Projects Foundation | 2 days | 2 sessions | ✅ Completed |
+| Sprint 9: @Mentions & Comments | 1 day | 1 session | ✅ Completed |
+| Sprint 10: Projects Full | 3 days | 2-3 sessions | ⏳ Next |
+| Sprint 11: Gantt Chart | 2 days | 2 sessions | ⏳ Planned |
+| Sprint 12: Polish & Testing | 1 week | 3-4 sessions | ⏳ Planned |
 
 **Total MVP:** ~7-8 weeks, ~45-52 sessions
-**Completed:** ~38 sessions (Sprint 0-7)
-**Next:** Sprint 8 — Projects Module (full development)
+**Completed:** ~41 sessions (Sprint 0-9)
+**Next:** Sprint 10 — Projects Full Development
 
-### Sprint 7 Summary (2026-01-06) ✅
+### Sprint 9 Summary (2026-01-06) ✅
+**@Mentions, Reactions & Read Status**
+- ✅ Backend: mentioned_user_ids field (ARRAY UUID) on Comment model
+- ✅ Backend: comment_read_status table for per-comment tracking
+- ✅ Backend: Mention parsing with regex (`@Имя Фамилия`)
+- ✅ Backend: User search endpoint (GET /users/search?q=)
+- ✅ Backend: Reactions CRUD (toggle, remove, get summary)
+- ✅ Backend: Endpoints: mark-read, unread-count
+- ✅ Frontend: MentionInput with autocomplete dropdown
+- ✅ Frontend: Linkify with @mention highlighting (blue background)
+- ✅ Frontend: EmojiPicker and CommentReactions components
+- ✅ Frontend: useMarkCommentsAsRead hook (auto-mark on view)
+- ✅ Frontend: Kanban card indicators (💬 count + 🔵 unread + @ mentions)
+- ✅ 3 new migrations (reactions, comment_id, mentions+read_status)
+
+**Key Features:**
+- @Mention format: `@Имя Фамилия` (Cyrillic + Latin)
+- Reactions: 👍 ❤️ 😂 😮 😢 🎉
+- Notifications created on @mention
+- Board cache invalidated when comments marked read
+
+### Sprint 7-8 Summary (2026-01-06) ✅
 **Document Attachments in Comments**
 - ✅ Backend: Added comment_id field to documents table with migration
 - ✅ Backend: RFC 5987 encoding for Unicode filenames
@@ -1360,28 +1383,29 @@
 
 ## 📊 Progress Tracking
 
-**Completed Sessions:** ~37 / ~50
-**Current Sprint:** Sprint 6 Enhanced → Ready for Sprint 6.5
-**Latest Session:** Session 6.9 — Task Hierarchy & Urgency ✅
+**Completed Sessions:** ~41 / ~50
+**Current Sprint:** Sprint 9 Completed → Ready for Sprint 10
+**Latest Session:** Session 9 — @Mentions, Reactions & Read Status ✅
 
 **MVP Goal:**
 ```
 Project → Tasks → 3 View Modes:
   ├── Таблица (Table) ✅ есть (+ hierarchy + urgency)
-  ├── Kanban ✅ есть
-  └── Gantt ⏳ Sprint 6.6
+  ├── Kanban ✅ есть (+ comment indicators)
+  └── Gantt ⏳ Sprint 11
 ```
 
-**Recent Achievements (2026-01-04):**
-- ✅ Task hierarchy visualization (expand/collapse, lazy loading)
-- ✅ Task urgency indicators (overdue 🔴, due today 🟠, due soon 🟡)
-- ✅ UI enhancements (subtasks inline, compact panels, placeholder tabs)
-- ✅ 5 new components (TaskExpandButton, ParentTaskLink, ChildTaskNode, etc.)
-- ✅ Advanced utilities (getTaskUrgency with Russian pluralization)
+**Recent Achievements (2026-01-06 Session 9):**
+- ✅ @Mentions system (`@Имя Фамилия` format with autocomplete)
+- ✅ Comment reactions (emoji toggle: 👍 ❤️ 😂 😮 😢 🎉)
+- ✅ Per-comment read status tracking
+- ✅ Kanban indicators (comment count + unread dot + mentions)
+- ✅ 11 new files (MentionInput, Linkify, EmojiPicker, etc.)
+- ✅ 3 new migrations
 
 **Next Session Preview:**
-Session 6.5.1 — Backend Projects (Models, Service, Router)
-- Create Project model with status enum
-- Implement ProjectService with CRUD + stats
-- Add 10+ API endpoints
-- Write comprehensive tests
+Sprint 10 — Projects Full Development
+- Complete project pages and components
+- Project-task-board integration
+- Team member management UI
+- Stats and analytics

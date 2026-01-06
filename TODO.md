@@ -14,10 +14,20 @@
 - [x] **Phase 2B:** Frontend Tasks & Kanban ✅
 - [ ] **Phase 2C:** Frontend AI & Polish
 
-**Current:** Phase 2B completed + Document Management ✅
+**Current:** Phase 2B completed + Session 9 ✅
 **Next:** Phase 1E - Projects Module → Phase 1F - Gantt Chart
 
-**Recent Enhancements (2026-01-06):**
+**Session 9 (2026-01-06): @Mentions & Comments**
+- [x] @Mentions system (`@Имя Фамилия` format)
+- [x] MentionInput component with user autocomplete
+- [x] Linkify component with @mention highlighting
+- [x] Comment reactions (emoji toggle)
+- [x] Per-comment read status (comment_read_status table)
+- [x] Auto-mark as read when viewing
+- [x] Kanban indicators (comments, unread, mentions)
+- [x] User search endpoint for autocomplete
+
+**Session 8 (2026-01-06): Document Management**
 - [x] Document attachments in comments
 - [x] Bidirectional navigation (comments ↔ documents)
 - [x] Document type classification (requirements, attachments, results)

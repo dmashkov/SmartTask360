@@ -1,17 +1,27 @@
 # SmartTask360 — Development Context
 
-**Last Updated:** 2026-01-06 (Document Attachments in Comments)
+**Last Updated:** 2026-01-06 (Session 9: @Mentions & Comments)
 
 ---
 
 ## 🎯 Current Phase
 
-**Phase 2B: Frontend Tasks & Kanban** — ✅ Completed + Document Management Enhancements
+**Phase 2B: Frontend Tasks & Kanban** — ✅ Completed + Comments Enhancement
 
 ### Current Sprint
-Sprint 7: Document Management & Comments Integration — ✅ Completed
+Sprint 9: @Mentions, Reactions & Read Status — ✅ Completed
 
-### Recent Enhancements (2026-01-06)
+### Recent Enhancements (2026-01-06 Session 9)
+- ✅ @Mentions system (`@Имя Фамилия` format with autocomplete)
+- ✅ MentionInput component with dropdown user search
+- ✅ Linkify component with @mention highlighting (blue background)
+- ✅ Comment reactions (emoji: 👍 ❤️ 😂 😮 😢 🎉)
+- ✅ Per-comment read status tracking (comment_read_status table)
+- ✅ Auto-mark comments as read when viewing
+- ✅ Kanban card indicators (comment count + unread dot + mention indicator)
+- ✅ Notifications on @mention via NotificationService
+
+### Previous Enhancements (2026-01-06 Session 8)
 - ✅ Document attachments in comments (comment_id field)
 - ✅ Bidirectional navigation (comments ↔ documents via CustomEvent)
 - ✅ Document type classification (requirements, attachments, results)
@@ -32,7 +42,7 @@ Sprint 7: Document Management & Comments Integration — ✅ Completed
 - ✅ Urgency shown in TaskRow, TaskDetailPage, ChildTaskNode
 
 ### Current Session
-Document attachments in comments - ✅ Completed
+Session 9: @Mentions & Comments — ✅ Completed
 
 ### Plan for 2026-01-05
 **3 Sessions Planned (~10-12 hours):**
@@ -132,7 +142,7 @@ None - Sprint 6 completed
 - `modules/departments/` — ✅ Hierarchical with ltree
 - `modules/tasks/` — ✅ CRUD + hierarchy + status + acceptance + SMART
 - `modules/tags/` — ✅ Tag management + task associations
-- `modules/comments/` — ✅ Comments with threading
+- `modules/comments/` — ✅ Comments with threading, @mentions, reactions, read status
 - `modules/checklists/` — ✅ Checklists with nested items (ltree)
 - `modules/documents/` — ✅ MinIO upload/download
 - `modules/workflow/` — ✅ Templates + transitions
@@ -148,7 +158,14 @@ None - Sprint 6 completed
 - `modules/ai/` — ⏳ Next up (Phase 2C)
 - `modules/notifications/` — ⏳ Next up
 
-**Latest Components (2026-01-04):**
+**Latest Components (2026-01-06):**
+- `MentionInput` — textarea with @mention autocomplete
+- `Linkify` — URL and @mention highlighting
+- `EmojiPicker` — emoji reaction picker
+- `CommentReactions` — reaction display and toggle
+- `useMarkCommentsAsRead` — auto-mark read on view
+
+**Previous Components (2026-01-04):**
 - `TaskExpandButton` — expand/collapse subtasks in list
 - `ParentTaskLink` — navigation to parent task
 - `ChildTaskNode` — recursive subtask tree node
