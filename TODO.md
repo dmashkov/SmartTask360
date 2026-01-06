@@ -14,17 +14,24 @@
 - [x] **Phase 2B:** Frontend Tasks & Kanban ✅
 - [ ] **Phase 2C:** Frontend AI & Polish
 
-**Current:** Phase 2B completed + Enhanced — Frontend Tasks & Kanban + Hierarchy + Urgency ✅
+**Current:** Phase 2B completed + Document Management ✅
 **Next:** Phase 1E - Projects Module → Phase 1F - Gantt Chart
 
-**Recent Enhancements (2026-01-04):**
+**Recent Enhancements (2026-01-06):**
+- [x] Document attachments in comments
+- [x] Bidirectional navigation (comments ↔ documents)
+- [x] Document type classification (requirements, attachments, results)
+- [x] File download through backend API with proper Unicode encoding
+- [x] Event-based tab switching with smooth scrolling
+
+**Previous Enhancements (2026-01-04/05):**
 - [x] Task hierarchy visualization with expand/collapse
 - [x] Lazy loading of subtasks
 - [x] Parent task navigation
 - [x] Fixed duplicate children rendering
 - [x] Task urgency indicators (overdue, due today, due soon)
 - [x] Completion result placeholder
-- [x] Placeholder tabs (Documents, Comments, History)
+- [x] TaskDetailTabs component (Documents, Comments, History)
 
 ---
 

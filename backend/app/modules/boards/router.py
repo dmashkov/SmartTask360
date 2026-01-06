@@ -142,12 +142,19 @@ async def get_board(
     # Get tasks with details
     from sqlalchemy import select
 
+    from app.modules.comments.service import CommentService
+
+    comment_service = CommentService(db)
     board_tasks = await service.get_board_tasks(board_id)
     task_responses = []
     for bt in board_tasks:
         result = await db.execute(select(Task).where(Task.id == bt.task_id))
         task = result.scalar_one_or_none()
         if task:
+            # Get comment counts for this task
+            comment_counts = await comment_service.get_unread_comments_count(
+                current_user.id, bt.task_id
+            )
             task_responses.append(
                 BoardTaskWithDetails(
                     id=bt.id,
@@ -162,6 +169,9 @@ async def get_board(
                     task_priority=task.priority,
                     task_assignee_id=task.assignee_id,
                     task_due_date=task.due_date,
+                    total_comments_count=comment_counts["total"],
+                    unread_comments_count=comment_counts["unread"],
+                    unread_mentions_count=comment_counts["unread_mentions"],
                 )
             )
 

@@ -5,10 +5,21 @@ SmartTask360 — Comment model
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import String, Text
+from sqlalchemy import DateTime, ForeignKey, String, Text, Table, Column
+from sqlalchemy.dialects.postgresql import ARRAY, UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+
+
+# Association table for tracking read comments per user
+comment_read_status = Table(
+    "comment_read_status",
+    Base.metadata,
+    Column("user_id", PgUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("comment_id", PgUUID(as_uuid=True), ForeignKey("comments.id", ondelete="CASCADE"), primary_key=True),
+    Column("read_at", DateTime, nullable=False, default=datetime.utcnow),
+)
 
 
 class Comment(Base):
@@ -17,6 +28,7 @@ class Comment(Base):
 
     Supports threaded comments via reply_to_id.
     author_type allows for AI/system-generated comments in future.
+    mentioned_user_ids stores UUIDs of users mentioned with @.
     """
 
     __tablename__ = "comments"
@@ -35,6 +47,11 @@ class Comment(Base):
 
     # Content
     content: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # Mentions
+    mentioned_user_ids: Mapped[list[UUID] | None] = mapped_column(
+        ARRAY(PgUUID(as_uuid=True)), nullable=True, default=list
+    )
 
     # Threading
     reply_to_id: Mapped[UUID | None] = mapped_column(

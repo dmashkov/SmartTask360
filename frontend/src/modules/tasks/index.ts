@@ -16,6 +16,9 @@ export type {
   PaginatedResponse,
 } from "./types";
 
+// Re-export TabId from components
+export type { TabId } from "./components/TaskDetailTabs";
+
 // API
 export * from "./api";
 

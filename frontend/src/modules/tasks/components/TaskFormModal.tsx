@@ -15,6 +15,7 @@ import { useUsers } from "../../users";
 import { useAuth } from "../../auth";
 import { ProjectSelect, NO_PROJECT_VALUE } from "../../projects";
 import { uploadDocument } from "../../documents/api";
+import { useTaskDocuments, useDeleteDocument } from "../../documents";
 
 const priorityOptions = [
   { value: "low", label: "Низкий" },
@@ -29,6 +30,12 @@ interface TaskFormModalProps {
   task?: Task | null;
   parentId?: string | null;
   defaultProjectId?: string | null;
+  /** Default title for new task (e.g., from comment) */
+  defaultTitle?: string;
+  /** Default description for new task (e.g., from comment) */
+  defaultDescription?: string;
+  /** Default assignee - set to empty string to not auto-assign */
+  defaultAssigneeId?: string;
 }
 
 interface SelectedFile {
@@ -36,12 +43,23 @@ interface SelectedFile {
   id: string;
 }
 
-export function TaskFormModal({ isOpen, onClose, task, parentId, defaultProjectId }: TaskFormModalProps) {
+export function TaskFormModal({
+  isOpen,
+  onClose,
+  task,
+  parentId,
+  defaultProjectId,
+  defaultTitle,
+  defaultDescription,
+  defaultAssigneeId,
+}: TaskFormModalProps) {
   const isEdit = !!task;
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const { data: users = [] } = useUsers();
   const { user: currentUser } = useAuth();
+  const { data: existingDocuments = [] } = useTaskDocuments(task?.id || "");
+  const deleteDocument = useDeleteDocument(task?.id || "");
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -81,20 +99,21 @@ export function TaskFormModal({ isOpen, onClose, task, parentId, defaultProjectI
         setSelectedFiles([]);
       } else {
         // Create mode: set defaults
-        setTitle("");
-        setDescription("");
+        setTitle(defaultTitle || "");
+        setDescription(defaultDescription || "");
         setPriority("medium");
         setDueDate("");
         setEstimatedHours("");
-        // Default creator and assignee to current user
+        // Default creator to current user
         setCreatorId(currentUser?.id || "");
-        setAssigneeId(currentUser?.id || "");
+        // Default assignee: use provided default or current user
+        setAssigneeId(defaultAssigneeId !== undefined ? defaultAssigneeId : (currentUser?.id || ""));
         // Default project: if provided use it, otherwise "Без проекта"
         setProjectId(defaultProjectId || NO_PROJECT_VALUE);
         setSelectedFiles([]);
       }
     }
-  }, [isOpen, task, defaultProjectId, currentUser]);
+  }, [isOpen, task, defaultProjectId, defaultTitle, defaultDescription, defaultAssigneeId, currentUser]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -257,66 +276,102 @@ export function TaskFormModal({ isOpen, onClose, task, parentId, defaultProjectI
             step="0.5"
           />
 
-          {/* File upload section - only for create mode */}
-          {!isEdit && (
+          {/* Existing documents - only for edit mode */}
+          {isEdit && task && existingDocuments.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Исходные материалы (опционально)
+                Загруженные документы
               </label>
-
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={handleFileSelect}
-              />
-
-              {/* Upload button */}
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-3 py-2 text-sm border border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors w-full justify-center"
-              >
-                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                </svg>
-                <span className="text-gray-600">Выбрать файлы</span>
-              </button>
-
-              {/* Selected files list */}
-              {selectedFiles.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {selectedFiles.map(({ file, id }) => (
-                    <div
-                      key={id}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <svg className="h-4 w-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <span className="text-sm text-gray-700 truncate">{file.name}</span>
-                        <span className="text-xs text-gray-500 shrink-0">
-                          ({formatFileSize(file.size)})
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFile(id)}
-                        className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
+              <div className="space-y-2">
+                {existingDocuments.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <svg className="h-4 w-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="text-sm text-gray-700 truncate">{doc.original_filename}</span>
+                      <span className="text-xs text-gray-500 shrink-0">
+                        ({formatFileSize(doc.file_size)})
+                      </span>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <button
+                      type="button"
+                      onClick={() => deleteDocument.mutate(doc.id)}
+                      disabled={deleteDocument.isPending}
+                      className="p-1 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                      title="Удалить документ"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
+
+          {/* File upload section - for both create and edit modes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {isEdit ? "Добавить документы" : "Исходные материалы (опционально)"}
+            </label>
+
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+
+            {/* Upload button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 px-3 py-2 text-sm border border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors w-full justify-center"
+            >
+              <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              <span className="text-gray-600">Выбрать файлы</span>
+            </button>
+
+            {/* Selected files list */}
+            {selectedFiles.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {selectedFiles.map(({ file, id }) => (
+                  <div
+                    key={id}
+                    className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <svg className="h-4 w-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                      <span className="text-xs text-gray-500 shrink-0">
+                        ({formatFileSize(file.size)})
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(id)}
+                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </ModalBody>
 
         <ModalFooter>

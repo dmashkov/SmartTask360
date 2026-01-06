@@ -7,6 +7,7 @@ export type DocumentType = "requirement" | "attachment" | "result";
 export interface Document {
   id: string;
   task_id: string;
+  comment_id: string | null;
   uploader_id: string | null;
   filename: string;
   original_filename: string;
@@ -19,6 +20,7 @@ export interface Document {
 
 export interface DocumentUpload {
   task_id: string;
+  comment_id?: string | null;
   file: File;
   description?: string;
   document_type?: DocumentType;

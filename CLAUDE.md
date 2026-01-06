@@ -41,15 +41,24 @@
 - Task urgency indicators (overdue, due today, due soon)
 - 60+ React components
 
-**Latest Features (2026-01-04):**
+**Latest Session (2026-01-06): Document Management ✅**
+- ✅ Document attachments in comments (comment_id field + migration)
+- ✅ Bidirectional navigation (comments ↔ documents via CustomEvent)
+- ✅ Document type classification (📋 requirements, 📂 attachments, ✅ results)
+- ✅ File download through backend API with proper Unicode encoding (RFC 5987)
+- ✅ DocumentsSection component with grouped display
+- ✅ Event-based tab switching with smooth scrolling & highlighting
+- ✅ Real-time cache invalidation after upload
+
+**Previous Features (2026-01-04/05):**
 - ✅ Task hierarchy tree with expand/collapse
 - ✅ Lazy loading of subtasks via API
 - ✅ Parent task navigation links
 - ✅ Task urgency/overdue indicators with icons
 - ✅ Completion result placeholder (for done tasks)
-- ✅ Placeholder tabs (Documents, Comments, History)
+- ✅ TaskDetailTabs component (Documents, Comments, History)
 
-**Next:** Phase 1E - Projects Module → Phase 1F - Gantt Chart → Phase 2C - AI & Polish
+**Next:** Sprint 8 - Projects Module (full development) → Sprint 9 - Gantt Chart → Sprint 10 - Polish & Testing
 
 ## Tech Stack
 
@@ -466,6 +475,51 @@ Features:
   - Color coding: red (overdue), orange (today), yellow (1-3 days)
 ```
 
+### 13. Document Attachments in Comments (Implemented)
+```typescript
+// Backend: comment_id field links documents to comments
+class Document(Base):
+    comment_id: Mapped[UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("comments.id", ondelete="CASCADE"),
+        nullable=True
+    )
+
+// Frontend: Attach files when creating comment
+const handleSubmit = async () => {
+  const comment = await createComment({ task_id, content });
+
+  // Upload files with comment_id
+  for (const { file } of selectedFiles) {
+    await uploadDocument(taskId, file, undefined, "attachment", comment.id);
+  }
+
+  // Invalidate cache to show files immediately
+  queryClient.invalidateQueries({ queryKey: ["documents", taskId] });
+};
+
+// Bidirectional Navigation with CustomEvent
+// Comment → Document
+const event = new CustomEvent('show-document', {
+  detail: { documentId: doc.id }
+});
+window.dispatchEvent(event);
+
+// Document → Comment
+const event = new CustomEvent('show-comment', {
+  detail: { commentId: doc.comment_id }
+});
+window.dispatchEvent(event);
+```
+
+**Features:**
+- Documents grouped by type: 📋 Requirements | 📂 Attachments | ✅ Results
+- Click document in comment → jump to Documents tab with scroll & highlight
+- Click "→ из комментария" in document → jump to Comments tab
+- Download via backend API (not presigned URLs - see pitfall #7)
+- Proper Unicode filename encoding (see pitfall #6)
+- Real-time cache invalidation
+
 ## Common Commands
 
 ```bash
@@ -500,9 +554,11 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
 
 MINIO_ENDPOINT=localhost:9000
+MINIO_EXTERNAL_URL=http://localhost:9000  # URL for browser access (not used for direct downloads)
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=minioadmin
 MINIO_BUCKET=documents
+MINIO_SECURE=false
 
 ANTHROPIC_API_KEY=your-api-key
 AI_MODEL=claude-sonnet-4-20250514
@@ -581,6 +637,67 @@ stmt = insert(task_watchers).values(...)
 stmt = stmt.on_conflict_do_nothing()
 await self.db.execute(stmt)
 ```
+
+### 6. File Download with Non-ASCII Filenames
+**Problem:** `UnicodeEncodeError: 'latin-1' codec can't encode characters` when downloading files with Russian/Unicode names
+
+**Root Cause:** HTTP headers (like Content-Disposition) must be ASCII (latin-1 encoded), but filenames can contain Unicode characters.
+
+**Solution:** Use RFC 5987 encoding for Content-Disposition header
+```python
+from urllib.parse import quote
+
+# Encode filename for Content-Disposition header
+encoded_filename = quote(original_filename)
+
+return Response(
+    content=file_content,
+    media_type=mime_type,
+    headers={
+        "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
+    },
+)
+```
+
+**Key Points:**
+- Use `filename*=UTF-8''<encoded>` syntax (RFC 5987)
+- URL-encode the filename with `quote()`
+- Don't use regular `filename=` with non-ASCII characters
+- Modern browsers support RFC 5987 encoding
+
+### 7. MinIO Presigned URLs with Docker
+**Problem:** MinIO generates presigned URLs with internal Docker hostname (`minio:9000`) which is inaccessible from browser
+
+**Attempted Solutions that DON'T work:**
+- ❌ Replacing hostname in URL breaks AWS signature
+- ❌ Creating second MinIO client with external endpoint (can't connect from container)
+- ❌ Setting `MINIO_SERVER_URL` environment variable (ignored by Python client)
+
+**Working Solution:** Download files through backend API instead of presigned URLs
+```typescript
+// Frontend: Download via backend with authentication
+const response = await api.get(`/documents/${documentId}/download`, {
+  responseType: 'blob',
+});
+
+// Create blob and trigger download
+const blob = new Blob([response.data]);
+const url = window.URL.createObjectURL(blob);
+const link = document.createElement('a');
+link.href = url;
+link.download = filename;
+document.body.appendChild(link);
+link.click();
+document.body.removeChild(link);
+window.URL.revokeObjectURL(url);
+```
+
+**Benefits:**
+- ✅ No hostname issues - all requests go through backend
+- ✅ Full authentication control - backend validates access
+- ✅ Works in any environment (Docker, localhost, production)
+- ✅ No CORS issues
+- ✅ Proper filename encoding handled by backend
 
 ## AI Integration Notes
 

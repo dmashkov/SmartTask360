@@ -19,7 +19,8 @@ export async function uploadDocument(
   taskId: string,
   file: File,
   description?: string,
-  document_type: DocumentType = "attachment"
+  document_type: DocumentType = "attachment",
+  commentId?: string | null
 ): Promise<Document> {
   const formData = new FormData();
   formData.append("task_id", taskId);
@@ -27,6 +28,9 @@ export async function uploadDocument(
   formData.append("document_type", document_type);
   if (description) {
     formData.append("description", description);
+  }
+  if (commentId) {
+    formData.append("comment_id", commentId);
   }
 
   const { data } = await api.post<Document>("/documents/upload", formData, {
@@ -44,4 +48,12 @@ export async function deleteDocument(documentId: string): Promise<void> {
 export async function getDocumentDownloadUrl(documentId: string): Promise<string> {
   const { data } = await api.get<{ download_url: string }>(`/documents/${documentId}/download-url`);
   return data.download_url;
+}
+
+/**
+ * Get direct download URL for document (через backend API)
+ * This URL requires authentication headers
+ */
+export function getDocumentDirectUrl(documentId: string): string {
+  return `${import.meta.env.VITE_API_URL}/documents/${documentId}/download`;
 }

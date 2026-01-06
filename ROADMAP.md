@@ -2,7 +2,7 @@
 
 **Планирование сессий разработки**
 
-**Last Updated:** 2026-01-04 (Evening Session)
+**Last Updated:** 2026-01-06 (Document Management Session)
 
 ---
 
@@ -17,24 +17,35 @@
 | Sprint 4: Boards & Notifications | 1 week | 3-4 sessions | ✅ Completed |
 | Sprint 5: Frontend Core | 1 week | 4-5 sessions | ✅ Completed |
 | Sprint 6: Frontend Tasks & Kanban | 2 weeks | 10+ sessions | ✅ Completed + Enhanced |
-| Sprint 6.5: Projects Module | 3 days | 2-3 sessions | ⏳ Next |
-| Sprint 6.6: Gantt Chart | 2 days | 2 sessions | ⏳ Planned |
-| Sprint 7: Polish & Testing | 1 week | 3-4 sessions | ⏳ Planned |
+| Sprint 7: Document Management | 1 day | 1 session | ✅ Completed |
+| Sprint 8: Projects Module | 3 days | 2-3 sessions | ⏳ Next |
+| Sprint 9: Gantt Chart | 2 days | 2 sessions | ⏳ Planned |
+| Sprint 10: Polish & Testing | 1 week | 3-4 sessions | ⏳ Planned |
 
-**Total MVP:** ~7-8 weeks, ~44-50 sessions
-**Completed:** ~37 sessions (Sprint 0-6 + enhancements)
-**Next:** Sprint 6.5 → 6.6 — Projects + Gantt (три режима просмотра задач)
+**Total MVP:** ~7-8 weeks, ~45-52 sessions
+**Completed:** ~38 sessions (Sprint 0-7)
+**Next:** Sprint 8 — Projects Module (full development)
 
-**Sprint 6 Recent Enhancements (2026-01-04):**
+### Sprint 7 Summary (2026-01-06) ✅
+**Document Attachments in Comments**
+- ✅ Backend: Added comment_id field to documents table with migration
+- ✅ Backend: RFC 5987 encoding for Unicode filenames
+- ✅ Frontend: File upload UI in CommentsSection
+- ✅ Frontend: DocumentsSection component with type-based grouping
+- ✅ Frontend: Bidirectional navigation via CustomEvent API
+- ✅ Frontend: Download via backend API (solved MinIO hostname issue)
+- ✅ Real-time cache invalidation
+- ✅ Event-based tab switching with smooth scrolling & highlighting
+
+**Key Lessons Learned:**
+- MinIO presigned URLs with Docker hostname require backend proxy
+- RFC 5987 encoding needed for non-ASCII filenames
+- CustomEvent API excellent for cross-component communication
+
+### Sprint 6 Enhancements (2026-01-04/05)
 - ✅ Task hierarchy visualization (expand/collapse, lazy loading)
 - ✅ Task urgency indicators (overdue/due today/due soon)
-- ✅ UI refinements (subtasks inline, placeholder tabs, completion result)
-
-**Plan for 2026-01-05:**
-See [docs/PLAN_2026-01-05.md](docs/PLAN_2026-01-05.md) for detailed plan:
-- 🔍 Session 1 (3h): Search and Filtering
-- ✅ Session 2 (3-4h): Checklists (multiple per task, flat structure)
-- 🚀 Session 3 (4-5h): Projects Module (CRITICAL - full development)
+- ✅ UI refinements (subtasks inline, TaskDetailTabs, completion result)
 
 ---
 

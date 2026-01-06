@@ -12,6 +12,8 @@ export { Avatar, AvatarStack, type AvatarProps, type AvatarStackProps } from "./
 export { Progress, ProgressCircle, type ProgressProps, type ProgressCircleProps } from "./Progress";
 export { Tooltip, type TooltipProps } from "./Tooltip";
 export { EmptyState, EmptyStateIcons, type EmptyStateProps } from "./EmptyState";
+export { Linkify } from "./Linkify";
+export { MentionInput } from "./MentionInput";
 
 // Layout components
 export {

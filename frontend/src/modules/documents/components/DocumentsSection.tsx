@@ -1,190 +1,145 @@
 /**
  * SmartTask360 — Documents section for task detail page
- * Now with grouping by document type (requirement, attachment, result)
  */
 
-import { useState, useRef, useMemo } from "react";
-import { Card, CardHeader, CardTitle, CardContent, Button, Spinner } from "../../../shared/ui";
-import { useTaskDocuments, useUploadDocument } from "../hooks/useDocuments";
-import { DocumentItem } from "./DocumentItem";
-import type { Document, DocumentType } from "../types";
+import { useState } from "react";
+import { Card, CardHeader, CardTitle, CardContent, Spinner } from "../../../shared/ui";
+import { useTaskDocuments, useDeleteDocument } from "../hooks/useDocuments";
+import { api } from "../../../shared/api";
 
 interface DocumentsSectionProps {
   taskId: string;
-  /** When embedded in tabs, hide header and always show content */
   embedded?: boolean;
-}
-
-// Document type labels and icons
-const DOCUMENT_TYPE_CONFIG: Record<DocumentType, { label: string; icon: string; description: string }> = {
-  requirement: {
-    label: "Исходные материалы",
-    icon: "📋",
-    description: "Документы, прикрепленные при создании задачи",
-  },
-  attachment: {
-    label: "Рабочие файлы",
-    icon: "📂",
-    description: "Файлы, загруженные в процессе работы",
-  },
-  result: {
-    label: "Результаты",
-    icon: "✅",
-    description: "Файлы-результаты выполнения задачи",
-  },
-};
-
-interface DocumentGroupProps {
-  type: DocumentType;
-  documents: Document[];
-  taskId: string;
-}
-
-function DocumentGroup({ type, documents, taskId }: DocumentGroupProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
-  const config = DOCUMENT_TYPE_CONFIG[type];
-
-  if (documents.length === 0) return null;
-
-  return (
-    <div className="mb-4">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center gap-2 w-full text-left py-2 hover:bg-gray-50 rounded transition-colors"
-      >
-        <svg
-          className={`h-4 w-4 text-gray-400 transition-transform ${isExpanded ? "rotate-90" : ""}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-        <span className="text-base">{config.icon}</span>
-        <h4 className="text-sm font-medium text-gray-900">
-          {config.label} ({documents.length})
-        </h4>
-      </button>
-
-      {isExpanded && (
-        <div className="ml-6 mt-1 -mx-3">
-          {documents.map((doc) => (
-            <DocumentItem key={doc.id} document={doc} taskId={taskId} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }
 
 export function DocumentsSection({ taskId, embedded = false }: DocumentsSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: documents = [], isLoading } = useTaskDocuments(taskId);
-  const uploadDocument = useUploadDocument(taskId);
+  const deleteDoc = useDeleteDocument(taskId);
 
-  // Group documents by type
-  const groupedDocuments = useMemo(() => {
-    const groups: Record<DocumentType, Document[]> = {
-      requirement: [],
-      attachment: [],
-      result: [],
-    };
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Б";
+    const k = 1024;
+    const sizes = ["Б", "КБ", "МБ", "ГБ"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+  };
 
-    documents.forEach((doc) => {
-      groups[doc.document_type].push(doc);
-    });
-
-    return groups;
-  }, [documents]);
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    // Upload each file as attachment (default for manual uploads)
-    for (const file of Array.from(files)) {
-      await uploadDocument.mutateAsync({
-        file,
-        document_type: "attachment",
+  const handleDownload = async (documentId: string, filename: string) => {
+    try {
+      // Download file through backend API with authentication
+      const response = await api.get(`/documents/${documentId}/download`, {
+        responseType: 'blob', // Important for file download
       });
-    }
 
-    // Clear input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      // Create blob URL and download
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      console.error("Failed to download document:", error);
+      alert(`Ошибка при скачивании файла: ${error.response?.data?.detail || error.message}`);
     }
   };
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
+  const handleDelete = async (documentId: string, filename: string) => {
+    if (window.confirm(`Удалить документ "${filename}"?`)) {
+      await deleteDoc.mutateAsync(documentId);
+    }
   };
 
-  // Hidden file input (always needed)
-  const fileInput = (
-    <input
-      ref={fileInputRef}
-      type="file"
-      multiple
-      className="hidden"
-      onChange={handleFileSelect}
-    />
-  );
+  const requirementDocs = documents.filter((d) => d.document_type === "requirement");
+  const attachmentDocs = documents.filter((d) => d.document_type === "attachment");
+  const resultDocs = documents.filter((d) => d.document_type === "result");
 
-  // Content to render (shared between embedded and card modes)
+  const renderDocumentList = (docs: typeof documents, title: string, icon: string) => {
+    if (docs.length === 0) return null;
+
+    return (
+      <div className="mb-4">
+        <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+          <span>{icon}</span>
+          <span>{title}</span>
+          <span className="text-gray-400">({docs.length})</span>
+        </h4>
+        <div className="space-y-1">
+          {docs.map((doc) => (
+            <div
+              key={doc.id}
+              id={`document-${doc.id}`}
+              className="flex items-center justify-between p-2 bg-gray-50 hover:bg-gray-100 rounded transition-colors"
+            >
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <svg className="h-4 w-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <button
+                    onClick={() => handleDownload(doc.id, doc.original_filename)}
+                    className="text-sm text-gray-700 hover:text-blue-600 truncate block text-left"
+                  >
+                    {doc.original_filename}
+                  </button>
+                  {doc.comment_id && (
+                    <button
+                      onClick={() => {
+                        const event = new CustomEvent('show-comment', { detail: { commentId: doc.comment_id } });
+                        window.dispatchEvent(event);
+                      }}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      → из комментария
+                    </button>
+                  )}
+                </div>
+                <span className="text-xs text-gray-500 shrink-0">
+                  {formatFileSize(doc.file_size)}
+                </span>
+              </div>
+              <button
+                onClick={() => handleDelete(doc.id, doc.original_filename)}
+                disabled={deleteDoc.isPending}
+                className="p-1 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50 ml-2"
+                title="Удалить"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const content = isLoading ? (
     <div className="flex justify-center py-4">
       <Spinner size="sm" />
     </div>
-  ) : documents.length > 0 ? (
-    <div>
-      <DocumentGroup type="requirement" documents={groupedDocuments.requirement} taskId={taskId} />
-      <DocumentGroup type="attachment" documents={groupedDocuments.attachment} taskId={taskId} />
-      <DocumentGroup type="result" documents={groupedDocuments.result} taskId={taskId} />
-    </div>
+  ) : documents.length === 0 ? (
+    <p className="text-sm text-gray-400 italic py-2">Нет документов</p>
   ) : (
-    <div className="text-center py-4">
-      <p className="text-sm text-gray-400 italic mb-2">Нет документов</p>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={handleUploadClick}
-      >
-        Загрузить первый файл
-      </Button>
-    </div>
+    <>
+      {renderDocumentList(requirementDocs, "Исходные материалы", "📋")}
+      {renderDocumentList(attachmentDocs, "Рабочие файлы", "📂")}
+      {renderDocumentList(resultDocs, "Результаты", "✅")}
+    </>
   );
 
-  // Embedded mode: no card wrapper, always visible, with upload button at top
   if (embedded) {
-    return (
-      <div className="p-4">
-        {fileInput}
-        <div className="flex justify-end mb-3">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleUploadClick}
-            isLoading={uploadDocument.isPending}
-          >
-            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-            </svg>
-            Загрузить
-          </Button>
-        </div>
-        {content}
-      </div>
-    );
+    return <div className="p-4">{content}</div>;
   }
 
-  // Card mode with collapsible header
   return (
     <Card>
-      <CardHeader
-        className="cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
+      <CardHeader className="cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <svg
@@ -199,31 +154,9 @@ export function DocumentsSection({ taskId, embedded = false }: DocumentsSectionP
               Документы {documents.length > 0 && `(${documents.length})`}
             </CardTitle>
           </div>
-          {isExpanded && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleUploadClick();
-              }}
-              isLoading={uploadDocument.isPending}
-            >
-              <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-              Загрузить
-            </Button>
-          )}
         </div>
       </CardHeader>
-
-      {isExpanded && (
-        <CardContent className="pt-0">
-          {fileInput}
-          {content}
-        </CardContent>
-      )}
+      {isExpanded && <CardContent className="pt-0">{content}</CardContent>}
     </Card>
   );
 }

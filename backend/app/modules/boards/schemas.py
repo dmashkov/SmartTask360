@@ -175,6 +175,11 @@ class BoardTaskWithDetails(BaseModel):
     task_assignee_id: UUID | None
     task_due_date: datetime | None
 
+    # Comment indicators
+    total_comments_count: int = 0
+    unread_comments_count: int = 0
+    unread_mentions_count: int = 0
+
     model_config = {"from_attributes": True}
 
 

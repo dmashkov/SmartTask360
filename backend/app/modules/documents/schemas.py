@@ -12,6 +12,7 @@ class DocumentUpload(BaseModel):
     """Schema for uploading a document (multipart form data)"""
 
     task_id: UUID
+    comment_id: UUID | None = None
     description: str | None = None
     document_type: str = "attachment"  # requirement | attachment | result
 
@@ -29,6 +30,7 @@ class DocumentResponse(BaseModel):
 
     id: UUID
     task_id: UUID
+    comment_id: UUID | None
     uploader_id: UUID | None
     filename: str
     original_filename: str
@@ -48,6 +50,7 @@ class DocumentListItem(BaseModel):
 
     id: UUID
     task_id: UUID
+    comment_id: UUID | None
     uploader_id: UUID | None
     filename: str
     original_filename: str

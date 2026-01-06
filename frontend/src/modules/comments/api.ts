@@ -3,7 +3,7 @@
  */
 
 import { api } from "../../shared/api";
-import type { Comment, CommentCreate, CommentUpdate } from "./types";
+import type { Comment, CommentCreate, CommentUpdate, Reaction, ReactionSummary } from "./types";
 
 export async function getTaskComments(taskId: string): Promise<Comment[]> {
   const { data } = await api.get<Comment[]>(`/comments/tasks/${taskId}/comments`);
@@ -22,4 +22,25 @@ export async function updateComment(commentId: string, data: CommentUpdate): Pro
 
 export async function deleteComment(commentId: string): Promise<void> {
   await api.delete(`/comments/${commentId}`);
+}
+
+// Reaction API functions
+export async function getCommentReactions(commentId: string): Promise<ReactionSummary[]> {
+  const { data } = await api.get<ReactionSummary[]>(`/comments/${commentId}/reactions`);
+  return data;
+}
+
+export async function toggleReaction(commentId: string, emoji: string): Promise<Reaction | null> {
+  const { data } = await api.post<Reaction | null>(`/comments/${commentId}/reactions`, { emoji });
+  return data;
+}
+
+export async function removeReaction(commentId: string, emoji: string): Promise<void> {
+  await api.delete(`/comments/${commentId}/reactions/${emoji}`);
+}
+
+// Mark all comments on a task as read
+export async function markTaskCommentsAsRead(taskId: string): Promise<{ marked_count: number }> {
+  const { data } = await api.post<{ marked_count: number }>(`/comments/tasks/${taskId}/mark-read`);
+  return data;
 }

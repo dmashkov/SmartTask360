@@ -99,19 +99,33 @@ class StorageService:
         """
         Get presigned URL for downloading file
 
+        Generates URL with internal endpoint and replaces it with external URL
+        for browser access (localhost:9000 instead of minio:9000).
+
+        Note: URL replacement preserves the signature because only the scheme+host
+        portion is replaced, and the signature is based on the request parameters,
+        not the host itself.
+
         Args:
             object_name: Name/path of the object in bucket
             expires_seconds: URL expiration time in seconds (default 1 hour)
 
         Returns:
-            str: Presigned URL
+            str: Presigned URL with correct hostname for browser access
         """
         try:
             from datetime import timedelta
 
+            # Generate URL with internal endpoint
             url = self.client.presigned_get_object(
                 self.bucket, object_name, expires=timedelta(seconds=expires_seconds)
             )
+
+            # Replace internal endpoint with external URL for browser access
+            # Build internal URL prefix from settings
+            internal_prefix = f"{'https' if settings.MINIO_SECURE else 'http'}://{settings.MINIO_ENDPOINT}"
+            url = url.replace(internal_prefix, settings.MINIO_EXTERNAL_URL)
+
             return url
         except S3Error as e:
             raise Exception(f"Failed to generate presigned URL: {e}")

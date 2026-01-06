@@ -48,11 +48,13 @@ const TABS: Tab[] = [
 
 interface TaskDetailTabsProps {
   taskId: string;
+  /** Project ID for creating tasks from comments */
+  projectId?: string | null;
   activeTab?: TabId;
   onTabChange?: (tab: TabId) => void;
 }
 
-export function TaskDetailTabs({ taskId, activeTab: controlledActiveTab, onTabChange }: TaskDetailTabsProps) {
+export function TaskDetailTabs({ taskId, projectId, activeTab: controlledActiveTab, onTabChange }: TaskDetailTabsProps) {
   const [internalActiveTab, setInternalActiveTab] = useState<TabId>("comments");
 
   // Use controlled or uncontrolled mode
@@ -92,7 +94,7 @@ export function TaskDetailTabs({ taskId, activeTab: controlledActiveTab, onTabCh
       {/* Tab Content */}
       <div className="p-0">
         {activeTab === "comments" && (
-          <CommentsSection taskId={taskId} embedded />
+          <CommentsSection taskId={taskId} projectId={projectId} embedded />
         )}
         {activeTab === "history" && (
           <HistorySection

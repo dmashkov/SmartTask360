@@ -50,6 +50,7 @@ class DocumentService:
         file_size: int,
         description: str | None = None,
         document_type: str = "attachment",
+        comment_id: UUID | None = None,
     ) -> Document:
         """
         Upload document to MinIO and save metadata to database
@@ -63,6 +64,7 @@ class DocumentService:
             file_size: File size in bytes
             description: Optional description
             document_type: Type of document (requirement | attachment | result)
+            comment_id: Optional ID of comment this document is attached to
         """
         # Generate unique filename to avoid collisions
         file_ext = os.path.splitext(filename)[1]
@@ -82,6 +84,7 @@ class DocumentService:
         # Save metadata to database
         document = Document(
             task_id=task_id,
+            comment_id=comment_id,
             uploader_id=uploader_id,
             filename=unique_filename,
             original_filename=filename,

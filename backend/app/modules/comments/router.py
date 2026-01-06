@@ -8,8 +8,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, get_db
-from app.modules.comments.schemas import CommentCreate, CommentResponse, CommentUpdate
-from app.modules.comments.service import CommentService
+from app.modules.comments.schemas import (
+    CommentCreate,
+    CommentResponse,
+    CommentUpdate,
+    ReactionCreate,
+    ReactionResponse,
+    ReactionSummary,
+)
+from app.modules.comments.service import CommentService, ReactionService
 from app.modules.users.models import User
 
 router = APIRouter(prefix="/comments", tags=["comments"])
@@ -152,3 +159,97 @@ async def get_my_comments(
     service = CommentService(db)
     comments = await service.get_user_comments(current_user.id, skip=skip, limit=limit)
     return comments
+
+
+@router.post("/tasks/{task_id}/mark-read")
+async def mark_task_comments_as_read(
+    task_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Mark all comments on a task as read for the current user"""
+    service = CommentService(db)
+    marked_count = await service.mark_task_comments_as_read(current_user.id, task_id)
+    return {"marked_count": marked_count}
+
+
+@router.get("/tasks/{task_id}/unread-count")
+async def get_task_unread_count(
+    task_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get unread comments and mentions count for a task"""
+    service = CommentService(db)
+    counts = await service.get_unread_comments_count(current_user.id, task_id)
+    return counts
+
+
+# Reaction endpoints
+@router.get("/{comment_id}/reactions", response_model=list[ReactionSummary])
+async def get_comment_reactions(
+    comment_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get reactions summary for a comment"""
+    service = ReactionService(db)
+    reactions = await service.get_comment_reactions_summary(comment_id, current_user.id)
+    return reactions
+
+
+@router.post("/{comment_id}/reactions", response_model=ReactionResponse, status_code=status.HTTP_201_CREATED)
+async def add_reaction(
+    comment_id: UUID,
+    reaction_data: ReactionCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Add or toggle a reaction to a comment"""
+    service = ReactionService(db)
+
+    try:
+        reaction = await service.toggle_reaction(
+            comment_id=comment_id,
+            user_id=current_user.id,
+            emoji=reaction_data.emoji
+        )
+
+        if not reaction:
+            # Reaction was removed (toggle off)
+            raise HTTPException(
+                status_code=status.HTTP_204_NO_CONTENT,
+                detail="Reaction removed",
+            )
+
+        return reaction
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+
+@router.delete("/{comment_id}/reactions/{emoji}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_reaction(
+    comment_id: UUID,
+    emoji: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Remove a specific reaction"""
+    service = ReactionService(db)
+
+    success = await service.remove_reaction(
+        comment_id=comment_id,
+        user_id=current_user.id,
+        emoji=emoji
+    )
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Reaction not found",
+        )
+
+    return None

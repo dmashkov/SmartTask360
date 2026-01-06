@@ -42,6 +42,10 @@ export interface BoardTaskWithDetails {
   task_priority: string;
   task_assignee_id: string | null;
   task_due_date: string | null;
+  // Comment indicators
+  total_comments_count: number;
+  unread_comments_count: number;
+  unread_mentions_count: number;
 }
 
 export interface BoardMemberWithDetails {

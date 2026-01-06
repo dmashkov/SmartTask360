@@ -3,23 +3,32 @@
  */
 
 import { useState } from "react";
-import { Avatar, Button, Textarea } from "../../../shared/ui";
+import { Avatar, Button, Textarea, Linkify } from "../../../shared/ui";
 import { formatDateTime } from "../../../shared/lib/utils";
 import { getUserById, useUsersMap } from "../../users";
 import { useUpdateComment, useDeleteComment } from "../hooks/useComments";
 import type { Comment } from "../types";
 import { useAuth } from "../../auth";
+import { useTaskDocuments } from "../../documents";
+import { CommentReactions } from "./CommentReactions";
+import { CommentActionsMenu } from "./CommentActionsMenu";
 
 interface CommentItemProps {
   comment: Comment;
   taskId: string;
+  /** Project ID for creating tasks from comment */
+  projectId?: string | null;
+  onReply?: (commentId: string) => void;
+  isReply?: boolean;
 }
 
-export function CommentItem({ comment, taskId }: CommentItemProps) {
+export function CommentItem({ comment, taskId, projectId, onReply, isReply = false }: CommentItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
+  const [isHovered, setIsHovered] = useState(false);
   const { usersMap } = useUsersMap();
   const { user: currentUser } = useAuth();
+  const { data: allDocuments = [] } = useTaskDocuments(taskId);
 
   const updateComment = useUpdateComment(taskId);
   const deleteComment = useDeleteComment(taskId);
@@ -27,6 +36,17 @@ export function CommentItem({ comment, taskId }: CommentItemProps) {
   const author = comment.author_id ? getUserById(usersMap, comment.author_id) : null;
   const isAI = comment.author_type === "ai";
   const canEdit = !isAI && comment.author_id === currentUser?.id;
+
+  // Filter documents attached to this comment
+  const commentDocuments = allDocuments.filter((doc) => doc.comment_id === comment.id);
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Б";
+    const k = 1024;
+    const sizes = ["Б", "КБ", "МБ", "ГБ"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+  };
 
   const handleSave = async () => {
     if (!editContent.trim()) return;
@@ -49,7 +69,12 @@ export function CommentItem({ comment, taskId }: CommentItemProps) {
   };
 
   return (
-    <div id={`comment-${comment.id}`} className="flex gap-3 py-3 transition-colors">
+    <div
+      id={`comment-${comment.id}`}
+      className="flex gap-3 py-3 px-2 -mx-2 rounded-lg transition-colors duration-500"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Avatar */}
       <div className="shrink-0">
         {isAI ? (
@@ -100,23 +125,68 @@ export function CommentItem({ comment, taskId }: CommentItemProps) {
           </div>
         ) : (
           <>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">{comment.content}</p>
-            {canEdit && (
-              <div className="flex gap-2 mt-1">
-                <button
-                  className="text-xs text-gray-400 hover:text-gray-600"
-                  onClick={() => setIsEditing(true)}
-                >
-                  Редактировать
-                </button>
-                <button
-                  className="text-xs text-gray-400 hover:text-red-600"
-                  onClick={handleDelete}
-                >
-                  Удалить
-                </button>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">
+              <Linkify>{comment.content}</Linkify>
+            </p>
+
+            {/* Attached documents */}
+            {commentDocuments.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {commentDocuments.map((doc) => (
+                  <a
+                    key={doc.id}
+                    href="#documents"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      // Switch to documents tab and scroll to this document
+                      const event = new CustomEvent('show-document', { detail: { documentId: doc.id } });
+                      window.dispatchEvent(event);
+                    }}
+                    className="flex items-center gap-2 p-1.5 bg-blue-50 hover:bg-blue-100 rounded text-xs text-blue-700 transition-colors"
+                  >
+                    <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="truncate">{doc.original_filename}</span>
+                    <span className="text-gray-500 shrink-0">
+                      ({formatFileSize(doc.file_size)})
+                    </span>
+                  </a>
+                ))}
               </div>
             )}
+
+            {/* Actions row: Reactions + Reply + More menu - all in one line */}
+            <div className="flex items-center gap-2.5 mt-2 flex-wrap">
+              {/* Reactions (renders as fragments) */}
+              <CommentReactions commentId={comment.id} showAddButton={isHovered} />
+
+              {/* Separator if there are actions */}
+              {(!isReply && onReply) && <span className="text-gray-300">·</span>}
+
+              {/* Reply button */}
+              {!isReply && onReply && (
+                <button
+                  className="text-xs text-gray-400 hover:text-blue-600"
+                  onClick={() => onReply(comment.id)}
+                >
+                  Ответить
+                </button>
+              )}
+
+              <span className="text-gray-300">·</span>
+
+              {/* More actions menu */}
+              <CommentActionsMenu
+                commentId={comment.id}
+                taskId={taskId}
+                commentContent={comment.content}
+                projectId={projectId}
+                canEdit={canEdit}
+                onEdit={() => setIsEditing(true)}
+                onDelete={handleDelete}
+              />
+            </div>
           </>
         )}
       </div>

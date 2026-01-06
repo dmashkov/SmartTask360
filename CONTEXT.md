@@ -1,18 +1,27 @@
 # SmartTask360 — Development Context
 
-**Last Updated:** 2026-01-04 (Planning Session for 2026-01-05)
+**Last Updated:** 2026-01-06 (Document Attachments in Comments)
 
 ---
 
 ## 🎯 Current Phase
 
-**Phase 2B: Frontend Tasks & Kanban** — ✅ Completed + Enhancements
+**Phase 2B: Frontend Tasks & Kanban** — ✅ Completed + Document Management Enhancements
 
 ### Current Sprint
-Sprint 6: Frontend Tasks & Kanban — ✅ Completed with enhancements
-Sprint 6.5: Preparing for 2026-01-05 work sessions
+Sprint 7: Document Management & Comments Integration — ✅ Completed
 
-### Recent Enhancements (2026-01-04)
+### Recent Enhancements (2026-01-06)
+- ✅ Document attachments in comments (comment_id field)
+- ✅ Bidirectional navigation (comments ↔ documents via CustomEvent)
+- ✅ Document type classification (requirements, attachments, results)
+- ✅ File download through backend API (not presigned URLs)
+- ✅ RFC 5987 encoding for Unicode filenames in Content-Disposition
+- ✅ DocumentsSection component with grouped display
+- ✅ Real-time cache invalidation after file upload
+- ✅ Event-based tab switching with smooth scrolling and highlighting
+
+### Previous Enhancements (2026-01-04/05)
 - ✅ Task hierarchy visualization (TaskExpandButton, ParentTaskLink, ChildTaskNode, ChildTasksTree)
 - ✅ Lazy loading of subtasks (useTaskChildren hook)
 - ✅ Fixed duplicate children rendering in TaskList
@@ -23,7 +32,7 @@ Sprint 6.5: Preparing for 2026-01-05 work sessions
 - ✅ Urgency shown in TaskRow, TaskDetailPage, ChildTaskNode
 
 ### Current Session
-Planning session for 2026-01-05
+Document attachments in comments - ✅ Completed
 
 ### Plan for 2026-01-05
 **3 Sessions Planned (~10-12 hours):**

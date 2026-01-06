@@ -27,6 +27,12 @@ class Document(Base):
         nullable=False,
         index=True,
     )
+    comment_id: Mapped[UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("comments.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     uploader_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),

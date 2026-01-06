@@ -78,6 +78,7 @@ async def get_document(
 async def upload_document(
     task_id: UUID = Form(...),
     file: UploadFile = File(...),
+    comment_id: UUID | None = Form(None),
     description: str | None = Form(None),
     document_type: str = Form("attachment"),
     db: AsyncSession = Depends(get_db),
@@ -89,6 +90,7 @@ async def upload_document(
     Accepts multipart/form-data with:
     - task_id: UUID of the task
     - file: The file to upload
+    - comment_id: Optional UUID of the comment (if uploaded with comment)
     - description: Optional description
     - document_type: Type of document (requirement | attachment | result), default: attachment
     """
@@ -128,6 +130,7 @@ async def upload_document(
             file_size=file_size,
             description=description,
             document_type=document_type,
+            comment_id=comment_id,
         )
         return document
     except Exception as e:
@@ -144,6 +147,8 @@ async def download_document(
     current_user: User = Depends(get_current_user),
 ):
     """Download document file"""
+    from urllib.parse import quote
+
     service = DocumentService(db)
     result = await service.download(document_id)
 
@@ -155,11 +160,15 @@ async def download_document(
 
     file_content, original_filename, mime_type = result
 
+    # Encode filename for Content-Disposition header (RFC 5987)
+    # Use both ASCII fallback and UTF-8 encoded version
+    encoded_filename = quote(original_filename)
+
     return Response(
         content=file_content,
         media_type=mime_type,
         headers={
-            "Content-Disposition": f'attachment; filename="{original_filename}"',
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
         },
     )
 

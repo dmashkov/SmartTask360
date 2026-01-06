@@ -4,7 +4,7 @@ SmartTask360 — User service (business logic)
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_password_hash
@@ -86,3 +86,27 @@ class UserService:
         await self.db.delete(user)
         await self.db.commit()
         return True
+
+    async def search(self, query: str, limit: int = 10) -> list[User]:
+        """
+        Search users by name or email for @mention autocomplete.
+        Case-insensitive search on name and email.
+        """
+        if not query or len(query) < 1:
+            return []
+
+        search_pattern = f"%{query}%"
+
+        result = await self.db.execute(
+            select(User)
+            .where(
+                User.is_active == True,
+                or_(
+                    func.lower(User.name).contains(query.lower()),
+                    func.lower(User.email).contains(query.lower()),
+                ),
+            )
+            .order_by(User.name)
+            .limit(limit)
+        )
+        return list(result.scalars().all())

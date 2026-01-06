@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   Button,
@@ -12,6 +12,7 @@ import {
   Dropdown,
   DropdownItem,
   DropdownDivider,
+  Linkify,
 } from "../shared/ui";
 import { cn, formatDate, formatDateTime, getShortId, copyToClipboard, getTaskUrl, getTaskUrgency } from "../shared/lib/utils";
 import { useTask, useChangeTaskStatus, useDeleteTask, useTaskWatchers, useTaskParticipants } from "../modules/tasks";
@@ -59,6 +60,73 @@ export function TaskDetailPage() {
   const author = task ? getUserById(usersMap, task.author_id) : undefined;
   const creator = task ? getUserById(usersMap, task.creator_id) : undefined;
   const assignee = task ? getUserById(usersMap, task.assignee_id) : undefined;
+
+  // Listen for show-document event from comments
+  useEffect(() => {
+    const handleShowDocument = (event: Event) => {
+      const customEvent = event as CustomEvent<{ documentId: string }>;
+      // Switch to documents tab
+      setActiveTab("documents");
+      // Wait for tab switch, then scroll to document
+      setTimeout(() => {
+        const docElement = document.getElementById(`document-${customEvent.detail.documentId}`);
+        if (docElement) {
+          docElement.scrollIntoView({ behavior: "smooth", block: "center" });
+          docElement.classList.add("bg-yellow-100");
+          setTimeout(() => {
+            docElement.classList.remove("bg-yellow-100");
+          }, 2000);
+        }
+      }, 100);
+    };
+
+    const handleShowComment = (event: Event) => {
+      const customEvent = event as CustomEvent<{ commentId: string }>;
+      // Switch to comments tab
+      setActiveTab("comments");
+      // Wait for tab switch, then scroll to comment
+      setTimeout(() => {
+        const commentElement = document.getElementById(`comment-${customEvent.detail.commentId}`);
+        if (commentElement) {
+          commentElement.scrollIntoView({ behavior: "smooth", block: "center" });
+          commentElement.classList.add("bg-yellow-100");
+          setTimeout(() => {
+            commentElement.classList.remove("bg-yellow-100");
+          }, 2000);
+        }
+      }, 100);
+    };
+
+    window.addEventListener('show-document', handleShowDocument);
+    window.addEventListener('show-comment', handleShowComment);
+    return () => {
+      window.removeEventListener('show-document', handleShowDocument);
+      window.removeEventListener('show-comment', handleShowComment);
+    };
+  }, []);
+
+  // Handle URL hash on page load (e.g., #comment-uuid)
+  useEffect(() => {
+    if (!task) return;
+
+    const hash = window.location.hash;
+    if (hash.startsWith("#comment-")) {
+      const commentId = hash.replace("#comment-", "");
+      // Switch to comments tab
+      setActiveTab("comments");
+      // Wait for tab to render, then scroll and highlight
+      setTimeout(() => {
+        const commentElement = document.getElementById(`comment-${commentId}`);
+        if (commentElement) {
+          commentElement.scrollIntoView({ behavior: "smooth", block: "center" });
+          commentElement.classList.add("bg-yellow-100");
+          setTimeout(() => {
+            commentElement.classList.remove("bg-yellow-100");
+          }, 2000);
+        }
+      }, 300);
+    }
+  }, [task]);
 
   const handleCopyLink = async () => {
     if (task) {
@@ -291,7 +359,9 @@ export function TaskDetailPage() {
             </CardHeader>
             <CardContent>
               {task.description ? (
-                <p className="text-gray-700 whitespace-pre-wrap">{task.description}</p>
+                <p className="text-gray-700 whitespace-pre-wrap">
+                  <Linkify>{task.description}</Linkify>
+                </p>
               ) : (
                 <p className="text-gray-400 italic">Описание не указано</p>
               )}
@@ -339,7 +409,9 @@ export function TaskDetailPage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <p className="text-gray-700 whitespace-pre-wrap">{task.completion_result}</p>
+                <p className="text-gray-700 whitespace-pre-wrap">
+                  <Linkify>{task.completion_result}</Linkify>
+                </p>
               </CardContent>
             </Card>
           )}
@@ -371,6 +443,7 @@ export function TaskDetailPage() {
           {/* Tabs: Comments, History, Documents */}
           <TaskDetailTabs
             taskId={task.id}
+            projectId={task.project_id}
             activeTab={activeTab}
             onTabChange={setActiveTab}
           />

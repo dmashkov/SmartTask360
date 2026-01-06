@@ -58,6 +58,22 @@ async def get_users(
     return users
 
 
+@router.get("/search", response_model=list[UserResponse])
+async def search_users(
+    q: str,
+    limit: int = 10,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Search users by name or email for @mention autocomplete.
+    Returns up to `limit` matching users.
+    """
+    service = UserService(db)
+    users = await service.search(query=q, limit=min(limit, 20))
+    return users
+
+
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: UUID,
