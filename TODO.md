@@ -417,28 +417,28 @@
 
 ---
 
-## Phase 1E: Projects Module (~12 hours) ⬅️ NEXT
+## Phase 1E: Projects Module (~12 hours) — Sprint 8 ✅ + Sprint 10 ⏳
 
 **Goal:** Полноценный модуль проектов для привязки задач и досок
 
-### 1E.1 Backend: Models & Schemas (2h)
-- [ ] Create Project model (id, name, code, description, status, owner_id, dates, settings)
-- [ ] Create ProjectMember model (project_id, user_id, role)
-- [ ] Create ProjectStatus enum (planning, active, on_hold, completed, archived)
-- [ ] Create ProjectMemberRole enum (owner, admin, member, viewer)
-- [ ] Create schemas (ProjectCreate, ProjectUpdate, ProjectResponse, ProjectWithStats)
-- [ ] Create migration with FK constraints:
+### 1E.1 Backend: Models & Schemas (2h) ✅ Sprint 8
+- [x] Create Project model (id, name, code, description, status, owner_id, dates, settings)
+- [x] Create ProjectMember model (project_id, user_id, role)
+- [x] Create ProjectStatus enum (planning, active, on_hold, completed, archived)
+- [x] Create ProjectMemberRole enum (owner, admin, member, viewer)
+- [x] Create schemas (ProjectCreate, ProjectUpdate, ProjectResponse, ProjectWithStats)
+- [x] Create migration with FK constraints:
   - tasks.project_id → projects.id
   - boards.project_id → projects.id
 
-### 1E.2 Backend: Service & Router (3h)
-- [ ] Create ProjectService:
+### 1E.2 Backend: Service & Router (3h) ✅ Sprint 8
+- [x] Create ProjectService:
   - CRUD operations
   - get_project_tasks(project_id) — все задачи проекта
   - get_project_boards(project_id) — все доски проекта
   - get_project_stats(project_id) — статистика (% выполнения, кол-во задач по статусам)
   - add_member, remove_member, update_member_role
-- [ ] Create router:
+- [x] Create router:
   - GET /projects — список проектов (с фильтрами)
   - POST /projects — создание
   - GET /projects/{id} — детали с статистикой
@@ -449,41 +449,42 @@
   - POST /projects/{id}/members — добавить участника
   - DELETE /projects/{id}/members/{user_id} — удалить участника
   - PATCH /projects/{id}/members/{user_id} — изменить роль
-- [ ] Register router in main.py
-- [ ] Write tests (15+ scenarios)
+- [x] Register router in main.py
+- [x] Write tests (15+ scenarios)
 
-### 1E.3 Backend: Integration (1h)
-- [ ] Update TaskService.get_all() — add project_id filter
-- [ ] Update TaskService.create() — validate project_id exists
-- [ ] Update BoardService — add project_id filter
-- [ ] Update GET /tasks endpoint — add project_id query param
+### 1E.3 Backend: Integration (1h) ✅ Sprint 8
+- [x] Update TaskService.get_all() — add project_id filter
+- [x] Update TaskService.create() — validate project_id exists
+- [x] Update BoardService — add project_id filter
+- [x] Update GET /tasks endpoint — add project_id query param
 
-### 1E.4 Frontend: Types, API, Hooks (2h)
-- [ ] Create modules/projects/types.ts
-- [ ] Create modules/projects/api.ts (all methods)
-- [ ] Create hooks:
+### 1E.4 Frontend: Types, API, Hooks (2h) ✅ Sprint 8
+- [x] Create modules/projects/types.ts
+- [x] Create modules/projects/api.ts (all methods)
+- [x] Create hooks:
   - useProjects(filters)
   - useProject(id)
   - useProjectMutations()
   - useProjectMembers(projectId)
 
-### 1E.5 Frontend: Components (2h)
-- [ ] Create ProjectSelect (for TaskFormModal, BoardFormModal)
-- [ ] Create ProjectCard (for projects list)
-- [ ] Create ProjectBadge (inline project indicator)
-- [ ] Create ProjectMembersModal
+### 1E.5 Frontend: Components (2h) ✅ Partial
+- [x] Create ProjectCard (for projects list)
+- [x] Create ProjectBadge (inline project indicator)
+- [x] Create ProjectMembersTab (members management)
+- [ ] Create ProjectSelect (for TaskFormModal) — Sprint 10
+- [ ] Create ProjectStatsCard — Sprint 10
 
-### 1E.6 Frontend: Pages & Integration (2h)
-- [ ] Create ProjectsPage (list with filters, create button)
-- [ ] Create ProjectDetailPage with view switcher:
-  - [ ] ViewSwitcher component (Таблица / Kanban / Gantt tabs)
-  - [ ] Table view — TaskList filtered by project
-  - [ ] Kanban view — KanbanBoard filtered by project
-  - [ ] Gantt view — placeholder (Phase 1F)
-- [ ] Add ProjectSelect to TaskFormModal
-- [ ] Add project_id filter to TaskFilters
-- [ ] Add "Проекты" to Sidebar navigation
-- [ ] Update Router with /projects routes
+### 1E.6 Frontend: Pages & Integration (2h) ✅ Partial
+- [x] Create ProjectsPage (list with filters, create button)
+- [x] Create ProjectDetailPage with tabs:
+  - [x] Tasks tab — ProjectTasksTab
+  - [x] Kanban tab — ProjectBoardsTab
+  - [x] Members tab — ProjectMembersTab
+- [x] Add "Проекты" to Sidebar navigation
+- [x] Update Router with /projects routes
+- [ ] Add ProjectSelect to TaskFormModal — Sprint 10
+- [ ] Add project_id filter to TaskFilters — Sprint 10
+- [ ] ViewSwitcher component polish — Sprint 10
 
 ---
 
