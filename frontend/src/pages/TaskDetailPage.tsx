@@ -21,6 +21,7 @@ import type { TaskStatus, TabId } from "../modules/tasks";
 import { useUsersMap, getUserById } from "../modules/users";
 import { ChecklistsPanel } from "../modules/checklists";
 import { useProject } from "../modules/projects";
+import { TagBadge, useTaskTags } from "../modules/tags";
 
 // Status labels for dropdown
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
@@ -55,6 +56,8 @@ export function TaskDetailPage() {
 
   // Fetch project info if task has project_id
   const { data: project } = useProject(task?.project_id || "", !!task?.project_id);
+  // Fetch task tags
+  const { data: taskTags = [] } = useTaskTags(taskId || "");
 
   // Get user details
   const author = task ? getUserById(usersMap, task.author_id) : undefined;
@@ -237,6 +240,14 @@ export function TaskDetailPage() {
             </span>
             <h1 className="text-2xl font-bold text-gray-900">{task.title}</h1>
             <Badge type="priority" value={task.priority} />
+            {/* Tags */}
+            {taskTags.length > 0 && (
+              <div className="flex items-center gap-1 flex-wrap">
+                {taskTags.map((tag) => (
+                  <TagBadge key={tag.id} tag={tag} size="sm" />
+                ))}
+              </div>
+            )}
             {/* Urgency indicator */}
             {urgency.label && (
               <span

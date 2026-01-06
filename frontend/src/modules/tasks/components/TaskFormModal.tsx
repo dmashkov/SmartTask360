@@ -16,6 +16,7 @@ import { useAuth } from "../../auth";
 import { ProjectSelect, NO_PROJECT_VALUE } from "../../projects";
 import { uploadDocument } from "../../documents/api";
 import { useTaskDocuments, useDeleteDocument } from "../../documents";
+import { TagsSelect, useTaskTags, useAssignTagsToTask } from "../../tags";
 
 const priorityOptions = [
   { value: "low", label: "Низкий" },
@@ -60,6 +61,8 @@ export function TaskFormModal({
   const { user: currentUser } = useAuth();
   const { data: existingDocuments = [] } = useTaskDocuments(task?.id || "");
   const deleteDocument = useDeleteDocument(task?.id || "");
+  const { data: existingTags = [] } = useTaskTags(task?.id || "");
+  const assignTags = useAssignTagsToTask();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -69,6 +72,7 @@ export function TaskFormModal({
   const [creatorId, setCreatorId] = useState<string>("");
   const [assigneeId, setAssigneeId] = useState<string>("");
   const [projectId, setProjectId] = useState<string>("");
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -96,6 +100,7 @@ export function TaskFormModal({
         setAssigneeId(task.assignee_id || "");
         // For project: if task has no project, use NO_PROJECT_VALUE marker
         setProjectId(task.project_id || NO_PROJECT_VALUE);
+        setSelectedTagIds(existingTags.map((t) => t.id));
         setSelectedFiles([]);
       } else {
         // Create mode: set defaults
@@ -110,10 +115,11 @@ export function TaskFormModal({
         setAssigneeId(defaultAssigneeId !== undefined ? defaultAssigneeId : (currentUser?.id || ""));
         // Default project: if provided use it, otherwise "Без проекта"
         setProjectId(defaultProjectId || NO_PROJECT_VALUE);
+        setSelectedTagIds([]);
         setSelectedFiles([]);
       }
     }
-  }, [isOpen, task, defaultProjectId, defaultTitle, defaultDescription, defaultAssigneeId, currentUser]);
+  }, [isOpen, task, defaultProjectId, defaultTitle, defaultDescription, defaultAssigneeId, currentUser, existingTags]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -175,6 +181,11 @@ export function TaskFormModal({
           data: data as TaskUpdate,
         });
 
+        // Assign tags
+        if (selectedTagIds.length > 0) {
+          await assignTags.mutateAsync({ taskId: task.id, tagIds: selectedTagIds });
+        }
+
         // Upload files if any (for edit mode)
         if (selectedFiles.length > 0) {
           for (const { file } of selectedFiles) {
@@ -186,6 +197,11 @@ export function TaskFormModal({
       } else {
         // Create task first
         const newTask = await createTask.mutateAsync(data as TaskCreate);
+
+        // Assign tags to new task
+        if (selectedTagIds.length > 0 && newTask?.id) {
+          await assignTags.mutateAsync({ taskId: newTask.id, tagIds: selectedTagIds });
+        }
 
         // Upload files as "requirement" type if any
         if (selectedFiles.length > 0 && newTask?.id) {
@@ -233,6 +249,17 @@ export function TaskFormModal({
             onChange={(e) => setProjectId(e.target.value)}
             allowEmpty={false}
           />
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Теги
+            </label>
+            <TagsSelect
+              value={selectedTagIds}
+              onChange={setSelectedTagIds}
+              placeholder="Выберите теги..."
+            />
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <Select

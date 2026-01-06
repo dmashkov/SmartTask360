@@ -1,17 +1,27 @@
 # SmartTask360 — Development Context
 
-**Last Updated:** 2026-01-06 (Session 9: @Mentions & Comments)
+**Last Updated:** 2026-01-07 (Session 10: Tags Module)
 
 ---
 
 ## 🎯 Current Phase
 
-**Phase 2B: Frontend Tasks & Kanban** — ✅ Completed + Comments Enhancement
+**Phase 2B: Frontend Tasks & Kanban** — ✅ Completed + Tags & Comments
 
 ### Current Sprint
-Sprint 9: @Mentions, Reactions & Read Status — ✅ Completed
+Sprint 10: Tags Module — ✅ Completed
 
-### Recent Enhancements (2026-01-06 Session 9)
+### Recent Enhancements (2026-01-07 Session 10)
+- ✅ Tags module frontend (`modules/tags/`)
+- ✅ types.ts — Tag, TagCreate, TagUpdate, TagAssign
+- ✅ api.ts — All CRUD + task tag operations
+- ✅ hooks/useTags.ts — React Query hooks
+- ✅ TagBadge component — colored badge with auto text color
+- ✅ TagsSelect component — multi-select with create-on-the-fly
+- ✅ Integration: TaskFormModal — tag selection
+- ✅ Integration: TaskDetailPage — tags display in header
+
+### Previous Enhancements (2026-01-06 Session 9)
 - ✅ @Mentions system (`@Имя Фамилия` format with autocomplete)
 - ✅ MentionInput component with dropdown user search
 - ✅ Linkify component with @mention highlighting (blue background)
@@ -42,34 +52,16 @@ Sprint 9: @Mentions, Reactions & Read Status — ✅ Completed
 - ✅ Urgency shown in TaskRow, TaskDetailPage, ChildTaskNode
 
 ### Current Session
-Session 9: @Mentions & Comments — ✅ Completed
+Session 10: Tags Module — ✅ Completed
 
-### Plan for 2026-01-05
-**3 Sessions Planned (~10-12 hours):**
+### Next Up
+Sprint 11 — Projects Full Development:
+- ProjectSelect component for TaskFormModal
+- ProjectStatsCard component
+- Project filter in TaskFilters
+- ViewSwitcher polish
 
-**Session 1 (3h): Search and Filtering**
-- Global search placeholder in Header (stub only)
-- Enhanced TaskList search (highlight, debounce)
-- Saved filter views (UserView backend model + frontend)
-
-**Session 2 (3-4h): Checklists**
-- Multiple checklists per task (alternative to subtasks)
-- Flat structure only (NO nesting for MVP)
-- Backend: GET /checklists, toggle, create/delete endpoints
-- Frontend: ChecklistsPanel, ChecklistCard, ChecklistItem components
-- Integration into TaskDetailPage
-
-**Session 3 (4-5h): Projects - Full Development**
-- **CRITICAL MODULE** - what makes SmartTask360 more than "just a task tracker with AI"
-- Architecture discussion and concept documentation
-- Backend: Complete ProjectService with stats, timeline, member management
-- Frontend: ProjectsPage with filtering and cards
-- Frontend: ProjectDetailPage with 3 tabs (Overview, Tasks, Boards)
-- Full integration with Tasks and Boards
-- Team member management UI
-
-### Next Up After 2026-01-05
-Phase 1F: Gantt Chart → Phase 2C: AI & Polish
+After Projects → Sprint 12: Gantt Chart → Sprint 13: Polish & Testing
 
 ---
 
@@ -155,10 +147,18 @@ None - Sprint 6 completed
 - `modules/auth/` — ✅ Login, AuthContext, ProtectedRoute
 - `modules/tasks/` — ✅ List, filters, detail, create/edit modal, hierarchy tree, urgency indicators
 - `modules/boards/` — ✅ Kanban with drag-and-drop, WIP indicators
+- `modules/tags/` — ✅ Tags CRUD, TagBadge, TagsSelect with inline creation
 - `modules/ai/` — ⏳ Next up (Phase 2C)
 - `modules/notifications/` — ⏳ Next up
 
-**Latest Components (2026-01-06):**
+**Latest Components (2026-01-07):**
+- `TagBadge` — colored tag badge with auto text color
+- `TagsSelect` — multi-select with inline tag creation
+- `useTags` — tags React Query hooks
+- `useTaskTags` — task tags hooks
+- `useAssignTagsToTask` — assign tags mutation
+
+**Previous Components (2026-01-06):**
 - `MentionInput` — textarea with @mention autocomplete
 - `Linkify` — URL and @mention highlighting
 - `EmojiPicker` — emoji reaction picker
