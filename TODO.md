@@ -8,14 +8,25 @@
 - [x] **Phase 1B:** Backend Tasks Extended (Sessions 2.1-2.7) ✅
 - [x] **Phase 1C:** Backend AI (Sessions 1C.1-1C.4) ✅
 - [x] **Phase 1D:** Backend Boards & Notifications ✅
-- [ ] **Phase 1E:** Projects Module (Backend + Frontend)
+- [x] **Phase 1E:** Projects Module (Backend + Frontend) ✅
 - [ ] **Phase 1F:** Gantt Chart (MVP view mode)
 - [x] **Phase 2A:** Frontend Core ✅
 - [x] **Phase 2B:** Frontend Tasks & Kanban ✅
 - [ ] **Phase 2C:** Frontend AI & Polish
 
-**Current:** Phase 2B completed + Session 9 ✅
-**Next:** Phase 1E - Projects Module → Phase 1F - Gantt Chart
+**Current:** Phase 1E completed (Session 11) ✅
+**Next:** Phase 1F - Gantt Chart → Phase 2C - Frontend AI & Polish
+
+**Session 11 (2026-01-07): Members Tab & Kanban Improvements**
+- [x] Fix Members tab white screen (ProjectMemberWithUser schema)
+- [x] Persistent Kanban task ordering (kanban_position field)
+- [x] Phase 1E completion verification (all tasks done)
+
+**Session 10 (2026-01-07): Tags Module (Frontend)**
+- [x] Tags management CRUD (TagsPage)
+- [x] TagsSelect component for task forms
+- [x] Tags filter in TaskFilters
+- [x] Tags display in task list and detail
 
 **Session 9 (2026-01-06): @Mentions & Comments**
 - [x] @Mentions system (`@Имя Фамилия` format)
@@ -417,7 +428,7 @@
 
 ---
 
-## Phase 1E: Projects Module (~12 hours) — Sprint 8 ✅ + Sprint 10 ⏳
+## Phase 1E: Projects Module (~12 hours) ✅ COMPLETED
 
 **Goal:** Полноценный модуль проектов для привязки задач и досок
 
@@ -467,14 +478,14 @@
   - useProjectMutations()
   - useProjectMembers(projectId)
 
-### 1E.5 Frontend: Components (2h) ✅ Partial
+### 1E.5 Frontend: Components (2h) ✅
 - [x] Create ProjectCard (for projects list)
 - [x] Create ProjectBadge (inline project indicator)
 - [x] Create ProjectMembersTab (members management)
-- [ ] Create ProjectSelect (for TaskFormModal) — Sprint 10
-- [ ] Create ProjectStatsCard — Sprint 10
+- [x] Create ProjectSelect (for TaskFormModal)
+- [x] Project stats displayed inline in ProjectDetailPage header (no separate component needed)
 
-### 1E.6 Frontend: Pages & Integration (2h) ✅ Partial
+### 1E.6 Frontend: Pages & Integration (2h) ✅
 - [x] Create ProjectsPage (list with filters, create button)
 - [x] Create ProjectDetailPage with tabs:
   - [x] Tasks tab — ProjectTasksTab
@@ -482,9 +493,9 @@
   - [x] Members tab — ProjectMembersTab
 - [x] Add "Проекты" to Sidebar navigation
 - [x] Update Router with /projects routes
-- [ ] Add ProjectSelect to TaskFormModal — Sprint 10
-- [ ] Add project_id filter to TaskFilters — Sprint 10
-- [ ] ViewSwitcher component polish — Sprint 10
+- [x] Add ProjectSelect to TaskFormModal
+- [x] Add project_id filter to TaskFilters
+- [x] ViewSwitcher implemented inline in ProjectDetailPage (tabs UI)
 
 ---
 

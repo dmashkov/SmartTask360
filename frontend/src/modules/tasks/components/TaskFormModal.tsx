@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Modal,
   ModalHeader,
@@ -86,6 +86,12 @@ export function TaskFormModal({
     })),
   ];
 
+  // Stable string representation of existing tag IDs to avoid infinite loop
+  const existingTagIdsString = useMemo(
+    () => existingTags.map((t) => t.id).sort().join(","),
+    [existingTags]
+  );
+
   // Reset form when modal opens/closes or task changes
   useEffect(() => {
     if (isOpen) {
@@ -100,7 +106,8 @@ export function TaskFormModal({
         setAssigneeId(task.assignee_id || "");
         // For project: if task has no project, use NO_PROJECT_VALUE marker
         setProjectId(task.project_id || NO_PROJECT_VALUE);
-        setSelectedTagIds(existingTags.map((t) => t.id));
+        // Use stable string to get tag IDs
+        setSelectedTagIds(existingTagIdsString ? existingTagIdsString.split(",") : []);
         setSelectedFiles([]);
       } else {
         // Create mode: set defaults
@@ -119,7 +126,7 @@ export function TaskFormModal({
         setSelectedFiles([]);
       }
     }
-  }, [isOpen, task, defaultProjectId, defaultTitle, defaultDescription, defaultAssigneeId, currentUser, existingTags]);
+  }, [isOpen, task, defaultProjectId, defaultTitle, defaultDescription, defaultAssigneeId, currentUser, existingTagIdsString]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

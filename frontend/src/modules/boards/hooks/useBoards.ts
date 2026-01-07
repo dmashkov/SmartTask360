@@ -65,6 +65,8 @@ export function useBoardColumnsWithTasks(boardId: string, enabled = true) {
       }));
     },
     enabled: enabled && !!boardId,
+    // Always refetch on mount to get fresh task positions after navigation
+    staleTime: 0,
   });
 }
 

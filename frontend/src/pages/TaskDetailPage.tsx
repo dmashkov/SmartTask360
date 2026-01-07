@@ -427,34 +427,12 @@ export function TaskDetailPage() {
             </Card>
           )}
 
-          {/* SMART Score */}
-          {task.smart_score && (
-            <Card>
-              <CardHeader>
-                <CardTitle>SMART-валидация</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className={`text-lg font-semibold ${task.smart_is_valid ? "text-green-600" : "text-yellow-600"}`}>
-                    {task.smart_is_valid ? "Соответствует" : "Требует доработки"}
-                  </span>
-                  {task.smart_validated_at && (
-                    <span className="text-sm text-gray-500">
-                      Проверено {formatDateTime(task.smart_validated_at)}
-                    </span>
-                  )}
-                </div>
-                <pre className="text-sm bg-gray-50 p-4 rounded-lg overflow-auto">
-                  {JSON.stringify(task.smart_score, null, 2)}
-                </pre>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Tabs: Comments, History, Documents */}
+          {/* Tabs: AI, Comments, History, Documents */}
           <TaskDetailTabs
             taskId={task.id}
             projectId={task.project_id}
+            smartScore={task.smart_score}
+            smartValidatedAt={task.smart_validated_at}
             activeTab={activeTab}
             onTabChange={setActiveTab}
           />

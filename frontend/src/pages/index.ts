@@ -8,4 +8,5 @@ export { ProjectsPage } from "./ProjectsPage";
 export { ProjectDetailPage } from "./ProjectDetailPage";
 export { InboxPage } from "./InboxPage";
 export { FavoritesPage } from "./FavoritesPage";
+export { SettingsPage } from "./SettingsPage";
 export { NotFoundPage } from "./NotFoundPage";

@@ -92,7 +92,12 @@ class AIClient:
                     raise AIError(f"AI API call failed after {self.max_retries} attempts: {str(e)}")
 
     async def validate_smart(
-        self, task_title: str, task_description: str, context: dict[str, Any] | None = None
+        self,
+        task_title: str,
+        task_description: str,
+        context: dict[str, Any] | None = None,
+        custom_prompt: str | None = None,
+        language: str = "ru",
     ) -> dict[str, Any]:
         """
         Validate task against SMART criteria.
@@ -101,12 +106,16 @@ class AIClient:
             task_title: Task title
             task_description: Task description
             context: Additional context (parent task, project, etc.)
+            custom_prompt: Custom prompt template (optional)
+            language: Response language code (default: "ru")
 
         Returns:
             SMART validation result
         """
         # Build enhanced prompt with examples
-        prompt = build_smart_validation_prompt(task_title, task_description, context)
+        prompt = build_smart_validation_prompt(
+            task_title, task_description, context, custom_prompt=custom_prompt, language=language
+        )
 
         # Call API with low temperature for consistency
         messages = [{"role": "user", "content": prompt}]

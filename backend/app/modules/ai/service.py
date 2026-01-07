@@ -4,6 +4,7 @@ SmartTask360 — AI Service
 
 import json
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
@@ -18,14 +19,33 @@ from app.modules.ai.schemas import (
     AIMessageCreate,
     SMARTValidationResult,
 )
+from app.modules.system_settings.service import SystemSettingsService
+from app.modules.system_settings.schemas import PromptType
 
 
 class AIService:
     """Service for managing AI conversations and interactions"""
 
     def __init__(self, db: AsyncSession):
+        from app.modules.tasks.service import TaskService
+
         self.db = db
         self.client = AIClient()
+        self._settings_service = SystemSettingsService(db)
+        self.task_service = TaskService(db)
+
+    async def get_ai_model(self) -> str:
+        """Get the configured AI model from settings."""
+        return await self._settings_service.get_ai_model()
+
+    async def get_ai_language(self) -> str:
+        """Get the configured AI response language from settings."""
+        return await self._settings_service.get_ai_language()
+
+    async def get_custom_prompt(self, prompt_type: PromptType) -> str | None:
+        """Get custom prompt if configured, otherwise return None (will use default)."""
+        content, is_custom = await self._settings_service.get_prompt(prompt_type)
+        return content if is_custom else None
 
     # ========================================================================
     # Conversation Management
@@ -181,6 +201,12 @@ class AIService:
         if conversation.conversation_type == "task_dialog":
             from app.modules.ai.prompts import build_task_dialog_prompt
 
+            # Get custom prompt if configured
+            custom_prompt = await self.get_custom_prompt(PromptType.TASK_DIALOG)
+
+            # Get configured language
+            language = await self.get_ai_language()
+
             # Extract task details from context
             context = conversation.context or {}
             system_prompt = build_task_dialog_prompt(
@@ -188,6 +214,8 @@ class AIService:
                 task_description=context.get("task_description", ""),
                 conversation_history=[],  # Already in api_messages
                 context=context,
+                custom_prompt=custom_prompt,
+                language=language,
             )
 
         # Call AI API
@@ -241,24 +269,35 @@ class AIService:
         Returns:
             Tuple of (conversation, validation_result)
         """
+        # Get configured model
+        ai_model = await self.get_ai_model()
+
         # Create conversation
         conversation = await self.create_conversation(
             AIConversationCreate(
                 conversation_type="smart_validation",
                 task_id=task_id,
                 user_id=user_id,
-                model="claude-sonnet-4-20250514",
+                model=ai_model,
                 temperature=0.3,
                 context=context,
             )
         )
 
         try:
+            # Get custom prompt if configured
+            custom_prompt = await self.get_custom_prompt(PromptType.SMART_VALIDATION)
+
+            # Get configured language
+            language = await self.get_ai_language()
+
             # Call AI validation
             response = await self.client.validate_smart(
                 task_title=task_title,
                 task_description=task_description or "",
                 context=context,
+                custom_prompt=custom_prompt,
+                language=language,
             )
 
             # Parse JSON response
@@ -362,6 +401,9 @@ class AIService:
         Returns:
             Tuple of (conversation, ai_greeting)
         """
+        # Get configured model
+        ai_model = await self.get_ai_model()
+
         # Create conversation with task details in context
         full_context = {
             "dialog_type": dialog_type,
@@ -375,17 +417,23 @@ class AIService:
                 conversation_type="task_dialog",
                 task_id=task_id,
                 user_id=user_id,
-                model="claude-sonnet-4-20250514",
+                model=ai_model,
                 temperature=0.7,  # Higher temperature for creative dialog
                 context=full_context,
             )
         )
 
+        # Get custom prompt if configured
+        custom_prompt = await self.get_custom_prompt(PromptType.TASK_DIALOG)
+
+        # Get configured language
+        language = await self.get_ai_language()
+
         # Build system prompt based on dialog type
         from app.modules.ai.prompts import build_task_dialog_prompt
 
         system_prompt = build_task_dialog_prompt(
-            task_title, task_description, [], context
+            task_title, task_description, [], context, custom_prompt=custom_prompt, language=language
         )
 
         # Build initial message
@@ -546,19 +594,28 @@ Respond ONLY with valid JSON:
         Returns:
             Tuple of (conversation, risk_analysis_result)
         """
+        # Get configured model
+        ai_model = await self.get_ai_model()
+
         # Create conversation
         conversation = await self.create_conversation(
             AIConversationCreate(
                 conversation_type="risk_analysis",
                 task_id=task_id,
                 user_id=user_id,
-                model="claude-sonnet-4-20250514",
+                model=ai_model,
                 temperature=0.4,  # Balanced for risk assessment
                 context=context,
             )
         )
 
         try:
+            # Get custom prompt if configured
+            custom_prompt = await self.get_custom_prompt(PromptType.RISK_ANALYSIS)
+
+            # Get configured language
+            language = await self.get_ai_language()
+
             # Call AI risk analysis
             from app.modules.ai.prompts import build_risk_analysis_prompt
 
@@ -566,6 +623,8 @@ Respond ONLY with valid JSON:
                 task_title=task_title,
                 task_description=task_description or "",
                 context=context,
+                custom_prompt=custom_prompt,
+                language=language,
             )
 
             response = await self.client.send_message(
@@ -655,19 +714,28 @@ Respond ONLY with valid JSON:
         Returns:
             Tuple of (conversation, comment_content)
         """
+        # Get configured model
+        ai_model = await self.get_ai_model()
+
         # Create conversation
         conversation = await self.create_conversation(
             AIConversationCreate(
                 conversation_type="comment_generation",
                 task_id=task_id,
                 user_id=user_id,
-                model="claude-sonnet-4-20250514",
+                model=ai_model,
                 temperature=0.5,  # Balanced for helpful comments
                 context={**(context or {}), "comment_type": comment_type},
             )
         )
 
         try:
+            # Get custom prompt if configured
+            custom_prompt = await self.get_custom_prompt(PromptType.COMMENT_GENERATION)
+
+            # Get configured language
+            language = await self.get_ai_language()
+
             # Build comment prompt
             from app.modules.ai.prompts import build_comment_generation_prompt
 
@@ -676,6 +744,8 @@ Respond ONLY with valid JSON:
                 task_description=task_description or "",
                 comment_type=comment_type,
                 context=context,
+                custom_prompt=custom_prompt,
+                language=language,
             )
 
             response = await self.client.send_message(
@@ -747,19 +817,28 @@ Respond ONLY with valid JSON:
         Returns:
             Tuple of (conversation, review_result)
         """
+        # Get configured model
+        ai_model = await self.get_ai_model()
+
         # Create conversation
         conversation = await self.create_conversation(
             AIConversationCreate(
                 conversation_type="progress_review",
                 task_id=task_id,
                 user_id=user_id,
-                model="claude-sonnet-4-20250514",
+                model=ai_model,
                 temperature=0.4,
                 context=context,
             )
         )
 
         try:
+            # Get custom prompt if configured
+            custom_prompt = await self.get_custom_prompt(PromptType.PROGRESS_REVIEW)
+
+            # Get configured language
+            language = await self.get_ai_language()
+
             # Build progress review prompt
             from app.modules.ai.prompts import build_progress_review_prompt
 
@@ -769,6 +848,8 @@ Respond ONLY with valid JSON:
                 task_status=task_status,
                 subtasks=subtasks,
                 context=context,
+                custom_prompt=custom_prompt,
+                language=language,
             )
 
             response = await self.client.send_message(
@@ -840,3 +921,401 @@ Respond ONLY with valid JSON:
                 conversation.id, AIConversationUpdate(status="failed")
             )
             raise e
+
+    # =========================================================================
+    # SMART Wizard Methods
+    # =========================================================================
+
+    async def analyze_task_for_smart(
+        self,
+        task_id: UUID,
+        user_id: UUID,
+        include_context: bool = True,
+    ) -> tuple[Any, dict]:
+        """
+        Step 1 of SMART Wizard: Analyze task and generate clarifying questions.
+
+        Args:
+            task_id: Task to analyze
+            user_id: User initiating the analysis
+            include_context: Whether to include parent/project context
+
+        Returns:
+            Tuple of (AIConversation, analysis_result dict)
+        """
+        from app.modules.ai.prompts import build_smart_analyze_prompt
+
+        # Get task
+        task = await self.task_service.get_by_id(task_id)
+        if not task:
+            raise ValueError(f"Task {task_id} not found")
+
+        task_title = task.title
+        task_description = task.description
+
+        # Build context
+        context: dict = {
+            "priority": task.priority.value if hasattr(task.priority, 'value') else task.priority,
+            "status": task.status.value if hasattr(task.status, 'value') else task.status,
+        }
+
+        if include_context and task.parent_id:
+            parent = await self.task_service.get_by_id(task.parent_id)
+            if parent:
+                context["parent_task"] = {
+                    "title": parent.title,
+                    "description": parent.description,
+                }
+
+        # Create conversation for wizard flow
+        conversation = await self.create_conversation(
+            AIConversationCreate(
+                conversation_type="smart_wizard",
+                task_id=task_id,
+                user_id=user_id,
+                model=await self.get_ai_model(),
+                temperature=0.5,  # Moderate temperature for question generation
+                context={
+                    "step": "analyze",
+                    "task_title": task_title,
+                    "task_description": task_description,
+                    **context,
+                },
+            )
+        )
+
+        try:
+            # Get configured language
+            language = await self.get_ai_language()
+
+            # Build prompt
+            prompt = build_smart_analyze_prompt(
+                task_title=task_title,
+                task_description=task_description or "",
+                context=context,
+                language=language,
+            )
+
+            # Call AI
+            response = await self.client.send_message(
+                messages=[{"role": "user", "content": prompt}],
+                model=conversation.model,
+                temperature=conversation.temperature,
+                max_tokens=2048,
+            )
+
+            # Parse JSON response
+            content = response["content"].strip()
+
+            # Remove markdown blocks
+            if content.startswith("```json"):
+                content = content[7:]
+            elif content.startswith("```"):
+                content = content[3:]
+            if content.endswith("```"):
+                content = content[:-3]
+
+            try:
+                analysis_data = json.loads(content.strip())
+            except json.JSONDecodeError as e:
+                print(f"JSON parse error in analyze: {e}")
+                print(f"Content was: {content[:500]}")
+                analysis_data = {
+                    "initial_assessment": "Не удалось проанализировать задачу. Попробуйте ещё раз.",
+                    "can_skip": False,
+                    "questions": [],
+                }
+
+            # Store questions in conversation context for refine step
+            await self.update_conversation(
+                conversation.id,
+                AIConversationUpdate(
+                    result={
+                        "step": "analyze_complete",
+                        "questions": analysis_data.get("questions", []),
+                        "initial_assessment": analysis_data.get("initial_assessment", ""),
+                        "can_skip": analysis_data.get("can_skip", False),
+                    }
+                ),
+            )
+
+            # Save messages
+            await self.add_message(
+                conversation.id,
+                AIMessageCreate(
+                    role="user",
+                    content=f"Analyze task for SMART: {task_title}",
+                    sequence=0,
+                    token_count=response["usage"]["input_tokens"],
+                    model_used=conversation.model,
+                ),
+            )
+
+            await self.add_message(
+                conversation.id,
+                AIMessageCreate(
+                    role="assistant",
+                    content=response["content"],
+                    sequence=1,
+                    token_count=response["usage"]["output_tokens"],
+                    model_used=response["model"],
+                ),
+            )
+
+            return conversation, analysis_data
+
+        except Exception as e:
+            await self.update_conversation(
+                conversation.id, AIConversationUpdate(status="failed")
+            )
+            raise e
+
+    async def refine_task_smart(
+        self,
+        conversation_id: UUID,
+        answers: list[dict],
+        additional_context: str | None = None,
+    ) -> tuple[Any, dict]:
+        """
+        Step 2 of SMART Wizard: Generate SMART proposal based on user answers.
+
+        Args:
+            conversation_id: Conversation from analyze step
+            answers: User answers to AI questions
+            additional_context: Any additional context from user
+
+        Returns:
+            Tuple of (AIConversation, proposal dict)
+        """
+        from app.modules.ai.prompts import build_smart_refine_prompt
+
+        # Get conversation
+        conversation = await self.get_conversation_by_id(conversation_id)
+        if not conversation:
+            raise ValueError(f"Conversation {conversation_id} not found")
+
+        print(f"[REFINE SERVICE] conversation_type={conversation.conversation_type}, expected=smart_wizard")
+        if conversation.conversation_type != "smart_wizard":
+            raise ValueError(f"Invalid conversation type for SMART refine: {conversation.conversation_type}")
+
+        # Get stored data from analyze step
+        result = conversation.result or {}
+        questions = result.get("questions", [])
+
+        # Get task info from context
+        context = conversation.context or {}
+        task_title = context.get("task_title", "")
+        task_description = context.get("task_description", "")
+
+        try:
+            # Get configured language
+            language = await self.get_ai_language()
+
+            # Build prompt
+            prompt = build_smart_refine_prompt(
+                task_title=task_title,
+                task_description=task_description,
+                questions=questions,
+                answers=answers,
+                context=context,
+                additional_context=additional_context,
+                language=language,
+            )
+
+            # Call AI
+            response = await self.client.send_message(
+                messages=[{"role": "user", "content": prompt}],
+                model=conversation.model,
+                temperature=0.5,  # Moderate temperature for structured output
+                max_tokens=3000,
+            )
+
+            # Parse JSON response
+            content = response["content"].strip()
+
+            # Remove markdown blocks
+            if content.startswith("```json"):
+                content = content[7:]
+            elif content.startswith("```"):
+                content = content[3:]
+            if content.endswith("```"):
+                content = content[:-3]
+
+            try:
+                proposal_data = json.loads(content.strip())
+            except json.JSONDecodeError as e:
+                print(f"JSON parse error in refine: {e}")
+                print(f"Content was: {content[:500]}")
+                proposal_data = {
+                    "title": task_title,
+                    "description": task_description,
+                    "definition_of_done": [],
+                    "time_estimate": None,
+                    "smart_scores": None,
+                }
+
+            # Update conversation with proposal
+            await self.update_conversation(
+                conversation.id,
+                AIConversationUpdate(
+                    result={
+                        **result,
+                        "step": "refine_complete",
+                        "answers": answers,
+                        "proposal": proposal_data,
+                    }
+                ),
+            )
+
+            # Save messages
+            messages = await self.get_conversation_messages(conversation.id)
+            message_count = len(messages)
+
+            # Format answers for user message
+            answers_text = "\n".join([f"Q{a['question_id']}: {a['value']}" for a in answers])
+            if additional_context:
+                answers_text += f"\n\nДополнительно: {additional_context}"
+
+            await self.add_message(
+                conversation.id,
+                AIMessageCreate(
+                    role="user",
+                    content=f"Answers:\n{answers_text}",
+                    sequence=message_count,
+                    token_count=response["usage"]["input_tokens"],
+                    model_used=conversation.model,
+                ),
+            )
+
+            await self.add_message(
+                conversation.id,
+                AIMessageCreate(
+                    role="assistant",
+                    content=response["content"],
+                    sequence=message_count + 1,
+                    token_count=response["usage"]["output_tokens"],
+                    model_used=response["model"],
+                ),
+            )
+
+            # Return original task data for comparison
+            original_task = {
+                "title": task_title,
+                "description": task_description,
+            }
+
+            return conversation, {"proposal": proposal_data, "original_task": original_task}
+
+        except Exception as e:
+            await self.update_conversation(
+                conversation.id, AIConversationUpdate(status="failed")
+            )
+            raise e
+
+    async def apply_smart_proposal(
+        self,
+        conversation_id: UUID,
+        apply_title: bool = True,
+        apply_description: bool = True,
+        apply_dod: bool = True,
+        custom_title: str | None = None,
+        custom_description: str | None = None,
+        custom_dod: list[str] | None = None,
+    ) -> dict:
+        """
+        Step 3 of SMART Wizard: Apply the proposal to the task.
+
+        Args:
+            conversation_id: Conversation with proposal
+            apply_title: Whether to apply title change
+            apply_description: Whether to apply description change
+            apply_dod: Whether to create checklist from DoD
+            custom_title: Custom title override
+            custom_description: Custom description override
+            custom_dod: Custom DoD override
+
+        Returns:
+            Result dict with changes applied
+        """
+        from app.modules.tasks.schemas import TaskUpdate
+
+        # Get conversation
+        conversation = await self.get_conversation_by_id(conversation_id)
+        if not conversation:
+            raise ValueError(f"Conversation {conversation_id} not found")
+
+        result = conversation.result or {}
+        proposal = result.get("proposal", {})
+
+        if not proposal:
+            raise ValueError("No proposal found in conversation")
+
+        task_id = conversation.task_id
+        changes_applied = []
+
+        # Get values to apply (custom overrides or proposal values)
+        new_title = custom_title if custom_title else proposal.get("title")
+        new_description = custom_description if custom_description else proposal.get("description")
+        dod_items = custom_dod if custom_dod else proposal.get("definition_of_done", [])
+
+        # Apply task updates
+        update_data = {}
+        if apply_title and new_title:
+            update_data["title"] = new_title
+            changes_applied.append("title")
+        if apply_description and new_description:
+            update_data["description"] = new_description
+            changes_applied.append("description")
+
+        if update_data:
+            await self.task_service.update(task_id, TaskUpdate(**update_data))
+
+        # Create checklist from DoD items
+        checklist_id = None
+        if apply_dod and dod_items:
+            from app.modules.checklists.service import ChecklistService
+            from app.modules.checklists.schemas import ChecklistCreate, ChecklistItemCreate
+
+            checklist_service = ChecklistService(self.db)
+
+            # Create checklist
+            checklist = await checklist_service.create_checklist(
+                ChecklistCreate(
+                    task_id=task_id,
+                    title="Критерии выполнения (DoD)",
+                )
+            )
+            checklist_id = checklist.id
+            changes_applied.append("checklist")
+
+            # Add items
+            for i, item_text in enumerate(dod_items):
+                await checklist_service.create_item(
+                    ChecklistItemCreate(
+                        checklist_id=checklist_id,
+                        content=item_text,
+                        position=i,
+                    )
+                )
+
+        # Mark conversation as completed
+        await self.update_conversation(
+            conversation.id,
+            AIConversationUpdate(
+                status="completed",
+                result={
+                    **result,
+                    "step": "applied",
+                    "changes_applied": changes_applied,
+                    "checklist_id": str(checklist_id) if checklist_id else None,
+                },
+            ),
+        )
+
+        return {
+            "success": True,
+            "message": "SMART предложение применено к задаче",
+            "task_id": str(task_id),
+            "changes_applied": changes_applied,
+            "checklist_id": checklist_id,
+        }

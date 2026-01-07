@@ -72,6 +72,8 @@ export function useProjectTasks(
     queryKey: projectKeys.tasks(projectId, status),
     queryFn: () => getProjectTasks(projectId, status),
     enabled: enabled && !!projectId,
+    // Always refetch on mount to get fresh kanban positions after navigation
+    staleTime: 0,
   });
 }
 

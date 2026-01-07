@@ -5,7 +5,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Spinner, EmptyState, Badge, Avatar, Input, Button } from "../../../shared/ui";
+import { Spinner, Badge, Avatar, Input, Button } from "../../../shared/ui";
 import { useProjectTasks } from "../hooks";
 import { useChangeTaskStatus, useCreateTask } from "../../tasks/hooks";
 import { reorderKanbanTasks } from "../../tasks/api";
@@ -634,16 +634,8 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
     );
   }
 
-  const totalTasks = tasksData?.items?.length || 0;
-
-  if (totalTasks === 0) {
-    return (
-      <EmptyState
-        title="Нет задач"
-        description="Создайте задачи в проекте, чтобы увидеть их на канбан-доске"
-      />
-    );
-  }
+  // Removed empty state check - show empty columns so users can create tasks directly from kanban
+  // Each column has a "+" button and "Перетащите задачи сюда" placeholder
 
   return (
     <div className="p-4">

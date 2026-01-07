@@ -1,3 +1,5 @@
+import type { SMARTValidationResult } from "../ai/types";
+
 // Task status enum (matches backend TaskStatus)
 export type TaskStatus =
   | "draft"
@@ -63,7 +65,7 @@ export interface Task {
   rejection_comment: string | null;
   completion_result: string | null;
   kanban_position: number;
-  smart_score: Record<string, unknown> | null;
+  smart_score: SMARTValidationResult | null;
   smart_validated_at: string | null;
   smart_is_valid: boolean | null;
   children_count: number;

@@ -25,6 +25,15 @@ from app.modules.ai.schemas import (
     SMARTValidationResponse,
     StartDialogRequest,
     StartDialogResponse,
+    # SMART Wizard schemas
+    SMARTAnalyzeRequest,
+    SMARTAnalyzeResponse,
+    SMARTRefineRequest,
+    SMARTRefineResponse,
+    SMARTApplyRequest,
+    SMARTApplyResponse,
+    AIQuestion,
+    SMARTProposal,
 )
 from app.modules.ai.service import AIService
 from app.modules.users.models import User
@@ -789,4 +798,193 @@ async def create_ai_auto_comment(
         }
 
     except Exception as e:
+        raise HTTPException(status_code=503, detail=f"AI service error: {str(e)}")
+
+
+# ============================================================================
+# SMART Wizard Endpoints
+# ============================================================================
+
+
+@router.post("/smart/analyze", response_model=SMARTAnalyzeResponse)
+async def smart_analyze(
+    request: SMARTAnalyzeRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Step 1 of SMART Wizard: Analyze task and generate clarifying questions.
+
+    Analyzes the task against SMART criteria and generates targeted questions
+    to help the user formulate the task properly.
+
+    Returns:
+    - initial_assessment: AI's assessment of current task state
+    - questions: List of clarifying questions (radio, checkbox, text)
+    - can_skip: True if task is already well-defined
+    """
+    from app.modules.tasks.service import TaskService
+
+    task_service = TaskService(db)
+    task = await task_service.get_by_id(request.task_id)
+
+    if not task or task.is_deleted:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    ai_service = AIService(db)
+    try:
+        conversation, analysis = await ai_service.analyze_task_for_smart(
+            task_id=task.id,
+            user_id=current_user.id,
+            include_context=request.include_context,
+        )
+
+        # Convert questions to proper schema
+        questions = [
+            AIQuestion(**q) for q in analysis.get("questions", [])
+        ]
+
+        return SMARTAnalyzeResponse(
+            conversation_id=conversation.id,
+            initial_assessment=analysis.get("initial_assessment", ""),
+            questions=questions,
+            can_skip=analysis.get("can_skip", False),
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"AI service error: {str(e)}")
+
+
+@router.post("/smart/refine", response_model=SMARTRefineResponse)
+async def smart_refine(
+    request: SMARTRefineRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Step 2 of SMART Wizard: Generate SMART proposal based on user answers.
+
+    Takes the user's answers to clarifying questions and generates a
+    comprehensive SMART task proposal including:
+    - Refined title
+    - Detailed description
+    - Definition of Done items
+    - Time estimate with breakdown
+    - SMART scores
+
+    Requires conversation_id from the analyze step.
+    """
+    print(f"[REFINE] conversation_id={request.conversation_id}, answers_count={len(request.answers)}")
+    ai_service = AIService(db)
+
+    # Check conversation exists and user has access
+    conversation = await ai_service.get_conversation_by_id(request.conversation_id)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    if conversation.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    try:
+        # Convert answers to dict format
+        answers = [{"question_id": a.question_id, "value": a.value} for a in request.answers]
+        print(f"[REFINE] Calling refine_task_smart...")
+
+        conversation, result = await ai_service.refine_task_smart(
+            conversation_id=request.conversation_id,
+            answers=answers,
+            additional_context=request.additional_context,
+        )
+        print(f"[REFINE] Got result, proposal keys: {result.get('proposal', {}).keys()}")
+
+        # Convert proposal to schema
+        proposal_data = result.get("proposal", {})
+
+        # Fix acceptance_criteria if AI returned strings instead of objects
+        if "smart_scores" in proposal_data and proposal_data["smart_scores"]:
+            smart_scores = proposal_data["smart_scores"]
+            if "acceptance_criteria" in smart_scores:
+                criteria = smart_scores["acceptance_criteria"]
+                if criteria and isinstance(criteria[0], str):
+                    # Convert strings to AcceptanceCriterion objects
+                    smart_scores["acceptance_criteria"] = [
+                        {"description": c, "verification": "Проверить выполнение"}
+                        for c in criteria
+                    ]
+
+        proposal = SMARTProposal(**proposal_data)
+        print(f"[REFINE] SMARTProposal created successfully")
+
+        return SMARTRefineResponse(
+            conversation_id=conversation.id,
+            proposal=proposal,
+            original_task=result.get("original_task", {}),
+        )
+
+    except ValueError as e:
+        print(f"[REFINE ERROR] ValueError: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        import traceback
+        print(f"[REFINE ERROR] Exception: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=503, detail=f"AI service error: {str(e)}")
+
+
+@router.post("/smart/apply", response_model=SMARTApplyResponse)
+async def smart_apply(
+    request: SMARTApplyRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Step 3 of SMART Wizard: Apply the proposal to the task.
+
+    Applies the generated SMART proposal to the task:
+    - Updates task title (if apply_title=True)
+    - Updates task description (if apply_description=True)
+    - Creates DoD checklist (if apply_dod=True)
+
+    Custom overrides can be provided if user edited the proposal.
+    """
+    ai_service = AIService(db)
+
+    # Check conversation exists and user has access
+    conversation = await ai_service.get_conversation_by_id(request.conversation_id)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    if conversation.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    try:
+        print(f"[APPLY] conversation_id={request.conversation_id}, apply_title={request.apply_title}, apply_dod={request.apply_dod}")
+        result = await ai_service.apply_smart_proposal(
+            conversation_id=request.conversation_id,
+            apply_title=request.apply_title,
+            apply_description=request.apply_description,
+            apply_dod=request.apply_dod,
+            custom_title=request.custom_title,
+            custom_description=request.custom_description,
+            custom_dod=request.custom_dod,
+        )
+        print(f"[APPLY] Success: {result}")
+
+        return SMARTApplyResponse(
+            success=result["success"],
+            message=result["message"],
+            task_id=UUID(result["task_id"]),
+            changes_applied=result["changes_applied"],
+            checklist_id=result.get("checklist_id"),
+        )
+
+    except ValueError as e:
+        print(f"[APPLY ERROR] ValueError: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        import traceback
+        print(f"[APPLY ERROR] Exception: {str(e)}")
+        print(traceback.format_exc())
         raise HTTPException(status_code=503, detail=f"AI service error: {str(e)}")

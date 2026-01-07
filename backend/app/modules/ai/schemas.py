@@ -135,6 +135,13 @@ class SMARTCriterion(BaseModel):
     )
 
 
+class AcceptanceCriterion(BaseModel):
+    """Schema for acceptance criterion (DoD item)"""
+
+    description: str = Field(..., description="Criterion description")
+    verification: str = Field(..., description="How to verify this criterion is met")
+
+
 class SMARTValidationResult(BaseModel):
     """Schema for SMART validation result"""
 
@@ -146,6 +153,9 @@ class SMARTValidationResult(BaseModel):
     summary: str = Field(..., description="Overall summary")
     recommended_changes: list[str] = Field(
         default_factory=list, description="Recommended changes"
+    )
+    acceptance_criteria: list[AcceptanceCriterion] = Field(
+        default_factory=list, description="Suggested acceptance criteria (Definition of Done)"
     )
 
 
@@ -285,3 +295,151 @@ class ProgressReviewResponse(BaseModel):
 
     conversation_id: UUID
     review: dict[str, Any] = Field(..., description="Progress review data")
+
+
+# ============================================================================
+# SMART Wizard Schemas (Interactive SMART refinement)
+# ============================================================================
+
+
+class AIQuestionOption(BaseModel):
+    """Schema for question option"""
+
+    value: str = Field(..., description="Option value for submission")
+    label: str = Field(..., description="Display label")
+    description: str | None = Field(None, description="Optional description")
+
+
+class AIQuestion(BaseModel):
+    """Schema for AI clarifying question"""
+
+    id: str = Field(..., description="Question ID (q1, q2, etc.)")
+    type: str = Field(..., description="Question type: radio | checkbox | text")
+    question: str = Field(..., description="Question text")
+    options: list[AIQuestionOption] | None = Field(
+        None, description="Options for radio/checkbox"
+    )
+    required: bool = Field(default=True, description="Is answer required")
+    default_value: str | list[str] | None = Field(None, description="Default value")
+
+
+class AIAnswer(BaseModel):
+    """Schema for user answer to AI question"""
+
+    question_id: str = Field(..., description="Question ID")
+    value: str | list[str] = Field(..., description="Answer value(s)")
+
+
+class TimeEstimateBreakdown(BaseModel):
+    """Schema for time estimate breakdown item"""
+
+    task: str = Field(..., description="Sub-task description")
+    hours: float = Field(..., ge=0, description="Estimated hours")
+
+
+class TimeEstimate(BaseModel):
+    """Schema for time estimate"""
+
+    total_hours: float = Field(..., ge=0, description="Total estimated hours")
+    total_days: float = Field(..., ge=0, description="Total days (8h/day)")
+    breakdown: list[TimeEstimateBreakdown] = Field(
+        default_factory=list, description="Breakdown by sub-tasks"
+    )
+    confidence: str = Field(
+        default="medium", description="Estimate confidence: high | medium | low"
+    )
+
+
+class SMARTProposal(BaseModel):
+    """Schema for SMART task proposal"""
+
+    title: str = Field(..., description="Proposed task title")
+    description: str = Field(..., description="Proposed detailed description")
+    definition_of_done: list[str] = Field(
+        default_factory=list, description="Acceptance criteria / DoD items"
+    )
+    time_estimate: TimeEstimate | None = Field(None, description="Time estimate")
+    smart_scores: SMARTValidationResult | None = Field(
+        None, description="SMART validation of the proposal"
+    )
+
+
+class SMARTAnalyzeRequest(BaseModel):
+    """Schema for SMART analyze request (Step 1)"""
+
+    task_id: UUID = Field(..., description="Task to analyze")
+    include_context: bool = Field(
+        default=True, description="Include parent task and project context"
+    )
+
+
+class SMARTAnalyzeResponse(BaseModel):
+    """Schema for SMART analyze response with questions"""
+
+    conversation_id: UUID
+    initial_assessment: str = Field(
+        ..., description="AI's initial assessment of the task"
+    )
+    questions: list[AIQuestion] = Field(
+        default_factory=list, description="Clarifying questions"
+    )
+    can_skip: bool = Field(
+        default=False,
+        description="True if task is already well-defined and questions can be skipped",
+    )
+
+
+class SMARTRefineRequest(BaseModel):
+    """Schema for SMART refine request (Step 2)"""
+
+    conversation_id: UUID = Field(..., description="Conversation from analyze step")
+    answers: list[AIAnswer] = Field(..., description="Answers to AI questions")
+    additional_context: str | None = Field(
+        None, description="Any additional context from user"
+    )
+
+
+class SMARTRefineResponse(BaseModel):
+    """Schema for SMART refine response with proposal"""
+
+    conversation_id: UUID
+    proposal: SMARTProposal
+    original_task: dict[str, Any] = Field(
+        ..., description="Original task data for comparison"
+    )
+
+
+class SMARTApplyRequest(BaseModel):
+    """Schema for applying SMART proposal to task"""
+
+    conversation_id: UUID = Field(..., description="Conversation with proposal")
+    apply_title: bool = Field(default=True, description="Apply proposed title")
+    apply_description: bool = Field(
+        default=True, description="Apply proposed description"
+    )
+    apply_dod: bool = Field(
+        default=True, description="Create checklist from DoD items"
+    )
+    custom_title: str | None = Field(
+        None, description="Custom title override (if user edited)"
+    )
+    custom_description: str | None = Field(
+        None, description="Custom description override (if user edited)"
+    )
+    custom_dod: list[str] | None = Field(
+        None, description="Custom DoD override (if user edited)"
+    )
+
+
+class SMARTApplyResponse(BaseModel):
+    """Schema for SMART apply response"""
+
+    success: bool
+    message: str
+    task_id: UUID
+    changes_applied: list[str] = Field(
+        default_factory=list, description="List of applied changes"
+    )
+    checklist_id: UUID | None = Field(
+        None, description="Created checklist ID (if DoD applied)"
+    )
