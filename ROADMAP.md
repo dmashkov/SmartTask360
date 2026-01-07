@@ -198,8 +198,31 @@
 
 ## ⏳ Upcoming Sprints
 
+### Sprint 12.5 — AI Dialog UI & SMART UI
+**Duration:** 1 day | **Sessions:** 1 | **Status:** ⏳ Next
+
+**Goal:** Завершение AI-интерфейса (диалоги, SMART-индикаторы, AI-комментарии)
+
+#### Session 12.5.1 — AI Dialog UI
+**Tasks:**
+- [ ] `AIDialogPanel` — панель чата с AI (clarify/decompose/estimate)
+- [ ] `AIMessage` — компонент сообщения (user/assistant стили)
+- [ ] `AIDialogInput` — поле ввода с кнопкой отправки
+- [ ] `AISuggestionCard` — карточка предложения от AI
+- [ ] Интеграция в `AITab` (продолжение диалога)
+- [ ] `useAIDialog` — хук для работы с диалогами
+
+#### Session 12.5.2 — SMART UI & AI Comments
+**Tasks:**
+- [ ] `SmartCriterionCard` — карточка критерия S/M/A/R/T с оценкой
+- [ ] `SmartScoreIndicator` — компактный индикатор для TaskRow/KanbanCard
+- [ ] `AICommentMenu` — меню генерации AI-комментариев
+- [ ] Кнопка "Сгенерировать комментарий" в CommentsSection
+
+---
+
 ### Sprint 13 — Gantt Chart
-**Duration:** 2 days | **Sessions:** 2 | **Status:** ⏳ Next
+**Duration:** 2 days | **Sessions:** 2 | **Status:** ⏳ After AI UI
 
 **Goal:** Gantt-диаграмма как третий режим просмотра задач проекта
 
