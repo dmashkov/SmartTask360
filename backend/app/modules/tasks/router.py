@@ -13,6 +13,7 @@ from app.modules.tasks.excel_schemas import ImportResult
 from app.modules.tasks.excel_service import ExcelService
 from app.modules.tasks.schemas import (
     AvailableTransitionsResponse,
+    TagBrief,
     TaskAccept,
     TaskCreate,
     TaskParticipantRequest,
@@ -30,8 +31,9 @@ from app.modules.users.models import User
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
-def task_to_response(task, children_count: int = 0) -> TaskResponse:
-    """Convert Task model to TaskResponse with children_count"""
+def task_to_response(task, children_count: int = 0, tags: list | None = None) -> TaskResponse:
+    """Convert Task model to TaskResponse with children_count and tags"""
+    tag_briefs = [TagBrief(id=tag.id, name=tag.name, color=tag.color) for tag in (tags or [])]
     return TaskResponse(
         id=task.id,
         title=task.title,
@@ -65,6 +67,7 @@ def task_to_response(task, children_count: int = 0) -> TaskResponse:
         smart_validated_at=task.smart_validated_at,
         smart_is_valid=task.smart_is_valid,
         children_count=children_count,
+        tags=tag_briefs,
         created_at=task.created_at,
         updated_at=task.updated_at,
     )
@@ -83,6 +86,7 @@ async def get_tasks(
     creator_id: UUID | None = None,
     is_overdue: bool | None = None,
     parent_id: UUID | None = None,
+    tag_ids: list[UUID] | None = Query(default=None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -96,6 +100,7 @@ async def get_tasks(
     - is_overdue: if true, only show overdue tasks
     - parent_id: filter by parent task (for getting children)
     - no_project: if true, only show tasks without project
+    - tag_ids: list of tag IDs to filter by (e.g., ?tag_ids=uuid1&tag_ids=uuid2)
     """
     service = TaskService(db)
     tasks = await service.get_all(
@@ -110,13 +115,18 @@ async def get_tasks(
         creator_id=creator_id,
         is_overdue=is_overdue,
         parent_id=parent_id,
+        tag_ids=tag_ids,
     )
 
-    # Get children counts for all tasks in one query
+    # Get children counts and tags for all tasks in one query
     task_ids = [task.id for task in tasks]
     children_counts = await service.get_children_counts(task_ids)
+    tasks_tags = await service.get_tasks_tags(task_ids)
 
-    return [task_to_response(task, children_counts.get(task.id, 0)) for task in tasks]
+    return [
+        task_to_response(task, children_counts.get(task.id, 0), tasks_tags.get(task.id, []))
+        for task in tasks
+    ]
 
 
 @router.get("/roots", response_model=list[TaskResponse])
@@ -130,8 +140,12 @@ async def get_root_tasks(
 
     task_ids = [task.id for task in tasks]
     children_counts = await service.get_children_counts(task_ids)
+    tasks_tags = await service.get_tasks_tags(task_ids)
 
-    return [task_to_response(task, children_counts.get(task.id, 0)) for task in tasks]
+    return [
+        task_to_response(task, children_counts.get(task.id, 0), tasks_tags.get(task.id, []))
+        for task in tasks
+    ]
 
 
 @router.get("/my", response_model=list[TaskResponse])
@@ -147,8 +161,12 @@ async def get_my_tasks(
 
     task_ids = [task.id for task in tasks]
     children_counts = await service.get_children_counts(task_ids)
+    tasks_tags = await service.get_tasks_tags(task_ids)
 
-    return [task_to_response(task, children_counts.get(task.id, 0)) for task in tasks]
+    return [
+        task_to_response(task, children_counts.get(task.id, 0), tasks_tags.get(task.id, []))
+        for task in tasks
+    ]
 
 
 @router.get("/created", response_model=list[TaskResponse])
@@ -164,8 +182,12 @@ async def get_created_tasks(
 
     task_ids = [task.id for task in tasks]
     children_counts = await service.get_children_counts(task_ids)
+    tasks_tags = await service.get_tasks_tags(task_ids)
 
-    return [task_to_response(task, children_counts.get(task.id, 0)) for task in tasks]
+    return [
+        task_to_response(task, children_counts.get(task.id, 0), tasks_tags.get(task.id, []))
+        for task in tasks
+    ]
 
 
 # ===== Excel Export/Import Endpoints =====
@@ -267,7 +289,8 @@ async def get_task(
         )
 
     children_count = await service.get_children_count(task_id)
-    return task_to_response(task, children_count)
+    tasks_tags = await service.get_tasks_tags([task_id])
+    return task_to_response(task, children_count, tasks_tags.get(task_id, []))
 
 
 @router.get("/{task_id}/children", response_model=list[TaskResponse])
@@ -291,8 +314,12 @@ async def get_task_children(
 
     task_ids = [t.id for t in children]
     children_counts = await service.get_children_counts(task_ids)
+    tasks_tags = await service.get_tasks_tags(task_ids)
 
-    return [task_to_response(t, children_counts.get(t.id, 0)) for t in children]
+    return [
+        task_to_response(t, children_counts.get(t.id, 0), tasks_tags.get(t.id, []))
+        for t in children
+    ]
 
 
 @router.get("/{task_id}/descendants", response_model=list[TaskResponse])
@@ -316,8 +343,12 @@ async def get_task_descendants(
 
     task_ids = [t.id for t in descendants]
     children_counts = await service.get_children_counts(task_ids)
+    tasks_tags = await service.get_tasks_tags(task_ids)
 
-    return [task_to_response(t, children_counts.get(t.id, 0)) for t in descendants]
+    return [
+        task_to_response(t, children_counts.get(t.id, 0), tasks_tags.get(t.id, []))
+        for t in descendants
+    ]
 
 
 @router.get("/{task_id}/ancestors", response_model=list[TaskResponse])
@@ -341,8 +372,12 @@ async def get_task_ancestors(
 
     task_ids = [t.id for t in ancestors]
     children_counts = await service.get_children_counts(task_ids)
+    tasks_tags = await service.get_tasks_tags(task_ids)
 
-    return [task_to_response(t, children_counts.get(t.id, 0)) for t in ancestors]
+    return [
+        task_to_response(t, children_counts.get(t.id, 0), tasks_tags.get(t.id, []))
+        for t in ancestors
+    ]
 
 
 @router.post("/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
@@ -356,8 +391,8 @@ async def create_task(
 
     try:
         task = await service.create(task_data, current_user_id=current_user.id)
-        # Newly created task has 0 children
-        return task_to_response(task, 0)
+        # Newly created task has 0 children and no tags yet
+        return task_to_response(task, 0, [])
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -385,7 +420,8 @@ async def update_task(
             )
 
         children_count = await service.get_children_count(task_id)
-        return task_to_response(task, children_count)
+        tasks_tags = await service.get_tasks_tags([task_id])
+        return task_to_response(task, children_count, tasks_tags.get(task_id, []))
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -431,7 +467,8 @@ async def change_task_status(
         )
 
     children_count = await service.get_children_count(task_id)
-    return task_to_response(task, children_count)
+    tasks_tags = await service.get_tasks_tags([task_id])
+    return task_to_response(task, children_count, tasks_tags.get(task_id, []))
 
 
 @router.post("/{task_id}/accept", response_model=TaskResponse)
@@ -454,7 +491,8 @@ async def accept_task(
             )
 
         children_count = await service.get_children_count(task_id)
-        return task_to_response(task, children_count)
+        tasks_tags = await service.get_tasks_tags([task_id])
+        return task_to_response(task, children_count, tasks_tags.get(task_id, []))
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -482,7 +520,8 @@ async def reject_task(
             )
 
         children_count = await service.get_children_count(task_id)
-        return task_to_response(task, children_count)
+        tasks_tags = await service.get_tasks_tags([task_id])
+        return task_to_response(task, children_count, tasks_tags.get(task_id, []))
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -522,7 +561,8 @@ async def change_status_with_workflow(
             )
 
         children_count = await service.get_children_count(task_id)
-        return task_to_response(task, children_count)
+        tasks_tags = await service.get_tasks_tags([task_id])
+        return task_to_response(task, children_count, tasks_tags.get(task_id, []))
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -621,8 +661,12 @@ async def get_watched_tasks(
 
     task_ids = [task.id for task in tasks]
     children_counts = await service.get_children_counts(task_ids)
+    tasks_tags = await service.get_tasks_tags(task_ids)
 
-    return [task_to_response(task, children_counts.get(task.id, 0)) for task in tasks]
+    return [
+        task_to_response(task, children_counts.get(task.id, 0), tasks_tags.get(task.id, []))
+        for task in tasks
+    ]
 
 
 # ===== Participants Management Endpoints =====
@@ -693,5 +737,9 @@ async def get_participated_tasks(
 
     task_ids = [task.id for task in tasks]
     children_counts = await service.get_children_counts(task_ids)
+    tasks_tags = await service.get_tasks_tags(task_ids)
 
-    return [task_to_response(task, children_counts.get(task.id, 0)) for task in tasks]
+    return [
+        task_to_response(task, children_counts.get(task.id, 0), tasks_tags.get(task.id, []))
+        for task in tasks
+    ]

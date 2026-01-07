@@ -22,6 +22,13 @@ export type RejectionReason =
   | "wrong_assignee"
   | "other";
 
+// Tag brief interface for task responses
+export interface TagBrief {
+  id: string;
+  name: string;
+  color: string;
+}
+
 // Task interface matching backend TaskResponse
 export interface Task {
   id: string;
@@ -59,6 +66,7 @@ export interface Task {
   smart_validated_at: string | null;
   smart_is_valid: boolean | null;
   children_count: number;
+  tags: TagBrief[];
   created_at: string;
   updated_at: string;
 }
@@ -67,7 +75,6 @@ export interface Task {
 export interface TaskWithRelations extends Task {
   creator?: { id: string; name: string; email: string };
   assignee?: { id: string; name: string; email: string } | null;
-  tags?: Array<{ id: string; name: string; color: string }>;
   subtasks_count?: number;
   comments_count?: number;
   checklists_progress?: { total: number; completed: number };
@@ -159,6 +166,8 @@ export interface TaskFilters {
   search?: string;
   due_date_from?: string;
   due_date_to?: string;
+  /** Filter by tag IDs */
+  tag_ids?: string[];
   // Frontend-only filter for role (transforms to assignee_id/creator_id)
   role?: TaskRoleFilter;
 }

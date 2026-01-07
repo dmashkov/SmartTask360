@@ -7,6 +7,7 @@ import { useUsers } from "../../users";
 import { useAuth } from "../../auth";
 import { SavedViewsDropdown } from "../../views";
 import { ProjectSelect, NO_PROJECT_VALUE } from "../../projects";
+import { TagsSelect } from "../../tags";
 
 // Custom debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -302,6 +303,13 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
     }
   };
 
+  const handleTagsChange = (tagIds: string[]) => {
+    onFiltersChange({
+      ...filters,
+      tag_ids: tagIds.length > 0 ? tagIds : undefined,
+    });
+  };
+
   // Get current project filter value for select
   const projectFilterValue = filters.no_project ? NO_PROJECT_VALUE : (filters.project_id || "");
 
@@ -334,7 +342,8 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
   }, [filters, currentUser]);
 
   const hasFilters = filters.status || filters.priority || filters.search ||
-    filters.assignee_id || filters.creator_id || filters.is_overdue || filters.project_id || filters.no_project;
+    filters.assignee_id || filters.creator_id || filters.is_overdue || filters.project_id || filters.no_project ||
+    (filters.tag_ids && filters.tag_ids.length > 0);
 
   const activeFiltersCount = [
     filters.status,
@@ -345,6 +354,7 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
     filters.is_overdue,
     filters.project_id,
     filters.no_project,
+    filters.tag_ids && filters.tag_ids.length > 0,
   ].filter(Boolean).length;
 
   return (
@@ -575,7 +585,7 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
               </div>
             </div>
 
-            {/* Row 2: Project filter */}
+            {/* Row 2: Project and Tags filters */}
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <ProjectSelect
                 value={projectFilterValue}
@@ -583,6 +593,14 @@ export function TaskFilters({ filters, onFiltersChange, columnConfig, onColumnCo
                 placeholder="Все проекты"
                 showNoProject
               />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Теги</label>
+                <TagsSelect
+                  value={filters.tag_ids || []}
+                  onChange={handleTagsChange}
+                  placeholder="Фильтр по тегам..."
+                />
+              </div>
             </div>
 
             {/* Additional toggles */}

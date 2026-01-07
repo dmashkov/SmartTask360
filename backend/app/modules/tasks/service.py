@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.types import TaskStatus
 from app.modules.tasks.models import Task, task_participants, task_watchers
+from app.modules.tags.models import Tag, task_tags
 from app.modules.tasks.schemas import (
     TaskAccept,
     TaskCreate,
@@ -49,6 +50,7 @@ class TaskService:
         creator_id: UUID | None = None,
         is_overdue: bool | None = None,
         parent_id: UUID | None = None,
+        tag_ids: list[UUID] | None = None,
     ) -> list[Task]:
         """Get all tasks with optional filters, ordered by path (hierarchical order)"""
         query = select(Task)
@@ -89,6 +91,11 @@ class TaskService:
             )
         if parent_id is not None:
             query = query.where(Task.parent_id == parent_id)
+        if tag_ids:
+            # Filter by tags using JOIN with task_tags
+            query = query.join(task_tags, Task.id == task_tags.c.task_id).where(
+                task_tags.c.tag_id.in_(tag_ids)
+            ).distinct()
 
         query = query.order_by(Task.path).offset(skip).limit(limit)
 
@@ -701,3 +708,23 @@ class TaskService:
         counts = {row[0]: row[1] for row in result.all()}
         # Fill in zeros for tasks with no children
         return {task_id: counts.get(task_id, 0) for task_id in task_ids}
+
+    async def get_tasks_tags(self, task_ids: list[UUID]) -> dict[UUID, list[Tag]]:
+        """Get tags for multiple tasks in one query"""
+        if not task_ids:
+            return {}
+
+        result = await self.db.execute(
+            select(task_tags.c.task_id, Tag)
+            .join(Tag, task_tags.c.tag_id == Tag.id)
+            .where(task_tags.c.task_id.in_(task_ids))
+            .where(Tag.is_active == True)
+        )
+
+        # Group tags by task_id
+        tags_by_task: dict[UUID, list[Tag]] = {task_id: [] for task_id in task_ids}
+        for row in result.all():
+            task_id, tag = row
+            tags_by_task[task_id].append(tag)
+
+        return tags_by_task

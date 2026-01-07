@@ -5,6 +5,7 @@ import type { Task } from "../types";
 import type { ColumnConfig } from "./TaskFilters";
 import { type UsersMap, getUserById } from "../../users";
 import { TaskExpandButton } from "./TaskExpandButton";
+import { TagBadge } from "../../tags";
 
 // Projects map type for displaying project names
 export type ProjectsMap = Map<string, { id: string; name: string; code: string }>;
@@ -91,28 +92,41 @@ export function TaskRow({
 
       {/* Title - always visible */}
       <div className="flex-1 min-w-0">
-        <Link
-          to={`/tasks/${task.id}`}
-          className={`text-sm hover:text-blue-600 ${
-            isCompleted ? "line-through text-gray-400" : "text-gray-900"
-          }`}
-        >
-          {getHighlightParts(task.title, searchQuery).map((part, i) =>
-            part.isHighlight ? (
-              <mark key={i} className="bg-yellow-200 text-gray-900 rounded px-0.5">
-                {part.text}
-              </mark>
-            ) : (
-              <span key={i}>{part.text}</span>
-            )
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            to={`/tasks/${task.id}`}
+            className={`text-sm hover:text-blue-600 ${
+              isCompleted ? "line-through text-gray-400" : "text-gray-900"
+            }`}
+          >
+            {getHighlightParts(task.title, searchQuery).map((part, i) =>
+              part.isHighlight ? (
+                <mark key={i} className="bg-yellow-200 text-gray-900 rounded px-0.5">
+                  {part.text}
+                </mark>
+              ) : (
+                <span key={i}>{part.text}</span>
+              )
+            )}
+          </Link>
+          {/* Show children count for tasks with children */}
+          {task.children_count > 0 && (
+            <span className="text-xs text-gray-400">
+              ({task.children_count})
+            </span>
           )}
-        </Link>
-        {/* Show children count for tasks with children */}
-        {task.children_count > 0 && (
-          <span className="text-xs text-gray-400 ml-2">
-            ({task.children_count})
-          </span>
-        )}
+          {/* Tags */}
+          {task.tags && task.tags.length > 0 && (
+            <div className="flex gap-1 flex-wrap">
+              {task.tags.slice(0, 3).map((tag) => (
+                <TagBadge key={tag.id} tag={tag} size="xs" />
+              ))}
+              {task.tags.length > 3 && (
+                <span className="text-xs text-gray-400">+{task.tags.length - 3}</span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Project */}

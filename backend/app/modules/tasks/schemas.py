@@ -97,6 +97,7 @@ class TaskResponse(BaseModel):
     smart_validated_at: datetime | None
     smart_is_valid: bool | None
     children_count: int = 0
+    tags: list["TagBrief"] = []
     created_at: datetime
     updated_at: datetime
 
@@ -155,3 +156,13 @@ class UserBrief(BaseModel):
     id: UUID
     name: str
     email: str
+
+
+class TagBrief(BaseModel):
+    """Brief tag info for task responses"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    color: str
