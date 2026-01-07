@@ -3,14 +3,25 @@
  * Displays inline kanban board for a project with status-based columns
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Spinner, EmptyState, Badge, Avatar } from "../../../shared/ui";
+import { Spinner, EmptyState, Badge, Avatar, Input, Button } from "../../../shared/ui";
 import { useProjectTasks } from "../hooks";
 import { useChangeTaskStatus, useCreateTask } from "../../tasks/hooks";
 import { formatDate, getTaskUrgency } from "../../../shared/lib/utils";
 import type { Task, TaskStatus } from "../../tasks/types";
 import { useAuth } from "../../auth";
+import { useUsers } from "../../users";
+import { TagsSelect } from "../../tags";
+import { TagBadge } from "../../tags";
+
+// Kanban filters interface
+interface ProjectKanbanFilters {
+  search?: string;
+  priority?: string;
+  assignee_id?: string;
+  tag_ids?: string[];
+}
 
 interface ProjectBoardsTabProps {
   projectId: string;
@@ -25,6 +36,66 @@ const STATUS_COLUMNS: { status: TaskStatus; name: string; color: string }[] = [
   { status: "rework", name: "На доработке", color: "#F97316" },
   { status: "done", name: "Готово", color: "#10B981" },
 ];
+
+// Priority options
+const PRIORITY_OPTIONS = [
+  { value: "", label: "Все приоритеты" },
+  { value: "critical", label: "Критический" },
+  { value: "high", label: "Высокий" },
+  { value: "medium", label: "Средний" },
+  { value: "low", label: "Низкий" },
+];
+
+// Debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+// Filter tasks based on criteria
+function filterTasks(tasks: Task[], filters: ProjectKanbanFilters): Task[] {
+  return tasks.filter((task) => {
+    // Search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      if (!task.title.toLowerCase().includes(searchLower)) {
+        return false;
+      }
+    }
+
+    // Priority filter
+    if (filters.priority && task.priority !== filters.priority) {
+      return false;
+    }
+
+    // Assignee filter
+    if (filters.assignee_id && task.assignee_id !== filters.assignee_id) {
+      return false;
+    }
+
+    // Tags filter (task must have at least one of the selected tags)
+    if (filters.tag_ids && filters.tag_ids.length > 0) {
+      const taskTagIds = task.tags?.map((t) => t.id) || [];
+      const hasMatchingTag = filters.tag_ids.some((tagId) =>
+        taskTagIds.includes(tagId)
+      );
+      if (!hasMatchingTag) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
 
 interface KanbanTaskCardProps {
   task: Task;
@@ -44,6 +115,18 @@ function KanbanTaskCard({ task, onDragStart }: KanbanTaskCardProps) {
         <h4 className="font-medium text-gray-900 text-sm line-clamp-2 hover:text-blue-600">
           {task.title}
         </h4>
+
+        {/* Tags */}
+        {task.tags && task.tags.length > 0 && (
+          <div className="flex gap-1 flex-wrap mt-2">
+            {task.tags.slice(0, 2).map((tag) => (
+              <TagBadge key={tag.id} tag={tag} size="xs" />
+            ))}
+            {task.tags.length > 2 && (
+              <span className="text-xs text-gray-400">+{task.tags.length - 2}</span>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center justify-between mt-3">
           <div className="flex items-center gap-1">
@@ -219,13 +302,36 @@ function KanbanColumn({
 export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
   const { data: tasksData, isLoading, error } = useProjectTasks(projectId);
   const changeStatus = useChangeTaskStatus();
+  const { data: users = [] } = useUsers();
+
+  const [filters, setFilters] = useState<ProjectKanbanFilters>({});
+  const [search, setSearch] = useState("");
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+  const debouncedSearch = useDebounce(search, 300);
 
   const [dragState, setDragState] = useState<{
     taskId: string;
     sourceStatus: TaskStatus;
   } | null>(null);
 
-  // Group tasks by status
+  // Apply debounced search
+  useEffect(() => {
+    if (debouncedSearch !== filters.search) {
+      setFilters((prev) => ({ ...prev, search: debouncedSearch || undefined }));
+    }
+  }, [debouncedSearch]);
+
+  // Count active filters
+  const activeFiltersCount = useMemo(() => {
+    return [
+      filters.search,
+      filters.priority,
+      filters.assignee_id,
+      filters.tag_ids && filters.tag_ids.length > 0,
+    ].filter(Boolean).length;
+  }, [filters]);
+
+  // Group tasks by status with filtering
   const tasksByStatus = useMemo(() => {
     const grouped = new Map<TaskStatus, Task[]>();
 
@@ -234,21 +340,38 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
       grouped.set(col.status, []);
     }
 
-    // Group tasks, filtering out cancelled and draft
-    if (tasksData?.items) {
-      for (const task of tasksData.items) {
-        if (task.status === "cancelled" || task.status === "draft") continue;
-        if (task.status === "on_hold") continue; // Skip on_hold for MVP
+    // Get tasks and apply filters
+    let tasks = tasksData?.items || [];
 
-        const tasks = grouped.get(task.status);
-        if (tasks) {
-          tasks.push(task);
-        }
+    // Apply filters
+    const hasActiveFilters =
+      filters.search ||
+      filters.priority ||
+      filters.assignee_id ||
+      (filters.tag_ids && filters.tag_ids.length > 0);
+
+    if (hasActiveFilters) {
+      tasks = filterTasks(tasks, filters);
+    }
+
+    // Group tasks, filtering out cancelled and draft
+    for (const task of tasks) {
+      if (task.status === "cancelled" || task.status === "draft") continue;
+      if (task.status === "on_hold") continue; // Skip on_hold for MVP
+
+      const statusTasks = grouped.get(task.status);
+      if (statusTasks) {
+        statusTasks.push(task);
       }
     }
 
     return grouped;
-  }, [tasksData]);
+  }, [tasksData, filters]);
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setFilters({});
+  };
 
   const handleDragStart = (taskId: string, sourceStatus: TaskStatus) => {
     setDragState({ taskId, sourceStatus });
@@ -301,21 +424,126 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
   }
 
   return (
-    <div className="p-4 overflow-x-auto">
-      <div className="flex gap-4 pb-4">
-        {STATUS_COLUMNS.map((col) => (
-          <KanbanColumn
-            key={col.status}
-            name={col.name}
-            color={col.color}
-            status={col.status}
-            tasks={tasksByStatus.get(col.status) || []}
-            projectId={projectId}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          />
-        ))}
+    <div className="p-4">
+      {/* Filters */}
+      <div className="bg-white rounded-lg border border-gray-200 p-3 mb-4">
+        <div className="flex items-center gap-3">
+          {/* Search */}
+          <div className="flex-1 max-w-xs">
+            <Input
+              type="text"
+              placeholder="Поиск задач..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-9"
+            />
+          </div>
+
+          {/* Expand/Collapse */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+            className="flex items-center gap-1"
+          >
+            <svg
+              className={`h-4 w-4 transition-transform ${isFiltersExpanded ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+            Фильтры
+            {activeFiltersCount > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                {activeFiltersCount}
+              </span>
+            )}
+          </Button>
+
+          {/* Clear filters */}
+          {activeFiltersCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+              Сбросить
+            </Button>
+          )}
+        </div>
+
+        {/* Expanded filters */}
+        {isFiltersExpanded && (
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Priority */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Приоритет
+                </label>
+                <select
+                  value={filters.priority || ""}
+                  onChange={(e) => setFilters({ ...filters, priority: e.target.value || undefined })}
+                  className="w-full h-9 px-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  {PRIORITY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Assignee */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Исполнитель
+                </label>
+                <select
+                  value={filters.assignee_id || ""}
+                  onChange={(e) => setFilters({ ...filters, assignee_id: e.target.value || undefined })}
+                  className="w-full h-9 px-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Все исполнители</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tags */}
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Теги
+                </label>
+                <TagsSelect
+                  value={filters.tag_ids || []}
+                  onChange={(tagIds) => setFilters({ ...filters, tag_ids: tagIds.length > 0 ? tagIds : undefined })}
+                  placeholder="Фильтр по тегам..."
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Board columns */}
+      <div className="overflow-x-auto">
+        <div className="flex gap-4 pb-4">
+          {STATUS_COLUMNS.map((col) => (
+            <KanbanColumn
+              key={col.status}
+              name={col.name}
+              color={col.color}
+              status={col.status}
+              tasks={tasksByStatus.get(col.status) || []}
+              projectId={projectId}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
