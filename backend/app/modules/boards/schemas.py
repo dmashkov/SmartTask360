@@ -5,9 +5,10 @@ SmartTask360 — Board schemas (Pydantic validation)
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.types import BoardMemberRole
+from app.modules.tasks.schemas import TagBrief
 
 
 # ============================================================================
@@ -174,6 +175,9 @@ class BoardTaskWithDetails(BaseModel):
     task_priority: str
     task_assignee_id: UUID | None
     task_due_date: datetime | None
+
+    # Tags
+    task_tags: list[TagBrief] = []
 
     # Comment indicators
     total_comments_count: int = 0

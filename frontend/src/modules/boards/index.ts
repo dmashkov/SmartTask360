@@ -14,6 +14,7 @@ export type {
   ColumnUpdate,
   MoveTaskRequest,
   BoardMemberRole,
+  KanbanFilters,
 } from "./types";
 
 // API

@@ -28,6 +28,13 @@ export interface BoardColumn {
   updated_at: string;
 }
 
+// Tag brief for board tasks
+export interface TagBrief {
+  id: string;
+  name: string;
+  color: string;
+}
+
 // Task on board with details from backend
 export interface BoardTaskWithDetails {
   id: string;
@@ -42,6 +49,8 @@ export interface BoardTaskWithDetails {
   task_priority: string;
   task_assignee_id: string | null;
   task_due_date: string | null;
+  // Tags
+  task_tags: TagBrief[];
   // Comment indicators
   total_comments_count: number;
   unread_comments_count: number;
@@ -122,4 +131,12 @@ export interface ColumnUpdate {
 export interface MoveTaskRequest {
   column_id: string;
   position: number;
+}
+
+// Kanban board filters
+export interface KanbanFilters {
+  search?: string;
+  priority?: string;
+  assignee_id?: string;
+  tag_ids?: string[];
 }

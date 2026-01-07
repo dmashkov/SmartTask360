@@ -143,9 +143,17 @@ async def get_board(
     from sqlalchemy import select
 
     from app.modules.comments.service import CommentService
+    from app.modules.tasks.schemas import TagBrief
+    from app.modules.tasks.service import TaskService
 
     comment_service = CommentService(db)
+    task_service = TaskService(db)
     board_tasks = await service.get_board_tasks(board_id)
+
+    # Collect task IDs for batch tag fetching
+    task_ids = [bt.task_id for bt in board_tasks]
+    tasks_tags = await task_service.get_tasks_tags(task_ids)
+
     task_responses = []
     for bt in board_tasks:
         result = await db.execute(select(Task).where(Task.id == bt.task_id))
@@ -155,6 +163,11 @@ async def get_board(
             comment_counts = await comment_service.get_unread_comments_count(
                 current_user.id, bt.task_id
             )
+            # Get tags for this task
+            tag_briefs = [
+                TagBrief(id=tag.id, name=tag.name, color=tag.color)
+                for tag in tasks_tags.get(bt.task_id, [])
+            ]
             task_responses.append(
                 BoardTaskWithDetails(
                     id=bt.id,
@@ -169,6 +182,7 @@ async def get_board(
                     task_priority=task.priority,
                     task_assignee_id=task.assignee_id,
                     task_due_date=task.due_date,
+                    task_tags=tag_briefs,
                     total_comments_count=comment_counts["total"],
                     unread_comments_count=comment_counts["unread"],
                     unread_mentions_count=comment_counts["unread_mentions"],
