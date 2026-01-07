@@ -62,6 +62,7 @@ export interface Task {
   rejection_reason: RejectionReason | null;
   rejection_comment: string | null;
   completion_result: string | null;
+  kanban_position: number;
   smart_score: Record<string, unknown> | null;
   smart_validated_at: string | null;
   smart_is_valid: boolean | null;

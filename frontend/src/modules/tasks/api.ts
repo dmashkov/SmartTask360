@@ -224,3 +224,17 @@ export async function importTasksExcel(file: File): Promise<ImportResult> {
   });
   return response.data;
 }
+
+// ===== Kanban Ordering =====
+
+// Reorder tasks in kanban column
+export async function reorderKanbanTasks(
+  projectId: string,
+  status: string,
+  taskIds: string[]
+): Promise<void> {
+  await api.post(`/tasks/kanban/reorder?project_id=${projectId}`, {
+    task_ids: taskIds,
+    status,
+  });
+}

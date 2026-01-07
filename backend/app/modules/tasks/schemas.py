@@ -93,6 +93,7 @@ class TaskResponse(BaseModel):
     rejection_reason: str | None = None
     rejection_comment: str | None = None
     completion_result: str | None = None
+    kanban_position: int = 0
     smart_score: dict[str, Any] | None = None
     smart_validated_at: datetime | None
     smart_is_valid: bool | None
@@ -166,3 +167,12 @@ class TagBrief(BaseModel):
     id: UUID
     name: str
     color: str
+
+
+class KanbanReorderRequest(BaseModel):
+    """Request to update kanban positions for tasks in a status column"""
+
+    # List of task IDs in desired order (top to bottom)
+    task_ids: list[UUID]
+    # The status column this order applies to
+    status: TaskStatus

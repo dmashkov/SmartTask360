@@ -16,6 +16,7 @@ from app.modules.projects.schemas import (
     ProjectMemberCreate,
     ProjectMemberResponse,
     ProjectMemberUpdate,
+    ProjectMemberWithUser,
     ProjectResponse,
     ProjectUpdate,
     ProjectWithStats,
@@ -208,21 +209,21 @@ async def delete_project(
 # ============================================================
 
 
-@router.get("/{project_id}/members", response_model=list[ProjectMemberResponse])
+@router.get("/{project_id}/members", response_model=list[ProjectMemberWithUser])
 async def get_project_members(
     project_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get all members of a project"""
+    """Get all members of a project with user details"""
     service = ProjectService(db)
 
     project = await service.get_by_id(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    members = await service.get_members(project_id)
-    return [ProjectMemberResponse.model_validate(m) for m in members]
+    members = await service.get_members_with_users(project_id)
+    return members
 
 
 @router.post("/{project_id}/members", response_model=ProjectMemberResponse, status_code=201)

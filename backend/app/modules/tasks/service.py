@@ -6,7 +6,7 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import delete as sql_delete
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.types import TaskStatus
@@ -728,3 +728,34 @@ class TaskService:
             tags_by_task[task_id].append(tag)
 
         return tags_by_task
+
+    async def update_kanban_positions(
+        self,
+        project_id: UUID,
+        status: str,
+        task_ids: list[UUID],
+    ) -> bool:
+        """
+        Update kanban positions for tasks in a status column.
+
+        Args:
+            project_id: Project ID to scope the update
+            status: Task status column
+            task_ids: Ordered list of task IDs (top to bottom)
+
+        Returns:
+            True if successful
+        """
+        for position, task_id in enumerate(task_ids):
+            await self.db.execute(
+                update(Task)
+                .where(
+                    Task.id == task_id,
+                    Task.project_id == project_id,
+                    Task.status == status,
+                )
+                .values(kanban_position=position)
+            )
+
+        await self.db.commit()
+        return True

@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { Spinner, EmptyState, Badge, Avatar, Input, Button } from "../../../shared/ui";
 import { useProjectTasks } from "../hooks";
 import { useChangeTaskStatus, useCreateTask } from "../../tasks/hooks";
+import { reorderKanbanTasks } from "../../tasks/api";
 import { formatDate, getTaskUrgency } from "../../../shared/lib/utils";
 import type { Task, TaskStatus } from "../../tasks/types";
 import { useAuth } from "../../auth";
@@ -20,6 +21,7 @@ interface ProjectKanbanFilters {
   search?: string;
   priority?: string;
   assignee_id?: string;
+  creator_id?: string;
   tag_ids?: string[];
 }
 
@@ -82,6 +84,11 @@ function filterTasks(tasks: Task[], filters: ProjectKanbanFilters): Task[] {
       return false;
     }
 
+    // Creator filter
+    if (filters.creator_id && task.creator_id !== filters.creator_id) {
+      return false;
+    }
+
     // Tags filter (task must have at least one of the selected tags)
     if (filters.tag_ids && filters.tag_ids.length > 0) {
       const taskTagIds = task.tags?.map((t) => t.id) || [];
@@ -97,19 +104,80 @@ function filterTasks(tasks: Task[], filters: ProjectKanbanFilters): Task[] {
   });
 }
 
-interface KanbanTaskCardProps {
-  task: Task;
-  onDragStart: (taskId: string, status: TaskStatus) => void;
+// Drop zone between cards
+interface DropZoneProps {
+  status: TaskStatus;
+  position: number;
+  isActive: boolean;
+  onDrop: (status: TaskStatus, position: number) => void;
 }
 
-function KanbanTaskCard({ task, onDragStart }: KanbanTaskCardProps) {
+function DropZone({ status, position, isActive, onDrop }: DropZoneProps) {
+  const [isOver, setIsOver] = useState(false);
+
+  return (
+    <div
+      className={`h-1 mx-1 rounded transition-all ${
+        isOver ? "h-16 bg-blue-200 border-2 border-dashed border-blue-400" :
+        isActive ? "h-2 bg-blue-100" : ""
+      }`}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsOver(true);
+      }}
+      onDragLeave={() => setIsOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsOver(false);
+        onDrop(status, position);
+      }}
+    />
+  );
+}
+
+interface KanbanTaskCardProps {
+  task: Task;
+  usersMap: Map<string, { id: string; name: string }>;
+  onDragStart: (taskId: string, status: TaskStatus) => void;
+  onDragEnd: () => void;
+  onFilterByCreator: (creatorId: string) => void;
+  onFilterByAssignee: (assigneeId: string) => void;
+}
+
+function KanbanTaskCard({
+  task,
+  usersMap,
+  onDragStart,
+  onDragEnd,
+  onFilterByCreator,
+  onFilterByAssignee,
+}: KanbanTaskCardProps) {
   const urgency = task.due_date ? getTaskUrgency(task) : null;
+  const creator = usersMap.get(task.creator_id);
+  const assignee = task.assignee_id ? usersMap.get(task.assignee_id) : null;
+
+  const handleCreatorClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onFilterByCreator(task.creator_id);
+  };
+
+  const handleAssigneeClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (task.assignee_id) {
+      onFilterByAssignee(task.assignee_id);
+    }
+  };
 
   return (
     <div
       draggable
       onDragStart={() => onDragStart(task.id, task.status)}
-      className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:shadow-md transition-shadow cursor-grab"
+      onDragEnd={onDragEnd}
+      className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing active:opacity-50"
     >
       <Link to={`/tasks/${task.id}`} className="block">
         <h4 className="font-medium text-gray-900 text-sm line-clamp-2 hover:text-blue-600">
@@ -145,7 +213,33 @@ function KanbanTaskCard({ task, onDragStart }: KanbanTaskCardProps) {
                 {formatDate(task.due_date)}
               </span>
             )}
-            {task.assignee_id && <Avatar name="A" size="xs" />}
+            {/* Creator → Assignee avatars */}
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={handleCreatorClick}
+                title={`Постановщик: ${creator?.name || "?"}\nКлик для фильтра`}
+                className="hover:ring-2 hover:ring-blue-300 rounded-full transition-all"
+              >
+                <Avatar name={creator?.name || "?"} size="xs" className="border border-gray-300" />
+              </button>
+              <span className="text-gray-400 text-[10px]">→</span>
+              {assignee ? (
+                <button
+                  onClick={handleAssigneeClick}
+                  title={`Исполнитель: ${assignee.name}\nКлик для фильтра`}
+                  className="hover:ring-2 hover:ring-green-300 rounded-full transition-all"
+                >
+                  <Avatar name={assignee.name} size="xs" className="border border-green-400" />
+                </button>
+              ) : (
+                <span
+                  className="w-5 h-5 rounded-full border border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-[10px]"
+                  title="Исполнитель не назначен"
+                >
+                  ?
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </Link>
@@ -159,9 +253,13 @@ interface KanbanColumnProps {
   status: TaskStatus;
   tasks: Task[];
   projectId: string;
+  usersMap: Map<string, { id: string; name: string }>;
+  isDragging: boolean;
   onDragStart: (taskId: string, status: TaskStatus) => void;
-  onDragOver: (e: React.DragEvent) => void;
-  onDrop: (targetStatus: TaskStatus) => void;
+  onDragEnd: () => void;
+  onDropAtPosition: (targetStatus: TaskStatus, position: number) => void;
+  onFilterByCreator: (creatorId: string) => void;
+  onFilterByAssignee: (assigneeId: string) => void;
 }
 
 function KanbanColumn({
@@ -170,9 +268,13 @@ function KanbanColumn({
   status,
   tasks,
   projectId,
+  usersMap,
+  isDragging,
   onDragStart,
-  onDragOver,
-  onDrop,
+  onDragEnd,
+  onDropAtPosition,
+  onFilterByCreator,
+  onFilterByAssignee,
 }: KanbanColumnProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -217,8 +319,6 @@ function KanbanColumn({
     <div
       className="flex-1 bg-gray-100 rounded-lg"
       style={{ minWidth: "170px" }}
-      onDragOver={onDragOver}
-      onDrop={() => onDrop(status)}
     >
       {/* Column Header */}
       <div className="p-3 border-b border-gray-200">
@@ -285,11 +385,35 @@ function KanbanColumn({
           </div>
         )}
 
-        {tasks.map((task) => (
-          <KanbanTaskCard key={task.id} task={task} onDragStart={onDragStart} />
+        {/* First drop zone */}
+        <DropZone
+          status={status}
+          position={0}
+          isActive={isDragging}
+          onDrop={onDropAtPosition}
+        />
+
+        {tasks.map((task, index) => (
+          <div key={task.id}>
+            <KanbanTaskCard
+              task={task}
+              usersMap={usersMap}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+              onFilterByCreator={onFilterByCreator}
+              onFilterByAssignee={onFilterByAssignee}
+            />
+            {/* Drop zone after each card */}
+            <DropZone
+              status={status}
+              position={index + 1}
+              isActive={isDragging}
+              onDrop={onDropAtPosition}
+            />
+          </div>
         ))}
 
-        {tasks.length === 0 && !isCreating && (
+        {tasks.length === 0 && !isCreating && !isDragging && (
           <div className="text-center py-8 text-gray-400 text-sm">
             Перетащите задачи сюда
           </div>
@@ -314,6 +438,35 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
     sourceStatus: TaskStatus;
   } | null>(null);
 
+  // Track custom task order per status (persists during session)
+  const [taskOrder, setTaskOrder] = useState<Map<TaskStatus, string[]>>(new Map());
+
+  // Create users map for quick lookup
+  const usersMap = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+    for (const user of users) {
+      map.set(user.id, { id: user.id, name: user.name });
+    }
+    return map;
+  }, [users]);
+
+  // Filter handlers for avatar clicks
+  const handleFilterByCreator = (creatorId: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      creator_id: prev.creator_id === creatorId ? undefined : creatorId,
+    }));
+    setIsFiltersExpanded(true);
+  };
+
+  const handleFilterByAssignee = (assigneeId: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      assignee_id: prev.assignee_id === assigneeId ? undefined : assigneeId,
+    }));
+    setIsFiltersExpanded(true);
+  };
+
   // Apply debounced search
   useEffect(() => {
     if (debouncedSearch !== filters.search) {
@@ -327,11 +480,12 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
       filters.search,
       filters.priority,
       filters.assignee_id,
+      filters.creator_id,
       filters.tag_ids && filters.tag_ids.length > 0,
     ].filter(Boolean).length;
   }, [filters]);
 
-  // Group tasks by status with filtering
+  // Group tasks by status with filtering and custom order
   const tasksByStatus = useMemo(() => {
     const grouped = new Map<TaskStatus, Task[]>();
 
@@ -348,6 +502,7 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
       filters.search ||
       filters.priority ||
       filters.assignee_id ||
+      filters.creator_id ||
       (filters.tag_ids && filters.tag_ids.length > 0);
 
     if (hasActiveFilters) {
@@ -365,8 +520,27 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
       }
     }
 
+    // Apply custom order (from local state) or fall back to kanban_position from server
+    for (const [status, statusTasks] of grouped) {
+      const localOrder = taskOrder.get(status);
+      if (localOrder && localOrder.length > 0) {
+        // Sort by local custom order (for immediate UI feedback)
+        statusTasks.sort((a, b) => {
+          const aIndex = localOrder.indexOf(a.id);
+          const bIndex = localOrder.indexOf(b.id);
+          if (aIndex === -1 && bIndex === -1) return a.kanban_position - b.kanban_position;
+          if (aIndex === -1) return 1;
+          if (bIndex === -1) return -1;
+          return aIndex - bIndex;
+        });
+      } else {
+        // Sort by kanban_position from server
+        statusTasks.sort((a, b) => a.kanban_position - b.kanban_position);
+      }
+    }
+
     return grouped;
-  }, [tasksData, filters]);
+  }, [tasksData, filters, taskOrder]);
 
   const handleClearFilters = () => {
     setSearch("");
@@ -377,20 +551,68 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
     setDragState({ taskId, sourceStatus });
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
+  const handleDragEnd = () => {
+    setDragState(null);
   };
 
-  const handleDrop = async (targetStatus: TaskStatus) => {
+  const handleDropAtPosition = async (targetStatus: TaskStatus, position: number) => {
     if (!dragState) return;
 
     const { taskId, sourceStatus } = dragState;
 
+    // Update status if changed
     if (sourceStatus !== targetStatus) {
       changeStatus.mutate({
         taskId,
         data: { status: targetStatus },
       });
+    }
+
+    // Calculate new order for target status
+    const targetTasks = tasksByStatus.get(targetStatus) || [];
+    let targetOrder = [...(taskOrder.get(targetStatus) || targetTasks.map(t => t.id))];
+
+    // Remove task from current position if in same column
+    const currentIndex = targetOrder.indexOf(taskId);
+    if (currentIndex !== -1) {
+      targetOrder.splice(currentIndex, 1);
+      // Adjust position if we removed before target
+      if (currentIndex < position) {
+        position--;
+      }
+    }
+
+    // Insert at new position
+    targetOrder.splice(position, 0, taskId);
+
+    // Update local state for immediate UI feedback
+    setTaskOrder((prev) => {
+      const newOrder = new Map(prev);
+
+      // Get current order for source status (remove task)
+      if (sourceStatus !== targetStatus) {
+        const sourceOrder = [...(newOrder.get(sourceStatus) || tasksByStatus.get(sourceStatus)?.map(t => t.id) || [])];
+        const sourceIndex = sourceOrder.indexOf(taskId);
+        if (sourceIndex !== -1) {
+          sourceOrder.splice(sourceIndex, 1);
+        }
+        newOrder.set(sourceStatus, sourceOrder);
+
+        // Save source column order to backend
+        reorderKanbanTasks(projectId, sourceStatus, sourceOrder).catch((err) => {
+          console.error("Failed to save source column order:", err);
+        });
+      }
+
+      newOrder.set(targetStatus, targetOrder);
+      return newOrder;
+    });
+
+    // Save target column order to backend
+    try {
+      await reorderKanbanTasks(projectId, targetStatus, targetOrder);
+    } catch (err) {
+      console.error("Failed to save target column order:", err);
     }
 
     setDragState(null);
@@ -473,7 +695,7 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
         {/* Expanded filters */}
         {isFiltersExpanded && (
           <div className="mt-3 pt-3 border-t border-gray-100">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
               {/* Priority */}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -487,6 +709,25 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
                   {PRIORITY_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Creator */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Постановщик
+                </label>
+                <select
+                  value={filters.creator_id || ""}
+                  onChange={(e) => setFilters({ ...filters, creator_id: e.target.value || undefined })}
+                  className="w-full h-9 px-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Все постановщики</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
                     </option>
                   ))}
                 </select>
@@ -538,9 +779,13 @@ export function ProjectBoardsTab({ projectId }: ProjectBoardsTabProps) {
               status={col.status}
               tasks={tasksByStatus.get(col.status) || []}
               projectId={projectId}
+              usersMap={usersMap}
+              isDragging={!!dragState}
               onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
+              onDragEnd={handleDragEnd}
+              onDropAtPosition={handleDropAtPosition}
+              onFilterByCreator={handleFilterByCreator}
+              onFilterByAssignee={handleFilterByAssignee}
             />
           ))}
         </div>

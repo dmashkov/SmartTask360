@@ -13,6 +13,7 @@ from app.modules.tasks.excel_schemas import ImportResult
 from app.modules.tasks.excel_service import ExcelService
 from app.modules.tasks.schemas import (
     AvailableTransitionsResponse,
+    KanbanReorderRequest,
     TagBrief,
     TaskAccept,
     TaskCreate,
@@ -63,6 +64,7 @@ def task_to_response(task, children_count: int = 0, tags: list | None = None) ->
         rejection_reason=task.rejection_reason,
         rejection_comment=task.rejection_comment,
         completion_result=task.completion_result,
+        kanban_position=task.kanban_position,
         smart_score=task.smart_score,
         smart_validated_at=task.smart_validated_at,
         smart_is_valid=task.smart_is_valid,
@@ -743,3 +745,36 @@ async def get_participated_tasks(
         task_to_response(task, children_counts.get(task.id, 0), tasks_tags.get(task.id, []))
         for task in tasks
     ]
+
+
+# ============================================================
+# Kanban Ordering
+# ============================================================
+
+
+@router.post("/kanban/reorder")
+async def reorder_kanban_tasks(
+    project_id: UUID,
+    data: KanbanReorderRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Update kanban positions for tasks in a status column.
+
+    Args:
+        project_id: Project ID (query parameter)
+        data: KanbanReorderRequest with task_ids in order and status
+
+    Returns:
+        Success message
+    """
+    service = TaskService(db)
+
+    await service.update_kanban_positions(
+        project_id=project_id,
+        status=data.status.value,
+        task_ids=data.task_ids,
+    )
+
+    return {"success": True, "message": "Positions updated"}

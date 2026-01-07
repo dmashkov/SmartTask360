@@ -238,6 +238,33 @@ class ProjectService:
         )
         return list(result.scalars().all())
 
+    async def get_members_with_users(self, project_id: UUID) -> list[dict]:
+        """Get all members of a project with user details"""
+        from app.modules.users.models import User
+
+        result = await self.db.execute(
+            select(ProjectMember, User.email, User.name)
+            .join(User, ProjectMember.user_id == User.id)
+            .where(ProjectMember.project_id == project_id)
+            .order_by(ProjectMember.joined_at)
+        )
+
+        members = []
+        for row in result.all():
+            member = row[0]
+            user_email = row[1]
+            user_name = row[2]
+            members.append({
+                "project_id": member.project_id,
+                "user_id": member.user_id,
+                "role": member.role,
+                "joined_at": member.joined_at,
+                "user_email": user_email,
+                "user_name": user_name,
+            })
+
+        return members
+
     async def get_member(self, project_id: UUID, user_id: UUID) -> ProjectMember | None:
         """Get a specific project member"""
         result = await self.db.execute(

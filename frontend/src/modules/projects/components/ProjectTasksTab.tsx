@@ -307,28 +307,20 @@ export function ProjectTasksTab({ projectId }: ProjectTasksTabProps) {
 
   return (
     <div>
-      {/* Header with filters and create button */}
-      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-white gap-4">
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500">
-            Всего: {data?.total || 0}
-          </span>
-          {completedCount > 0 && (
-            <label className="flex items-center gap-2 cursor-pointer">
-              <Checkbox
-                checked={hideCompleted}
-                onChange={(e) => setHideCompleted(e.target.checked)}
-              />
-              <span className="text-sm text-gray-600">
-                Скрыть выполненные ({completedCount})
-              </span>
-            </label>
-          )}
+      {/* Filter options */}
+      {completedCount > 0 && (
+        <div className="px-4 py-2 border-b border-gray-200 bg-white">
+          <label className="flex items-center gap-2 cursor-pointer w-fit">
+            <Checkbox
+              checked={hideCompleted}
+              onChange={(e) => setHideCompleted(e.target.checked)}
+            />
+            <span className="text-sm text-gray-600">
+              Скрыть выполненные ({completedCount})
+            </span>
+          </label>
         </div>
-        <Button size="sm" onClick={() => setIsCreateModalOpen(true)}>
-          + Создать задачу
-        </Button>
-      </div>
+      )}
 
       {/* Table with header */}
       <Card className="overflow-hidden border-0 rounded-none">
@@ -362,13 +354,6 @@ export function ProjectTasksTab({ projectId }: ProjectTasksTabProps) {
           Открыть полный список задач →
         </Link>
       </div>
-
-      {/* Create Task Modal */}
-      <TaskFormModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        defaultProjectId={projectId}
-      />
     </div>
   );
 }

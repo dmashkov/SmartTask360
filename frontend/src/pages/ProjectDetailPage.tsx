@@ -20,6 +20,7 @@ import {
   ProjectMembersTab,
 } from "../modules/projects";
 import { useAuth } from "../modules/auth";
+import { TaskFormModal } from "../modules/tasks";
 
 type ViewMode = "tasks" | "kanban" | "members";
 
@@ -39,6 +40,7 @@ export function ProjectDetailPage() {
   const initialViewMode = (searchParams.get("view") as ViewMode) || "tasks";
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
 
   // Update URL when view mode changes
   useEffect(() => {
@@ -206,8 +208,9 @@ export function ProjectDetailPage() {
       {/* View Mode Tabs */}
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="border-b border-gray-200">
-          <nav className="flex gap-4 px-4">
-            <button
+          <nav className="flex items-center justify-between px-4">
+            <div className="flex gap-4">
+              <button
               onClick={() => setViewMode("tasks")}
               className={`py-3 px-2 border-b-2 text-sm font-medium transition-colors ${
                 viewMode === "tasks"
@@ -237,6 +240,19 @@ export function ProjectDetailPage() {
             >
               Участники ({project.stats.total_members})
             </button>
+            </div>
+            {/* Create Task Button */}
+            {(viewMode === "tasks" || viewMode === "kanban") && (
+              <Button
+                size="sm"
+                onClick={() => setIsCreateTaskModalOpen(true)}
+              >
+                <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Создать задачу
+              </Button>
+            )}
           </nav>
         </div>
 
@@ -261,6 +277,13 @@ export function ProjectDetailPage() {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         project={project}
+      />
+
+      {/* Create Task Modal */}
+      <TaskFormModal
+        isOpen={isCreateTaskModalOpen}
+        onClose={() => setIsCreateTaskModalOpen(false)}
+        defaultProjectId={projectId}
       />
     </div>
   );

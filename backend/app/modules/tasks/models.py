@@ -109,6 +109,11 @@ class Task(Base):
         Text, nullable=True
     )  # Result/comment when task is completed or sent to review
 
+    # Kanban position (order within status column for a project)
+    kanban_position: Mapped[int] = mapped_column(
+        nullable=False, default=0, index=True
+    )
+
     # SMART Validation
     smart_score: Mapped[dict | None] = mapped_column(
         JSONB, nullable=True
