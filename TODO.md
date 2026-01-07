@@ -12,10 +12,20 @@
 - [ ] **Phase 1F:** Gantt Chart (MVP view mode)
 - [x] **Phase 2A:** Frontend Core ✅
 - [x] **Phase 2B:** Frontend Tasks & Kanban ✅
-- [ ] **Phase 2C:** Frontend AI & Polish
+- [x] **Phase 2C.1:** SMART Wizard & System Settings ✅
+- [ ] **Phase 2C.2:** Frontend AI & Polish
 
-**Current:** Phase 1E completed (Session 11) ✅
-**Next:** Phase 1F - Gantt Chart → Phase 2C - Frontend AI & Polish
+**Current:** Phase 2C.1 completed (Session 12) ✅
+**Next:** Phase 1F - Gantt Chart → Phase 2C.2 - Polish & Testing
+
+**Session 12 (2026-01-08): SMART Wizard & System Settings**
+- [x] SMART Wizard 3-step flow (analyze → refine → apply)
+- [x] SMARTWizard component with step indicator
+- [x] QuestionsStep: radio, checkbox, text inputs
+- [x] ProposalStep: side-by-side comparison, DoD editor
+- [x] System Settings module (backend + frontend)
+- [x] SettingsPage with tabs (General, AI, Prompts)
+- [x] Bug fixes: API response parsing, checklist service methods
 
 **Session 11 (2026-01-07): Members Tab & Kanban Improvements**
 - [x] Fix Members tab white screen (ProjectMemberWithUser schema)

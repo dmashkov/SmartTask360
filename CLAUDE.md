@@ -27,9 +27,10 @@
 - Tasks (with hierarchy, status workflow, acceptance flow)
 - Tags, Comments, Checklists, Documents
 - Workflow Templates, Task History
-- AI (SMART validation, dialogs, risk analysis, comments)
+- AI (SMART validation, SMART Wizard, dialogs, risk analysis, comments)
 - Boards (Kanban with WIP limits, status sync)
 - Notifications (settings, unread tracking)
+- System Settings (AI model, language, custom prompts)
 
 **📊 Frontend Phase 2B Complete:**
 - Auth module (login, context, protected routes)
@@ -41,24 +42,30 @@
 - Task urgency indicators (overdue, due today, due soon)
 - 60+ React components
 
-**Latest Session (2026-01-06): Document Management ✅**
-- ✅ Document attachments in comments (comment_id field + migration)
-- ✅ Bidirectional navigation (comments ↔ documents via CustomEvent)
-- ✅ Document type classification (📋 requirements, 📂 attachments, ✅ results)
-- ✅ File download through backend API with proper Unicode encoding (RFC 5987)
-- ✅ DocumentsSection component with grouped display
-- ✅ Event-based tab switching with smooth scrolling & highlighting
-- ✅ Real-time cache invalidation after upload
+**Latest Session (2026-01-08): SMART Wizard & System Settings ✅**
+- ✅ SMART Wizard: 3-step AI-assisted task refinement
+  - Step 1: Analyze task and generate clarifying questions
+  - Step 2: Generate SMART proposal based on user answers
+  - Step 3: Apply changes (title, description, DoD checklist)
+- ✅ System Settings module (backend + frontend)
+  - AI model selection (claude-sonnet-4, claude-opus-4, etc.)
+  - AI response language setting (Russian/English)
+  - Custom prompt templates for each AI feature
+  - Settings page with tabs (General, AI, Prompts)
+- ✅ SMARTWizard component with step indicator
+- ✅ QuestionsStep: radio, checkbox, text inputs
+- ✅ ProposalStep: side-by-side comparison, DoD editor
+- ✅ SettingsPage with GeneralSettings, AISettings, PromptsSettings tabs
 
-**Previous Features (2026-01-04/05):**
+**Previous Features (2026-01-07):**
+- ✅ Tags module frontend (TagBadge, TagsSelect with inline creation)
+- ✅ @Mentions system with autocomplete
+- ✅ Comment reactions (emoji toggle)
+- ✅ Per-comment read status tracking
+- ✅ Document attachments in comments
 - ✅ Task hierarchy tree with expand/collapse
-- ✅ Lazy loading of subtasks via API
-- ✅ Parent task navigation links
-- ✅ Task urgency/overdue indicators with icons
-- ✅ Completion result placeholder (for done tasks)
-- ✅ TaskDetailTabs component (Documents, Comments, History)
 
-**Next:** Sprint 8 - Projects Module (full development) → Sprint 9 - Gantt Chart → Sprint 10 - Polish & Testing
+**Next:** Phase 1F - Gantt Chart → Phase 2C - Frontend AI & Polish
 
 ## Tech Stack
 
@@ -107,7 +114,8 @@ smarttask360/
 │   │       ├── workflow/
 │   │       ├── boards/
 │   │       ├── notifications/
-│   │       └── ai/
+│   │       ├── ai/
+│   │       └── system_settings/
 │   ├── alembic/                    # Migrations
 │   ├── tests/
 │   └── requirements.txt
@@ -126,7 +134,8 @@ smarttask360/
 │   │   │   ├── boards/
 │   │   │   ├── documents/
 │   │   │   ├── notifications/
-│   │   │   └── ai/
+│   │   │   ├── ai/
+│   │   │   └── settings/
 │   │   └── pages/                  # Page components
 │   ├── package.json
 │   └── vite.config.ts
@@ -319,19 +328,29 @@ async def create_item(self, item_data):
     await self.db.commit()
 ```
 
-### 3. SMART Validation Flow (Implemented)
+### 3. SMART Validation & Wizard Flow (Implemented)
 ```
-User creates task
-    → TaskService.create()
-    → AIService.validate_smart()
-    → Return (task, smart_result)
-    → UI shows validation result
-    → User can: accept, apply suggestions, or start dialog
+Option 1: Quick SMART Validation
+  User creates task
+    → POST /ai/validate-smart
+    → Return validation result with scores
+    → UI shows SmartValidationCard
+
+Option 2: SMART Wizard (Interactive)
+  User clicks "Мастер SMART"
+    → Step 1: POST /ai/smart/analyze
+      ← Returns questions for user
+    → Step 2: POST /ai/smart/refine (with answers)
+      ← Returns proposal (title, description, DoD)
+    → Step 3: POST /ai/smart/apply
+      ← Updates task, creates DoD checklist
 
 Backend endpoints:
-  - POST /ai/smart/validate - validate task against SMART criteria
+  - POST /ai/validate-smart - quick validation with scores
+  - POST /ai/smart/analyze - wizard step 1: generate questions
+  - POST /ai/smart/refine - wizard step 2: generate proposal
+  - POST /ai/smart/apply - wizard step 3: apply changes
   - POST /ai/dialogs - start AI dialog for task refinement
-  - GET /ai/dialogs/{task_id} - get dialog history
 ```
 
 ### 4. Status Transitions with Workflow Validation

@@ -1,67 +1,56 @@
 # SmartTask360 — Development Context
 
-**Last Updated:** 2026-01-07 (Session 10: Tags Module)
+**Last Updated:** 2026-01-08 (Session 12: SMART Wizard & System Settings)
 
 ---
 
 ## 🎯 Current Phase
 
-**Phase 2B: Frontend Tasks & Kanban** — ✅ Completed + Tags & Comments
+**Phase 2C: Frontend AI** — 🔄 In Progress
 
 ### Current Sprint
-Sprint 10: Tags Module — ✅ Completed
+Sprint 12: SMART Wizard & System Settings — ✅ Completed
 
-### Recent Enhancements (2026-01-07 Session 10)
-- ✅ Tags module frontend (`modules/tags/`)
-- ✅ types.ts — Tag, TagCreate, TagUpdate, TagAssign
-- ✅ api.ts — All CRUD + task tag operations
-- ✅ hooks/useTags.ts — React Query hooks
-- ✅ TagBadge component — colored badge with auto text color
-- ✅ TagsSelect component — multi-select with create-on-the-fly
-- ✅ Integration: TaskFormModal — tag selection
-- ✅ Integration: TaskDetailPage — tags display in header
+### Recent Enhancements (2026-01-08 Session 12)
+- ✅ SMART Wizard: 3-step AI-assisted task refinement
+  - Step 1: Analyze task and generate clarifying questions
+  - Step 2: Generate SMART proposal based on user answers
+  - Step 3: Apply changes (title, description, DoD checklist)
+- ✅ System Settings module (backend + frontend)
+  - SystemSettings model with migrations
+  - AI model selection (claude-sonnet-4, claude-opus-4, etc.)
+  - AI response language setting (Russian/English)
+  - Custom prompt templates for each AI feature
+- ✅ Frontend components:
+  - SMARTWizard with step indicator
+  - QuestionsStep: radio, checkbox, text inputs
+  - ProposalStep: side-by-side comparison, DoD editor
+  - SettingsPage with tabs (General, AI, Prompts)
+- ✅ Bug fixes: API response parsing, acceptance_criteria transformation
 
-### Previous Enhancements (2026-01-06 Session 9)
+### Previous Enhancements (2026-01-07 Session 10-11)
+- ✅ Tags module frontend (TagBadge, TagsSelect with inline creation)
+- ✅ Projects module full development
+- ✅ Members tab fix (ProjectMemberWithUser schema)
+- ✅ Persistent Kanban task ordering
+
+### Previous Enhancements (2026-01-06 Session 8-9)
 - ✅ @Mentions system (`@Имя Фамилия` format with autocomplete)
-- ✅ MentionInput component with dropdown user search
-- ✅ Linkify component with @mention highlighting (blue background)
 - ✅ Comment reactions (emoji: 👍 ❤️ 😂 😮 😢 🎉)
-- ✅ Per-comment read status tracking (comment_read_status table)
-- ✅ Auto-mark comments as read when viewing
-- ✅ Kanban card indicators (comment count + unread dot + mention indicator)
-- ✅ Notifications on @mention via NotificationService
-
-### Previous Enhancements (2026-01-06 Session 8)
-- ✅ Document attachments in comments (comment_id field)
+- ✅ Per-comment read status tracking
+- ✅ Document attachments in comments
 - ✅ Bidirectional navigation (comments ↔ documents via CustomEvent)
-- ✅ Document type classification (requirements, attachments, results)
-- ✅ File download through backend API (not presigned URLs)
-- ✅ RFC 5987 encoding for Unicode filenames in Content-Disposition
-- ✅ DocumentsSection component with grouped display
-- ✅ Real-time cache invalidation after file upload
-- ✅ Event-based tab switching with smooth scrolling and highlighting
-
-### Previous Enhancements (2026-01-04/05)
-- ✅ Task hierarchy visualization (TaskExpandButton, ParentTaskLink, ChildTaskNode, ChildTasksTree)
-- ✅ Lazy loading of subtasks (useTaskChildren hook)
-- ✅ Fixed duplicate children rendering in TaskList
-- ✅ Restructured TaskDetailPage (removed Subtasks tab, made inline)
-- ✅ Added placeholder tabs (Documents, Comments, History)
-- ✅ Added completion result placeholder (for done tasks)
-- ✅ Implemented task urgency indicators (getTaskUrgency utility)
-- ✅ Urgency shown in TaskRow, TaskDetailPage, ChildTaskNode
 
 ### Current Session
-Session 10: Tags Module — ✅ Completed
+Session 12: SMART Wizard & System Settings — ✅ Completed
 
 ### Next Up
-Sprint 11 — Projects Full Development:
-- ProjectSelect component for TaskFormModal
-- ProjectStatsCard component
-- Project filter in TaskFilters
-- ViewSwitcher polish
+Sprint 13 — Gantt Chart:
+- TaskDependency model (predecessor/successor)
+- GanttChart component (frappe-gantt)
+- ViewSwitcher with Gantt tab
 
-After Projects → Sprint 12: Gantt Chart → Sprint 13: Polish & Testing
+After Gantt → Sprint 14: Polish & Testing → MVP Complete!
 
 ---
 
@@ -138,39 +127,38 @@ None - Sprint 6 completed
 - `modules/checklists/` — ✅ Checklists with nested items (ltree)
 - `modules/documents/` — ✅ MinIO upload/download
 - `modules/workflow/` — ✅ Templates + transitions
-- `modules/ai/` — ✅ SMART validation + dialogs + comments + risk analysis
+- `modules/ai/` — ✅ SMART validation + SMART Wizard + dialogs + comments + risk analysis
 - `modules/boards/` — ✅ Kanban with WIP limits, status sync
 - `modules/notifications/` — ✅ Settings, unread tracking
+- `modules/system_settings/` — ✅ AI model, language, custom prompts
 
-### Frontend (Phase 2B Complete + Enhanced)
-- `shared/` — ✅ API client, UI components, hooks, layouts, utils (with urgency indicators)
+### Frontend (Phase 2C In Progress)
+- `shared/` — ✅ API client, UI components, hooks, layouts, utils
 - `modules/auth/` — ✅ Login, AuthContext, ProtectedRoute
-- `modules/tasks/` — ✅ List, filters, detail, create/edit modal, hierarchy tree, urgency indicators
+- `modules/tasks/` — ✅ List, filters, detail, create/edit modal, hierarchy tree
 - `modules/boards/` — ✅ Kanban with drag-and-drop, WIP indicators
 - `modules/tags/` — ✅ Tags CRUD, TagBadge, TagsSelect with inline creation
-- `modules/ai/` — ⏳ Next up (Phase 2C)
-- `modules/notifications/` — ⏳ Next up
+- `modules/ai/` — ✅ SMART Wizard, AITab, validation components
+- `modules/settings/` — ✅ SettingsPage with AI/Prompts configuration
+- `modules/notifications/` — ✅ Basic (NotificationBell, dropdown)
 
-**Latest Components (2026-01-07):**
+**Latest Components (2026-01-08):**
+- `SMARTWizard` — 3-step AI-assisted task refinement
+- `QuestionsStep` — radio, checkbox, text inputs for AI questions
+- `ProposalStep` — side-by-side comparison with DoD editor
+- `AITab` — AI features panel in TaskDetailPage
+- `SettingsPage` — General, AI, Prompts tabs
+- `useSmartAnalyze/Refine/Apply` — SMART Wizard hooks
+
+**Previous Components (2026-01-07):**
 - `TagBadge` — colored tag badge with auto text color
 - `TagsSelect` — multi-select with inline tag creation
-- `useTags` — tags React Query hooks
-- `useTaskTags` — task tags hooks
-- `useAssignTagsToTask` — assign tags mutation
+- `ProjectDetailPage` — tabs: Tasks, Kanban, Members
 
 **Previous Components (2026-01-06):**
 - `MentionInput` — textarea with @mention autocomplete
 - `Linkify` — URL and @mention highlighting
-- `EmojiPicker` — emoji reaction picker
 - `CommentReactions` — reaction display and toggle
-- `useMarkCommentsAsRead` — auto-mark read on view
-
-**Previous Components (2026-01-04):**
-- `TaskExpandButton` — expand/collapse subtasks in list
-- `ParentTaskLink` — navigation to parent task
-- `ChildTaskNode` — recursive subtask tree node
-- `ChildTasksTree` — subtasks tree container
-- `getTaskUrgency()` utility — urgency calculation with Russian pluralization
 
 ---
 
@@ -278,27 +266,28 @@ modules/{name}/
 
 ## 🚀 Next Session Preview
 
-**Phase 1E:** Projects Module
+**Phase 1F:** Gantt Chart
 
-**Goal:** Полноценный модуль проектов для привязки задач и досок
+**Goal:** Gantt-диаграмма как третий режим просмотра задач проекта
 
 **Backend Tasks:**
-1. Create Project model (id, name, code, description, status, owner_id, dates)
-2. Create ProjectMember model (project_id, user_id, role)
-3. Create ProjectService with CRUD + stats + members
-4. Create router with 10+ endpoints
-5. Add project_id filter to Tasks and Boards
-6. Write tests (15+ scenarios)
+1. Create TaskDependency model (predecessor_id, successor_id, type)
+2. Add dependency types: FS (finish-to-start), SS, FF, SF
+3. Create schemas (TaskDependencyCreate, TaskDependencyResponse)
+4. Add endpoints: POST/DELETE /tasks/{id}/dependencies
+5. Create migration
+6. Write tests
 
 **Frontend Tasks:**
-1. Create projects module (types, api, hooks)
-2. Create ProjectSelect, ProjectCard, ProjectBadge components
-3. Create ProjectsPage and ProjectDetailPage
-4. Add ProjectSelect to TaskFormModal
-5. Add "Проекты" to Sidebar navigation
+1. Install frappe-gantt (lightweight, MIT license)
+2. Create GanttChart wrapper component
+3. Create GanttBar with drag handles
+4. Add Gantt tab to ProjectDetailPage ViewSwitcher
+5. Implement zoom controls (day/week/month)
+6. Implement task click → TaskDetailPage
 
 **Important Notes:**
-- После Projects → Phase 1F (Gantt Chart)
+- После Gantt → Phase 2C (Polish & Testing)
 - Три режима просмотра задач проекта: Таблица / Kanban / Gantt
 - Start session with: `docker-compose up -d`
 

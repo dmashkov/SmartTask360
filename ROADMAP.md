@@ -2,7 +2,7 @@
 
 **Планирование сессий разработки**
 
-**Last Updated:** 2026-01-07 (Session 10: Tags Module)
+**Last Updated:** 2026-01-08 (Session 12: SMART Wizard & System Settings)
 
 ---
 
@@ -21,17 +21,53 @@
 | Sprint 8: Projects Foundation | 2 days | 2 sessions | ✅ Completed |
 | Sprint 9: @Mentions & Comments | 1 day | 1 session | ✅ Completed |
 | Sprint 10: Tags Module | 1 day | 1 session | ✅ Completed |
-| Sprint 11: Projects Full | 3 days | 2-3 sessions | ⏳ Next |
-| Sprint 12: Gantt Chart | 2 days | 2 sessions | ⏳ Planned |
-| Sprint 13: Polish & Testing | 1 week | 3-4 sessions | ⏳ Planned |
+| Sprint 11: Projects Full | 1 day | 1 session | ✅ Completed |
+| Sprint 12: SMART Wizard & Settings | 1 day | 1 session | ✅ Completed |
+| Sprint 13: Gantt Chart | 2 days | 2 sessions | ⏳ Next |
+| Sprint 14: Polish & Testing | 1 week | 3-4 sessions | ⏳ Planned |
 
 **Total MVP:** ~7-8 weeks, ~45-52 sessions
-**Completed:** ~42 sessions (Sprint 0-10)
-**Next:** Sprint 11 — Projects Full Development
+**Completed:** ~44 sessions (Sprint 0-12)
+**Next:** Sprint 13 — Gantt Chart
 
 ---
 
 ## ✅ Completed Sprints Summary
+
+### Sprint 12 (2026-01-08) — SMART Wizard & System Settings ✅
+**SMART Wizard Implementation**
+- ✅ 3-step AI-assisted task refinement flow
+- ✅ Step 1: Analyze task → generate clarifying questions
+- ✅ Step 2: Refine with user answers → generate SMART proposal
+- ✅ Step 3: Apply changes → update task + create DoD checklist
+- ✅ SMARTWizard component with step indicator
+- ✅ QuestionsStep: radio, checkbox, text inputs
+- ✅ ProposalStep: side-by-side comparison, DoD editor
+- ✅ AITab in TaskDetailPage with "Мастер SMART" button
+
+**System Settings Module**
+- ✅ Backend: SystemSettings model with migrations
+- ✅ Backend: SystemSettingsService for settings management
+- ✅ Backend: Router with GET/PATCH endpoints
+- ✅ Frontend: SettingsPage with tabs (General, AI, Prompts)
+- ✅ AI model selection (claude-sonnet-4, claude-opus-4, etc.)
+- ✅ AI response language setting (Russian/English)
+- ✅ Custom prompt templates for each AI feature
+
+**Bug Fixes**
+- ✅ Fixed API response parsing (response.data vs response.data.data)
+- ✅ Fixed acceptance_criteria transformation (strings to objects)
+- ✅ Fixed checklist service method names (create_checklist, create_item)
+- ✅ Added React StrictMode protection for wizard initialization
+
+---
+
+### Sprint 11 (2026-01-07) — Projects Full & Kanban Improvements ✅
+- ✅ Fix Members tab white screen (ProjectMemberWithUser schema)
+- ✅ Persistent Kanban task ordering (kanban_position field)
+- ✅ Kanban board filters (status, priority, search)
+
+---
 
 ### Sprint 10 (2026-01-07) — Tags Module ✅
 **Frontend Tags Implementation**
@@ -162,37 +198,12 @@
 
 ## ⏳ Upcoming Sprints
 
-### Sprint 11 — Projects Full Development
-**Duration:** 3 days | **Sessions:** 2-3 | **Status:** ⏳ Next
-
-**Goal:** Полноценный модуль проектов для привязки задач и досок
-
-#### Session 11.1 — Backend Enhancements
-**Tasks:**
-- [ ] Review existing Projects module (Sprint 8 foundation)
-- [ ] Add project statistics endpoint (completion %, task counts by status)
-- [ ] Add project timeline endpoints (for Gantt)
-- [ ] Add project activity feed
-- [ ] **Extend TaskResponse to include tags** (for TaskRow display)
-- [ ] Tests for new functionality
-
-#### Session 11.2 — Frontend Enhancements
-**Tasks:**
-- [ ] ProjectStatsCard component (% completion, task counts)
-- [ ] ProjectTimeline component (start/end dates visual)
-- [ ] ProjectActivityFeed component
-- [ ] Enhanced ProjectDetailPage with all new components
-- [ ] ViewSwitcher component (Table / Kanban / Gantt tabs)
-- [ ] **Tags display in TaskRow** (requires backend extension from 11.1)
-
----
-
-### Sprint 12 — Gantt Chart
-**Duration:** 2 days | **Sessions:** 2 | **Status:** ⏳ Planned
+### Sprint 13 — Gantt Chart
+**Duration:** 2 days | **Sessions:** 2 | **Status:** ⏳ Next
 
 **Goal:** Gantt-диаграмма как третий режим просмотра задач проекта
 
-#### Session 12.1 — Task Dependencies + Gantt Component
+#### Session 13.1 — Task Dependencies + Gantt Component
 **Tasks:**
 - [ ] Create TaskDependency model:
   - predecessor_id, successor_id
@@ -205,7 +216,7 @@
 - [ ] Create GanttBar with drag handles
 - [ ] Implement date editing via drag
 
-#### Session 12.2 — Gantt Integration + View Switcher
+#### Session 13.2 — Gantt Integration + View Switcher
 **Tasks:**
 - [ ] Add Gantt tab to ProjectDetailPage via ViewSwitcher
 - [ ] Implement dependency arrows visualization
@@ -233,7 +244,7 @@
 
 ---
 
-### Sprint 13 — Polish & Testing
+### Sprint 14 — Polish & Testing
 **Duration:** 1 week | **Sessions:** 3-4 | **Status:** ⏳ Planned
 
 **Goal:** Final review, bugs, optimization
@@ -313,35 +324,36 @@
 
 ## 📊 Progress Tracking
 
-**Completed Sessions:** ~42 / ~50
-**Current Sprint:** Sprint 10 Completed → Ready for Sprint 11
-**Latest Session:** Session 10 — Tags Module ✅
+**Completed Sessions:** ~44 / ~50
+**Current Sprint:** Sprint 12 Completed → Ready for Sprint 13
+**Latest Session:** Session 12 — SMART Wizard & System Settings ✅
 
 **MVP Goal:**
 ```
 Project → Tasks → 3 View Modes:
   ├── Таблица (Table) ✅ есть (+ hierarchy + urgency + tags)
   ├── Kanban ✅ есть (+ comment indicators)
-  └── Gantt ⏳ Sprint 12
+  └── Gantt ⏳ Sprint 13
 ```
 
-**Recent Achievements (2026-01-07 Session 10):**
-- ✅ Tags module frontend (types, api, hooks)
-- ✅ TagBadge component with auto text color
-- ✅ TagsSelect multi-select with inline tag creation
-- ✅ Integration in TaskFormModal and TaskDetailPage
-- ✅ 8 new files in `modules/tags/`
+**Recent Achievements (2026-01-08 Session 12):**
+- ✅ SMART Wizard 3-step flow (analyze → refine → apply)
+- ✅ SMARTWizard component with step indicator
+- ✅ QuestionsStep: radio, checkbox, text inputs
+- ✅ ProposalStep: side-by-side comparison, DoD editor
+- ✅ System Settings module (AI model, language, prompts)
+- ✅ SettingsPage with tabs (General, AI, Prompts)
+- ✅ 25+ new/modified files
 
-**Previous Achievements (2026-01-06 Session 9):**
-- ✅ @Mentions system (`@Имя Фамилия` format with autocomplete)
-- ✅ Comment reactions (emoji toggle: 👍 ❤️ 😂 😮 😢 🎉)
-- ✅ Per-comment read status tracking
-- ✅ Kanban indicators (comment count + unread dot + mentions)
+**Previous Achievements (2026-01-07 Session 10-11):**
+- ✅ Tags module frontend (TagBadge, TagsSelect)
+- ✅ Projects module full development
+- ✅ Kanban improvements (filters, persistent ordering)
 
 **Next Session Preview:**
-Sprint 11 — Projects Full Development
-- **Backend:** Extend TaskResponse to include tags (for TaskRow)
-- **Backend:** Project statistics, timeline, activity feed endpoints
-- **Frontend:** Tags display in TaskRow
-- **Frontend:** ProjectStatsCard, ProjectActivityFeed components
-- **Frontend:** ViewSwitcher polish (Table/Kanban/Gantt)
+Sprint 13 — Gantt Chart
+- **Backend:** TaskDependency model (predecessor/successor)
+- **Backend:** Dependency types: FS, SS, FF, SF
+- **Frontend:** GanttChart component (frappe-gantt)
+- **Frontend:** Add Gantt tab to ProjectDetailPage
+- **Frontend:** Zoom controls (day/week/month)
