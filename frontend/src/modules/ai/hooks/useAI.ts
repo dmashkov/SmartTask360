@@ -253,11 +253,12 @@ export function useSmartApply() {
         queryKey: ["tasks"],
       });
       // Invalidate checklists if DoD was created
+      // Query key format: ["checklists", "list", "task", taskId]
       if (result.checklist_id) {
         queryClient.invalidateQueries({
           predicate: (query) =>
             query.queryKey[0] === "checklists" &&
-            query.queryKey[1] === result.task_id,
+            query.queryKey[3] === result.task_id,
         });
       }
       // Invalidate conversations
