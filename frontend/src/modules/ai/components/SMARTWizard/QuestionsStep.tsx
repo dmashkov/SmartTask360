@@ -14,6 +14,7 @@ interface QuestionsStepProps {
   initialAssessment: string;
   questions: AIQuestion[];
   answers: Record<string, string | string[]>;
+  currentSmartScore?: number | null; // Current overall score (0-1)
   onAnswerChange: (questionId: string, value: string | string[]) => void;
   onSubmit: () => void;
   onCancel: () => void;
@@ -24,6 +25,7 @@ export function QuestionsStep({
   initialAssessment,
   questions,
   answers,
+  currentSmartScore,
   onAnswerChange,
   onSubmit,
   onCancel,
@@ -37,8 +39,26 @@ export function QuestionsStep({
     return answer && answer.trim() !== "";
   });
 
+  // Get score color based on value
+  const getScoreColor = (score: number) => {
+    if (score >= 0.8) return "text-green-600 bg-green-100";
+    if (score >= 0.6) return "text-yellow-600 bg-yellow-100";
+    return "text-red-600 bg-red-100";
+  };
+
   return (
     <div className="space-y-6">
+      {/* Current SMART score badge */}
+      {currentSmartScore != null && (
+        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <span className="text-sm text-gray-600">Текущая SMART-оценка:</span>
+          <span className={`text-lg font-bold px-3 py-1 rounded-full ${getScoreColor(currentSmartScore)}`}>
+            {Math.round(currentSmartScore * 100)}%
+          </span>
+          <span className="text-xs text-gray-400">→ улучшим с помощью мастера</span>
+        </div>
+      )}
+
       {/* Initial assessment */}
       <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
         <div className="flex items-start gap-3">

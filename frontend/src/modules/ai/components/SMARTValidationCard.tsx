@@ -260,25 +260,40 @@ export function SMARTValidationCard({
 
             {showAcceptanceCriteria && (
               <div className="mt-3 space-y-2">
-                {validation.acceptance_criteria.map((criterion, i) => (
-                  <div
-                    key={i}
-                    className="bg-white border border-gray-200 rounded-lg p-3"
-                  >
-                    <div className="flex items-start gap-2">
-                      <span className="text-green-500 shrink-0">☐</span>
-                      <div>
-                        <p className="text-sm text-gray-700">
-                          {criterion.description}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          <span className="font-medium">Проверка:</span>{" "}
-                          {criterion.verification}
-                        </p>
+                {validation.acceptance_criteria.map((criterion, i) => {
+                  // Handle case where criterion might be a string or malformed object
+                  const desc = typeof criterion === "string"
+                    ? criterion
+                    : (criterion?.description || "");
+                  const verif = typeof criterion === "object"
+                    ? (criterion?.verification || "")
+                    : "";
+
+                  // Skip empty criteria
+                  if (!desc && !verif) return null;
+
+                  return (
+                    <div
+                      key={i}
+                      className="bg-white border border-gray-200 rounded-lg p-3"
+                    >
+                      <div className="flex items-start gap-2">
+                        <span className="text-green-500 shrink-0">☐</span>
+                        <div>
+                          {desc && (
+                            <p className="text-sm text-gray-700">{desc}</p>
+                          )}
+                          {verif && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              <span className="font-medium">Проверка:</span>{" "}
+                              {verif}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {onApplyAcceptanceCriteria && (
                   <Button

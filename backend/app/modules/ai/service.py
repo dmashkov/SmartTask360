@@ -1094,7 +1094,6 @@ Respond ONLY with valid JSON:
         if not conversation:
             raise ValueError(f"Conversation {conversation_id} not found")
 
-        print(f"[REFINE SERVICE] conversation_type={conversation.conversation_type}, expected=smart_wizard")
         if conversation.conversation_type != "smart_wizard":
             raise ValueError(f"Invalid conversation type for SMART refine: {conversation.conversation_type}")
 
@@ -1256,7 +1255,37 @@ Respond ONLY with valid JSON:
         # Get values to apply (custom overrides or proposal values)
         new_title = custom_title if custom_title else proposal.get("title")
         new_description = custom_description if custom_description else proposal.get("description")
-        dod_items = custom_dod if custom_dod else proposal.get("definition_of_done", [])
+        raw_dod_items = custom_dod if custom_dod else proposal.get("definition_of_done", [])
+
+        # Normalize DoD items to strings (handle objects if AI returned wrong format)
+        dod_items = []
+        for item in raw_dod_items:
+            if isinstance(item, str):
+                # Expected format - plain string
+                dod_items.append(item)
+            elif isinstance(item, dict):
+                # AI might return objects like acceptance_criteria format
+                # Try to extract meaningful text
+                if "description" in item:
+                    dod_items.append(str(item["description"]))
+                elif "verification" in item:
+                    dod_items.append(str(item["verification"]))
+                elif "content" in item:
+                    dod_items.append(str(item["content"]))
+                else:
+                    # Fallback: use first string value
+                    for v in item.values():
+                        if isinstance(v, str) and v.strip():
+                            dod_items.append(v)
+                            break
+            else:
+                # Fallback: convert to string
+                dod_items.append(str(item))
+
+        # Filter out empty items
+        dod_items = [item.strip() for item in dod_items if item and item.strip()]
+
+        print(f"[SMART APPLY] DoD items: {dod_items}")
 
         # Apply task updates
         update_data = {}

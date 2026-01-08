@@ -24,6 +24,7 @@ import type {
 } from "../types";
 import { SMARTValidationCard } from "./SMARTValidationCard";
 import { SMARTWizard } from "./SMARTWizard";
+import { ConversationViewer } from "./ConversationViewer";
 
 // Dialog type labels
 const DIALOG_TYPES: { value: DialogType; label: string; description: string }[] = [
@@ -130,22 +131,43 @@ export function AITab({ taskId, currentSmartScore, smartValidatedAt }: AITabProp
 
   const isAnyMutationPending = validateSMART.isPending || startDialog.isPending;
 
-  // Get the latest SMART validation from conversations (for real-time updates)
+  // Get the latest SMART score from conversations (both smart_validation and smart_wizard)
   const latestSmartValidation = useMemo(() => {
-    const smartConversations = conversations.filter(
-      (conv) => conv.conversation_type === "smart_validation" && conv.result
-    );
+    // Get all conversations that have SMART scores
+    const smartConversations = conversations.filter((conv) => {
+      if (conv.conversation_type === "smart_validation" && conv.result) {
+        return true;
+      }
+      if (conv.conversation_type === "smart_wizard" && conv.result) {
+        // Wizard stores scores in result.proposal.smart_scores
+        const wizardResult = conv.result as { proposal?: { smart_scores?: unknown } };
+        return !!wizardResult?.proposal?.smart_scores;
+      }
+      return false;
+    });
+
     if (smartConversations.length === 0) return null;
 
-    // Sort by created_at descending and get the first one
+    // Sort by created_at descending and get the most recent
     const sorted = [...smartConversations].sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
+    const latest = sorted[0];
+
+    // Extract SMART result based on conversation type
+    let smartResult: SMARTValidationResult;
+    if (latest.conversation_type === "smart_wizard") {
+      const wizardResult = latest.result as { proposal?: { smart_scores?: SMARTValidationResult } };
+      smartResult = wizardResult.proposal!.smart_scores!;
+    } else {
+      smartResult = latest.result as unknown as SMARTValidationResult;
+    }
+
     return {
-      result: sorted[0].result as unknown as SMARTValidationResult,
-      date: sorted[0].created_at,
-      conversationId: sorted[0].id,
+      result: smartResult,
+      date: latest.created_at,
+      conversationId: latest.id,
     };
   }, [conversations]);
 
@@ -341,27 +363,9 @@ export function AITab({ taskId, currentSmartScore, smartValidatedAt }: AITabProp
             </div>
           ) : selectedConversation ? (
             <div className="space-y-4">
-              {/* Messages */}
-              <div className="max-h-96 overflow-y-auto space-y-3 bg-gray-50 rounded-lg p-3">
-                {selectedConversation.messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`
-                      p-3 rounded-lg
-                      ${msg.role === "user"
-                        ? "bg-blue-100 ml-8"
-                        : msg.role === "assistant"
-                          ? "bg-white border border-gray-200 mr-8"
-                          : "bg-gray-200 text-xs text-gray-600"
-                      }
-                    `}
-                  >
-                    <div className="text-xs text-gray-500 mb-1">
-                      {msg.role === "user" ? "Вы" : msg.role === "assistant" ? "AI" : "Система"}
-                    </div>
-                    <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
-                  </div>
-                ))}
+              {/* Conversation content - human readable */}
+              <div className="max-h-96 overflow-y-auto bg-gray-50 rounded-lg p-3">
+                <ConversationViewer conversation={selectedConversation} />
               </div>
 
               {/* Continue conversation input */}
@@ -410,7 +414,17 @@ export function AITab({ taskId, currentSmartScore, smartValidatedAt }: AITabProp
       >
         <SMARTWizard
           taskId={taskId}
+          currentSmartScore={displaySmartScore?.overall_score}
           onClose={() => setIsWizardOpen(false)}
+          onSuccess={(newSmartScore) => {
+            // Update local state with new SMART score from wizard
+            if (newSmartScore) {
+              setLocalValidation({
+                result: newSmartScore,
+                date: new Date().toISOString(),
+              });
+            }
+          }}
         />
       </Modal>
     </div>

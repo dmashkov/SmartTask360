@@ -18,17 +18,19 @@ import type {
   SMARTWizardStep,
   SMARTAnalyzeResponse,
   SMARTRefineResponse,
+  SMARTValidationResult,
 } from "../../types";
 import { QuestionsStep } from "./QuestionsStep";
 import { ProposalStep } from "./ProposalStep";
 
 export interface SMARTWizardProps {
   taskId: string;
+  currentSmartScore?: number | null; // Current overall score (0-1)
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (newSmartScore?: SMARTValidationResult) => void;
 }
 
-export function SMARTWizard({ taskId, onClose, onSuccess }: SMARTWizardProps) {
+export function SMARTWizard({ taskId, currentSmartScore, onClose, onSuccess }: SMARTWizardProps) {
   // State
   const [step, setStep] = useState<SMARTWizardStep>("idle");
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -137,7 +139,8 @@ export function SMARTWizard({ taskId, onClose, onSuccess }: SMARTWizardProps) {
         });
 
         setStep("done");
-        onSuccess?.();
+        // Pass the proposal's smart_scores to onSuccess for immediate UI update
+        onSuccess?.(proposal?.smart_scores);
 
         // Close modal after short delay
         setTimeout(() => {
@@ -148,7 +151,7 @@ export function SMARTWizard({ taskId, onClose, onSuccess }: SMARTWizardProps) {
         setStep("proposal");
       }
     },
-    [conversationId, applyMutation, onSuccess]
+    [conversationId, applyMutation, onSuccess, proposal]
   );
 
   // Reset and close
@@ -264,6 +267,7 @@ export function SMARTWizard({ taskId, onClose, onSuccess }: SMARTWizardProps) {
             initialAssessment={initialAssessment}
             questions={questions}
             answers={answers}
+            currentSmartScore={currentSmartScore}
             onAnswerChange={handleAnswerChange}
             onSubmit={handleSubmitAnswers}
             onCancel={handleClose}
@@ -282,6 +286,7 @@ export function SMARTWizard({ taskId, onClose, onSuccess }: SMARTWizardProps) {
           <ProposalStep
             proposal={proposal}
             originalTask={originalTask}
+            currentSmartScore={currentSmartScore}
             onApply={handleApply}
             onBack={handleBackToQuestions}
             onCancel={handleClose}

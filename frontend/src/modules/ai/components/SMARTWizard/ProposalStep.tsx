@@ -8,14 +8,48 @@
  * - SMART scores
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "../../../../shared/ui";
 import type { SMARTProposal } from "../../types";
 import { SMARTValidationCard } from "../SMARTValidationCard";
 
+/**
+ * Normalize DoD items to strings (handle objects if AI returned wrong format)
+ */
+function normalizeDoDItems(items: unknown[]): string[] {
+  return items
+    .map((item) => {
+      if (typeof item === "string") {
+        return item;
+      }
+      if (typeof item === "object" && item !== null) {
+        const obj = item as Record<string, unknown>;
+        // Try to extract meaningful text from object
+        if (typeof obj.description === "string" && obj.description) {
+          return obj.description;
+        }
+        if (typeof obj.content === "string" && obj.content) {
+          return obj.content;
+        }
+        if (typeof obj.verification === "string" && obj.verification) {
+          return obj.verification;
+        }
+        // Fallback: first string value
+        for (const v of Object.values(obj)) {
+          if (typeof v === "string" && v.trim()) {
+            return v;
+          }
+        }
+      }
+      return String(item);
+    })
+    .filter((item) => item && item.trim());
+}
+
 interface ProposalStepProps {
   proposal: SMARTProposal;
   originalTask: { title: string; description: string };
+  currentSmartScore?: number | null; // Current overall score (0-1) for before/after comparison
   onApply: (
     applyTitle: boolean,
     applyDescription: boolean,
@@ -32,15 +66,22 @@ interface ProposalStepProps {
 export function ProposalStep({
   proposal,
   originalTask,
+  currentSmartScore,
   onApply,
   onBack,
   onCancel,
   isApplying,
 }: ProposalStepProps) {
+  // Normalize DoD items once (handles case where AI returned objects instead of strings)
+  const normalizedDod = useMemo(
+    () => normalizeDoDItems(proposal.definition_of_done as unknown[]),
+    [proposal.definition_of_done]
+  );
+
   // Editable state
   const [title, setTitle] = useState(proposal.title);
   const [description, setDescription] = useState(proposal.description);
-  const [dodItems, setDodItems] = useState<string[]>(proposal.definition_of_done);
+  const [dodItems, setDodItems] = useState<string[]>(normalizedDod);
 
   // Apply options
   const [applyTitle, setApplyTitle] = useState(true);
@@ -60,7 +101,8 @@ export function ProposalStep({
       applyDod,
       title !== proposal.title ? title : undefined,
       description !== proposal.description ? description : undefined,
-      dodItems.join(",") !== proposal.definition_of_done.join(",") ? dodItems : undefined
+      // Always send dodItems to ensure backend receives properly normalized strings
+      dodItems
     );
   };
 
@@ -82,8 +124,62 @@ export function ProposalStep({
     setEditingDodIndex(null);
   };
 
+  // Get new score from proposal
+  const newScore = proposal.smart_scores?.overall_score;
+
+  // Get score color based on value
+  const getScoreColor = (score: number) => {
+    if (score >= 0.8) return "text-green-600 bg-green-100";
+    if (score >= 0.6) return "text-yellow-600 bg-yellow-100";
+    return "text-red-600 bg-red-100";
+  };
+
+  // Calculate improvement
+  const improvement = currentSmartScore != null && newScore != null
+    ? Math.round((newScore - currentSmartScore) * 100)
+    : null;
+
   return (
     <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2">
+      {/* Score comparison: Before → After */}
+      {(currentSmartScore != null || newScore != null) && (
+        <div className="p-4 bg-gradient-to-r from-gray-50 to-green-50 rounded-lg border border-green-200">
+          <div className="flex items-center justify-center gap-4">
+            {/* Before */}
+            {currentSmartScore != null && (
+              <div className="text-center">
+                <div className="text-xs text-gray-500 mb-1">Было</div>
+                <span className={`text-xl font-bold px-3 py-1 rounded-full ${getScoreColor(currentSmartScore)}`}>
+                  {Math.round(currentSmartScore * 100)}%
+                </span>
+              </div>
+            )}
+
+            {/* Arrow */}
+            {currentSmartScore != null && newScore != null && (
+              <div className="flex items-center gap-2">
+                <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+                {improvement != null && improvement > 0 && (
+                  <span className="text-sm font-bold text-green-600">+{improvement}%</span>
+                )}
+              </div>
+            )}
+
+            {/* After */}
+            {newScore != null && (
+              <div className="text-center">
+                <div className="text-xs text-gray-500 mb-1">Станет</div>
+                <span className={`text-xl font-bold px-3 py-1 rounded-full ${getScoreColor(newScore)}`}>
+                  {Math.round(newScore * 100)}%
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Title */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
