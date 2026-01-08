@@ -21,8 +21,54 @@ import {
 } from "../modules/projects";
 import { useAuth } from "../modules/auth";
 import { TaskFormModal } from "../modules/tasks";
+import { GanttChart, useGanttData, useUpdateTaskDates } from "../modules/gantt";
 
-type ViewMode = "tasks" | "kanban" | "members";
+type ViewMode = "tasks" | "kanban" | "gantt" | "members";
+
+// Gantt Tab Component
+function ProjectGanttTab({ projectId }: { projectId: string }) {
+  const { data: ganttData, isLoading, error } = useGanttData(projectId);
+  const updateDates = useUpdateTaskDates();
+
+  const handleTaskUpdate = (taskId: string, start: Date, end: Date) => {
+    updateDates.mutate({
+      taskId,
+      data: {
+        planned_start_date: start.toISOString(),
+        planned_end_date: end.toISOString(),
+      },
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96 text-red-500">
+        Ошибка загрузки диаграммы Ганта
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-[600px]">
+      <GanttChart
+        tasks={ganttData?.tasks || []}
+        minDate={ganttData?.min_date ? new Date(ganttData.min_date) : null}
+        maxDate={ganttData?.max_date ? new Date(ganttData.max_date) : null}
+        criticalPath={ganttData?.critical_path || []}
+        projectId={projectId}
+        onTaskUpdate={handleTaskUpdate}
+      />
+    </div>
+  );
+}
 
 export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -231,6 +277,16 @@ export function ProjectDetailPage() {
               Канбан
             </button>
             <button
+              onClick={() => setViewMode("gantt")}
+              className={`py-3 px-2 border-b-2 text-sm font-medium transition-colors ${
+                viewMode === "gantt"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Гант
+            </button>
+            <button
               onClick={() => setViewMode("members")}
               className={`py-3 px-2 border-b-2 text-sm font-medium transition-colors ${
                 viewMode === "members"
@@ -242,7 +298,7 @@ export function ProjectDetailPage() {
             </button>
             </div>
             {/* Create Task Button */}
-            {(viewMode === "tasks" || viewMode === "kanban") && (
+            {(viewMode === "tasks" || viewMode === "kanban" || viewMode === "gantt") && (
               <Button
                 size="sm"
                 onClick={() => setIsCreateTaskModalOpen(true)}
@@ -264,6 +320,10 @@ export function ProjectDetailPage() {
 
           {viewMode === "kanban" && projectId && (
             <ProjectBoardsTab projectId={projectId} />
+          )}
+
+          {viewMode === "gantt" && projectId && (
+            <ProjectGanttTab projectId={projectId} />
           )}
 
           {viewMode === "members" && projectId && (

@@ -33,6 +33,9 @@ class TaskCreate(BaseModel):
     is_milestone: bool = False
     estimated_hours: Decimal | None = None
     acceptance_deadline: datetime | None = None
+    # Gantt Chart - planned dates
+    planned_start_date: datetime | None = None
+    planned_end_date: datetime | None = None
 
 
 class TaskUpdate(BaseModel):
@@ -56,6 +59,9 @@ class TaskUpdate(BaseModel):
     estimated_hours: Decimal | None = None
     actual_hours: Decimal | None = None
     acceptance_deadline: datetime | None = None
+    # Gantt Chart - planned dates
+    planned_start_date: datetime | None = None
+    planned_end_date: datetime | None = None
 
 
 class TaskResponse(BaseModel):
@@ -84,6 +90,9 @@ class TaskResponse(BaseModel):
     due_date: datetime | None
     started_at: datetime | None
     completed_at: datetime | None
+    # Gantt Chart - planned dates
+    planned_start_date: datetime | None
+    planned_end_date: datetime | None
     is_milestone: bool
     is_deleted: bool
     estimated_hours: Decimal | None

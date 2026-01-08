@@ -1,17 +1,34 @@
 # SmartTask360 — Development Context
 
-**Last Updated:** 2026-01-08 (Session 12.5: AI Dialog Improvements)
+**Last Updated:** 2026-01-09 (Session 13: Gantt Chart)
 
 ---
 
 ## 🎯 Current Phase
 
-**Phase 2C: Frontend AI** — 🔄 In Progress
+**Phase 1F: Gantt Chart** — ✅ Completed
 
 ### Current Sprint
-Sprint 12.5: AI Dialog Improvements — ✅ Completed
+Sprint 13: Gantt Chart — ✅ Completed
 
-### Recent Enhancements (2026-01-08 Session 12.5)
+### Recent Enhancements (2026-01-09 Session 13)
+- ✅ Backend: TaskDependency model (predecessor/successor with FS/SS/FF/SF types)
+- ✅ Backend: TaskBaseline model for plan/fact comparison
+- ✅ Backend: planned_start_date, planned_end_date fields on Tasks
+- ✅ Backend: CPM (Critical Path Method) algorithm implementation
+- ✅ Backend: Gantt API endpoints (/gantt/projects/{id}, dependencies, baselines)
+- ✅ Frontend: GanttChart component (custom implementation)
+  - Day/Week/Month zoom levels
+  - Task bars with status colors and progress
+  - Milestone markers (diamond shape)
+  - Dependency lines (arrows)
+  - Critical path highlighting
+  - Today line indicator
+  - Task hierarchy (expand/collapse)
+- ✅ Frontend: Gantt tab in ProjectDetailPage
+- ✅ Frontend: GanttToolbar with zoom controls and baseline creation
+
+### Previous Enhancements (2026-01-08 Session 12.5)
 - ✅ New AI dialog types: `technical` (architecture discussion) and `testing` (test cases)
 - ✅ Removed duplicate `estimate` dialog (decompose already includes estimates)
 - ✅ Removed duplicate AI comment types (risk/progress have separate buttons)
@@ -50,15 +67,16 @@ Sprint 12.5: AI Dialog Improvements — ✅ Completed
 - ✅ Bidirectional navigation (comments ↔ documents via CustomEvent)
 
 ### Current Session
-Session 12.5: AI Dialog Improvements — ✅ Completed
+Session 13: Gantt Chart — ✅ Completed
 
 ### Next Up
-Sprint 13 — Gantt Chart:
-- TaskDependency model (predecessor/successor)
-- GanttChart component (frappe-gantt)
-- ViewSwitcher with Gantt tab
+Sprint 14 — Polish & Testing:
+- End-to-end testing
+- Performance optimization
+- UI/UX polish
+- Documentation updates
 
-After Gantt → Sprint 14: Polish & Testing → MVP Complete!
+After Sprint 14 → MVP Complete!
 
 ---
 
@@ -116,9 +134,7 @@ After Gantt → Sprint 14: Polish & Testing → MVP Complete!
 None - Sprint 6 completed
 
 ### Next Up
-- **Phase 1E:** Projects Module (Backend + Frontend)
-- **Phase 1F:** Gantt Chart
-- **Phase 2C:** Frontend AI & Polish
+- **Sprint 14:** Polish & Testing → MVP Complete!
 
 ---
 
@@ -129,7 +145,7 @@ None - Sprint 6 completed
 - `modules/users/` — ✅ CRUD with JWT protection
 - `modules/auth/` — ✅ Login & refresh tokens
 - `modules/departments/` — ✅ Hierarchical with ltree
-- `modules/tasks/` — ✅ CRUD + hierarchy + status + acceptance + SMART
+- `modules/tasks/` — ✅ CRUD + hierarchy + status + acceptance + SMART + planned dates
 - `modules/tags/` — ✅ Tag management + task associations
 - `modules/comments/` — ✅ Comments with threading, @mentions, reactions, read status
 - `modules/checklists/` — ✅ Checklists with nested items (ltree)
@@ -139,8 +155,9 @@ None - Sprint 6 completed
 - `modules/boards/` — ✅ Kanban with WIP limits, status sync
 - `modules/notifications/` — ✅ Settings, unread tracking
 - `modules/system_settings/` — ✅ AI model, language, custom prompts
+- `modules/gantt/` — ✅ Dependencies, baselines, CPM algorithm, Gantt API
 
-### Frontend (Phase 2C In Progress)
+### Frontend (Phase 2C Complete)
 - `shared/` — ✅ API client, UI components, hooks, layouts, utils
 - `modules/auth/` — ✅ Login, AuthContext, ProtectedRoute
 - `modules/tasks/` — ✅ List, filters, detail, create/edit modal, hierarchy tree
@@ -149,19 +166,25 @@ None - Sprint 6 completed
 - `modules/ai/` — ✅ SMART Wizard, AITab, validation components
 - `modules/settings/` — ✅ SettingsPage with AI/Prompts configuration
 - `modules/notifications/` — ✅ Basic (NotificationBell, dropdown)
+- `modules/gantt/` — ✅ GanttChart, dependencies, baselines, zoom controls
 
-**Latest Components (2026-01-08):**
+**Latest Components (2026-01-09):**
+- `GanttChart` — custom Gantt chart with zoom, task bars, dependencies
+- `GanttHeader` — timeline header with day/week/month scale
+- `GanttTaskRow` — task bar with progress and milestone support
+- `GanttToolbar` — zoom controls, critical path toggle, baseline creation
+- `ProjectDetailPage` — now with 4 tabs: Tasks, Kanban, Gantt, Members
+
+**Previous Components (2026-01-08):**
 - `SMARTWizard` — 3-step AI-assisted task refinement
 - `QuestionsStep` — radio, checkbox, text inputs for AI questions
 - `ProposalStep` — side-by-side comparison with DoD editor
 - `AITab` — AI features panel in TaskDetailPage
 - `SettingsPage` — General, AI, Prompts tabs
-- `useSmartAnalyze/Refine/Apply` — SMART Wizard hooks
 
 **Previous Components (2026-01-07):**
 - `TagBadge` — colored tag badge with auto text color
 - `TagsSelect` — multi-select with inline tag creation
-- `ProjectDetailPage` — tabs: Tasks, Kanban, Members
 
 **Previous Components (2026-01-06):**
 - `MentionInput` — textarea with @mention autocomplete
@@ -274,29 +297,21 @@ modules/{name}/
 
 ## 🚀 Next Session Preview
 
-**Phase 1F:** Gantt Chart
+**Sprint 14:** Polish & Testing
 
-**Goal:** Gantt-диаграмма как третий режим просмотра задач проекта
+**Goal:** Финальная полировка и тестирование перед релизом MVP
 
-**Backend Tasks:**
-1. Create TaskDependency model (predecessor_id, successor_id, type)
-2. Add dependency types: FS (finish-to-start), SS, FF, SF
-3. Create schemas (TaskDependencyCreate, TaskDependencyResponse)
-4. Add endpoints: POST/DELETE /tasks/{id}/dependencies
-5. Create migration
-6. Write tests
-
-**Frontend Tasks:**
-1. Install frappe-gantt (lightweight, MIT license)
-2. Create GanttChart wrapper component
-3. Create GanttBar with drag handles
-4. Add Gantt tab to ProjectDetailPage ViewSwitcher
-5. Implement zoom controls (day/week/month)
-6. Implement task click → TaskDetailPage
+**Tasks:**
+1. End-to-end testing of all modules
+2. Performance optimization (lazy loading, memoization)
+3. UI/UX polish and accessibility improvements
+4. Error handling improvements
+5. Documentation updates for API and deployment
+6. Security audit and hardening
 
 **Important Notes:**
-- После Gantt → Phase 2C (Polish & Testing)
-- Три режима просмотра задач проекта: Таблица / Kanban / Gantt
+- После Sprint 14 → MVP Complete!
+- Четыре режима просмотра задач проекта: Таблица / Kanban / Gantt / Members
 - Start session with: `docker-compose up -d`
 
 **Blockers:** None

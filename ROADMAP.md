@@ -2,7 +2,7 @@
 
 **Планирование сессий разработки**
 
-**Last Updated:** 2026-01-08 (Session 12.5: AI Dialog Improvements)
+**Last Updated:** 2026-01-09 (Session 13: Gantt Chart)
 
 ---
 
@@ -24,16 +24,48 @@
 | Sprint 11: Projects Full | 1 day | 1 session | ✅ Completed |
 | Sprint 12: SMART Wizard & Settings | 1 day | 1 session | ✅ Completed |
 | Sprint 12.5: AI Dialog Improvements | 0.5 day | 1 session | ✅ Completed |
-| Sprint 13: Gantt Chart | 2 days | 2 sessions | ⏳ Next |
-| Sprint 14: Polish & Testing | 1 week | 3-4 sessions | ⏳ Planned |
+| Sprint 13: Gantt Chart | 1 day | 1 session | ✅ Completed |
+| Sprint 14: Polish & Testing | 1 week | 3-4 sessions | ⏳ Next |
 
-**Total MVP:** ~7-8 weeks, ~45-52 sessions
-**Completed:** ~45 sessions (Sprint 0-12.5)
-**Next:** Sprint 13 — Gantt Chart
+**Total MVP:** ~7-8 weeks, ~46-53 sessions
+**Completed:** ~46 sessions (Sprint 0-13)
+**Next:** Sprint 14 — Polish & Testing → MVP Complete!
 
 ---
 
 ## ✅ Completed Sprints Summary
+
+### Sprint 13 (2026-01-09) — Gantt Chart ✅
+**Backend Implementation**
+- ✅ TaskDependency model with dependency types (FS, SS, FF, SF)
+- ✅ TaskBaseline model for plan/fact comparison
+- ✅ Added planned_start_date, planned_end_date to Task model
+- ✅ Gantt service with CPM (Critical Path Method) algorithm
+- ✅ Alembic migration for all new tables
+- ✅ API endpoints: /gantt/projects/{id}, dependencies, baselines
+
+**Frontend Implementation**
+- ✅ GanttChart component (custom implementation, not frappe-gantt)
+  - Day/Week/Month zoom levels
+  - Task bars with status colors and progress indicators
+  - Milestone markers (diamond shape)
+  - Dependency lines with arrows
+  - Critical path highlighting
+  - Today line indicator
+  - Task hierarchy (expand/collapse)
+- ✅ GanttHeader — timeline scale (day/week/month)
+- ✅ GanttTaskRow — individual task bar rendering
+- ✅ GanttToolbar — zoom controls, critical path toggle, baseline creation
+- ✅ Gantt tab added to ProjectDetailPage (4th tab)
+- ✅ React Query hooks for Gantt data
+
+**Technical Details**
+- Custom implementation provides better control than frappe-gantt
+- CPM algorithm calculates critical path in topological order
+- Dependency types: Finish-to-Start, Start-to-Start, Finish-to-Finish, Start-to-Finish
+- Baselines allow multiple plan versions per task
+
+---
 
 ### Sprint 12.5 (2026-01-08) — AI Dialog Improvements ✅
 **New Dialog Types**

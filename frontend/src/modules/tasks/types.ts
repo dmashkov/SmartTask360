@@ -55,6 +55,9 @@ export interface Task {
   due_date: string | null;
   started_at: string | null;
   completed_at: string | null;
+  // Gantt Chart - planned dates
+  planned_start_date: string | null;
+  planned_end_date: string | null;
   is_milestone: boolean;
   is_deleted: boolean;
   estimated_hours: number | null;
@@ -103,6 +106,9 @@ export interface TaskCreate {
   is_milestone?: boolean;
   estimated_hours?: number | null;
   acceptance_deadline?: string | null;
+  // Gantt Chart - planned dates
+  planned_start_date?: string | null;
+  planned_end_date?: string | null;
 }
 
 // Update task request
@@ -125,6 +131,9 @@ export interface TaskUpdate {
   estimated_hours?: number | null;
   actual_hours?: number | null;
   acceptance_deadline?: string | null;
+  // Gantt Chart - planned dates
+  planned_start_date?: string | null;
+  planned_end_date?: string | null;
 }
 
 // Task accept request

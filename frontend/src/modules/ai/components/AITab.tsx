@@ -186,21 +186,6 @@ export function AITab({ taskId, currentSmartScore, smartValidatedAt }: AITabProp
     }
   };
 
-  // Handle send message in modal conversation
-  const handleSendMessage = async () => {
-    if (!selectedConversationId || !messageInput.trim()) return;
-
-    try {
-      await sendMessage.mutateAsync({
-        conversationId: selectedConversationId,
-        content: messageInput.trim(),
-      });
-      setMessageInput("");
-    } catch (error) {
-      console.error("Send message error:", error);
-    }
-  };
-
   // Handle send message in expanded accordion conversation
   const handleSendExpandedMessage = async () => {
     if (!expandedConversationId || !messageInput.trim()) return;

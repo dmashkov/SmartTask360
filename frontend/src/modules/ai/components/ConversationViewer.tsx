@@ -83,7 +83,7 @@ function SMARTValidationView({
 
 function SMARTWizardView({
   result,
-  context,
+  context: _context,
   messages,
 }: {
   result: Record<string, unknown> | null;

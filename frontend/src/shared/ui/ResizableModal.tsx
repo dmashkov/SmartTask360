@@ -31,7 +31,7 @@ export function ResizableModal({
   isOpen,
   onClose,
   children,
-  title,
+  title: _title, // Reserved for future header display
   initialWidth = 600,
   initialHeight = 500,
   minWidth = 400,

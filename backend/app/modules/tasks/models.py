@@ -88,6 +88,10 @@ class Task(Base):
     started_at: Mapped[datetime | None] = mapped_column(nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
+    # Gantt Chart - planned dates for scheduling
+    planned_start_date: Mapped[datetime | None] = mapped_column(nullable=True)
+    planned_end_date: Mapped[datetime | None] = mapped_column(nullable=True)
+
     # Flags
     is_milestone: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
