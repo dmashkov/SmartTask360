@@ -24,3 +24,6 @@ export * from "./hooks";
 
 // Components
 export * from "./components";
+
+// Re-export TabId type from components
+export type { TabId } from "./components";

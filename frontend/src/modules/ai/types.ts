@@ -82,7 +82,7 @@ export interface AIConversationWithMessages extends AIConversation {
 }
 
 // Dialog types
-export type DialogType = "clarify" | "decompose" | "estimate" | "general";
+export type DialogType = "clarify" | "decompose" | "technical" | "testing" | "general";
 
 // Start dialog request
 export interface StartDialogRequest {
@@ -212,3 +212,84 @@ export interface SMARTApplyResponse {
 
 // Wizard step type
 export type SMARTWizardStep = "idle" | "analyzing" | "questions" | "refining" | "proposal" | "applying" | "done";
+
+// ============================================================================
+// Risk Analysis Types
+// ============================================================================
+
+export interface RiskItem {
+  category: "technical" | "resource" | "schedule" | "quality";
+  severity: "high" | "medium" | "low";
+  probability: "high" | "medium" | "low";
+  description: string;
+  mitigation: string;
+}
+
+export interface RiskAnalysisResult {
+  overall_risk_level: "high" | "medium" | "low";
+  risks: RiskItem[];
+  recommendations: string[];
+}
+
+export interface RiskAnalysisRequest {
+  task_id: string;
+  include_context?: boolean;
+}
+
+export interface RiskAnalysisResponse {
+  conversation_id: string;
+  analysis: RiskAnalysisResult;
+}
+
+// ============================================================================
+// AI Comment Types
+// ============================================================================
+
+export type AICommentType = "insight" | "risk" | "progress" | "blocker" | "suggestion";
+
+export interface GenerateCommentRequest {
+  task_id: string;
+  comment_type: AICommentType;
+}
+
+export interface GenerateCommentResponse {
+  conversation_id: string;
+  comment: string;
+  comment_type: AICommentType;
+}
+
+export interface AutoCommentRequest {
+  task_id: string;
+  comment_type: AICommentType;
+}
+
+export interface AutoCommentResponse {
+  conversation_id: string;
+  comment_id: string;
+  comment: string;
+  comment_type: AICommentType;
+}
+
+// ============================================================================
+// Progress Review Types
+// ============================================================================
+
+export interface ProgressReviewRequest {
+  task_id: string;
+  include_subtasks?: boolean;
+}
+
+export interface ProgressReviewResult {
+  progress_status: "on_track" | "at_risk" | "blocked";
+  completion_estimate: string;
+  summary: string;
+  going_well: string[];
+  concerns: string[];
+  next_steps: string[];
+  risk_level: "high" | "medium" | "low";
+}
+
+export interface ProgressReviewResponse {
+  conversation_id: string;
+  review: ProgressReviewResult;
+}

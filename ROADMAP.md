@@ -2,7 +2,7 @@
 
 **Планирование сессий разработки**
 
-**Last Updated:** 2026-01-08 (Session 12: SMART Wizard & System Settings)
+**Last Updated:** 2026-01-08 (Session 12.5: AI Dialog Improvements)
 
 ---
 
@@ -23,16 +23,34 @@
 | Sprint 10: Tags Module | 1 day | 1 session | ✅ Completed |
 | Sprint 11: Projects Full | 1 day | 1 session | ✅ Completed |
 | Sprint 12: SMART Wizard & Settings | 1 day | 1 session | ✅ Completed |
+| Sprint 12.5: AI Dialog Improvements | 0.5 day | 1 session | ✅ Completed |
 | Sprint 13: Gantt Chart | 2 days | 2 sessions | ⏳ Next |
 | Sprint 14: Polish & Testing | 1 week | 3-4 sessions | ⏳ Planned |
 
 **Total MVP:** ~7-8 weeks, ~45-52 sessions
-**Completed:** ~44 sessions (Sprint 0-12)
+**Completed:** ~45 sessions (Sprint 0-12.5)
 **Next:** Sprint 13 — Gantt Chart
 
 ---
 
 ## ✅ Completed Sprints Summary
+
+### Sprint 12.5 (2026-01-08) — AI Dialog Improvements ✅
+**New Dialog Types**
+- ✅ `technical` — обсуждение архитектуры, паттернов, технологий
+- ✅ `testing` — генерация тест-кейсов, граничных случаев, критериев приёмки
+- ✅ Removed `estimate` (duplicate of decompose which includes estimates)
+
+**AI Comments Cleanup**
+- ✅ Removed `risk` and `progress` from dropdown (separate buttons exist)
+- ✅ Conversation history shows comment types with icons (💡⚠️📈🚫✨)
+
+**Prompts**
+- ✅ All dialog prompts translated to Russian
+- ✅ Technical dialog: роль архитектора
+- ✅ Testing dialog: роль QA-инженера
+
+---
 
 ### Sprint 12 (2026-01-08) — SMART Wizard & System Settings ✅
 **SMART Wizard Implementation**
@@ -164,7 +182,7 @@
 - ✅ AIConversation, AIMessage models
 - ✅ Anthropic API integration (claude-sonnet-4-20250514)
 - ✅ SMART validation with scoring
-- ✅ AI dialogs (clarify, decompose, estimate, general)
+- ✅ AI dialogs (clarify, decompose, technical, testing, general)
 - ✅ Risk analysis, AI comments, progress reviews
 - ✅ 15+ AI-related endpoints
 
@@ -354,9 +372,9 @@
 
 ## 📊 Progress Tracking
 
-**Completed Sessions:** ~44 / ~50
-**Current Sprint:** Sprint 12 Completed → Ready for Sprint 13
-**Latest Session:** Session 12 — SMART Wizard & System Settings ✅
+**Completed Sessions:** ~45 / ~50
+**Current Sprint:** Sprint 12.5 Completed → Ready for Sprint 13
+**Latest Session:** Session 12.5 — AI Dialog Improvements ✅
 
 **MVP Goal:**
 ```
@@ -366,14 +384,16 @@ Project → Tasks → 3 View Modes:
   └── Gantt ⏳ Sprint 13
 ```
 
-**Recent Achievements (2026-01-08 Session 12):**
+**Recent Achievements (2026-01-08 Session 12.5):**
+- ✅ New AI dialog types: `technical` and `testing`
+- ✅ Removed duplicate dialogs and comment types
+- ✅ Conversation history with comment type icons
+- ✅ All AI prompts in Russian
+
+**Previous Achievements (2026-01-08 Session 12):**
 - ✅ SMART Wizard 3-step flow (analyze → refine → apply)
-- ✅ SMARTWizard component with step indicator
-- ✅ QuestionsStep: radio, checkbox, text inputs
-- ✅ ProposalStep: side-by-side comparison, DoD editor
 - ✅ System Settings module (AI model, language, prompts)
 - ✅ SettingsPage with tabs (General, AI, Prompts)
-- ✅ 25+ new/modified files
 
 **Previous Achievements (2026-01-07 Session 10-11):**
 - ✅ Tags module frontend (TagBadge, TagsSelect)

@@ -17,6 +17,15 @@ import {
   smartAnalyze,
   smartRefine,
   smartApply,
+  // Risk Analysis
+  analyzeRisks,
+  // AI Comments
+  generateComment,
+  autoComment,
+  // Progress Review
+  reviewProgress,
+  // Dialog completion
+  completeDialog,
 } from "../api";
 import type {
   SMARTValidationRequest,
@@ -25,6 +34,12 @@ import type {
   SMARTAnalyzeRequest,
   SMARTRefineRequest,
   SMARTApplyRequest,
+  // Risk Analysis types
+  RiskAnalysisRequest,
+  // AI Comment types
+  AICommentType,
+  // Progress Review types
+  ProgressReviewRequest,
 } from "../types";
 
 /**
@@ -250,6 +265,109 @@ export function useSmartApply() {
         predicate: (query) =>
           query.queryKey[0] === "task-conversations" &&
           query.queryKey[1] === result.task_id,
+      });
+    },
+  });
+}
+
+// ============================================================================
+// Risk Analysis Hooks
+// ============================================================================
+
+/**
+ * Hook to analyze task risks
+ */
+export function useAnalyzeRisks() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: RiskAnalysisRequest) => analyzeRisks(data),
+    onSuccess: (_, variables) => {
+      // Invalidate task conversations
+      queryClient.invalidateQueries({
+        queryKey: ["task-conversations", variables.task_id],
+      });
+    },
+  });
+}
+
+// ============================================================================
+// AI Comment Hooks
+// ============================================================================
+
+/**
+ * Hook to generate AI comment (preview only)
+ */
+export function useGenerateComment() {
+  return useMutation({
+    mutationFn: ({ taskId, commentType }: { taskId: string; commentType: AICommentType }) =>
+      generateComment(taskId, commentType),
+  });
+}
+
+/**
+ * Hook to generate and save AI comment to task
+ */
+export function useAutoComment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ taskId, commentType }: { taskId: string; commentType: AICommentType }) =>
+      autoComment(taskId, commentType),
+    onSuccess: (_, variables) => {
+      // Invalidate task comments
+      queryClient.invalidateQueries({
+        queryKey: ["comments", variables.taskId],
+      });
+      // Invalidate task conversations
+      queryClient.invalidateQueries({
+        queryKey: ["task-conversations", variables.taskId],
+      });
+    },
+  });
+}
+
+// ============================================================================
+// Progress Review Hooks
+// ============================================================================
+
+/**
+ * Hook to review task progress
+ */
+export function useReviewProgress() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: ProgressReviewRequest) => reviewProgress(data),
+    onSuccess: (_, variables) => {
+      // Invalidate task conversations
+      queryClient.invalidateQueries({
+        queryKey: ["task-conversations", variables.task_id],
+      });
+    },
+  });
+}
+
+// ============================================================================
+// Dialog Completion Hook
+// ============================================================================
+
+/**
+ * Hook to complete dialog and optionally apply changes
+ */
+export function useCompleteDialog() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ conversationId, applyChanges }: { conversationId: string; applyChanges?: boolean }) =>
+      completeDialog(conversationId, applyChanges),
+    onSuccess: () => {
+      // Invalidate conversations to refresh status
+      queryClient.invalidateQueries({
+        queryKey: ["conversation-messages"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["task-conversations"],
       });
     },
   });

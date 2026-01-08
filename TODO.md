@@ -15,8 +15,16 @@
 - [x] **Phase 2C.1:** SMART Wizard & System Settings ✅
 - [ ] **Phase 2C.2:** Frontend AI & Polish
 
-**Current:** Phase 2C.1 completed (Session 12) ✅
+**Current:** Phase 2C.1 completed (Session 12.5) ✅
 **Next:** Phase 1F - Gantt Chart → Phase 2C.2 - Polish & Testing
+
+**Session 12.5 (2026-01-08): AI Dialog Improvements**
+- [x] Add `technical` dialog type (architecture, patterns, technologies)
+- [x] Add `testing` dialog type (test cases, edge cases, verification)
+- [x] Remove duplicate `estimate` dialog (decompose includes estimates)
+- [x] Remove duplicate AI comment types (risk/progress have separate buttons)
+- [x] Show comment types with icons in conversation history
+- [x] Translate all AI prompts to Russian
 
 **Session 12 (2026-01-08): SMART Wizard & System Settings**
 - [x] SMART Wizard 3-step flow (analyze → refine → apply)
@@ -264,7 +272,7 @@
 
 ### 1C.3 AI Dialogs (5h) ✅
 - [x] Build task dialog system prompt
-- [x] Implement start_task_dialog (4 types: clarify, decompose, estimate, general)
+- [x] Implement start_task_dialog (5 types: clarify, decompose, technical, testing, general)
 - [x] Implement complete_task_dialog with summary
 - [x] Implement context preservation in conversations
 - [x] Create /ai/tasks/{id}/start-dialog endpoint

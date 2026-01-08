@@ -446,28 +446,65 @@ Description: {task_description or "No description"}
 {initial_question or "Please ask me questions to help make this task more specific and actionable."}"""
 
         elif dialog_type == "decompose":
-            user_prompt = f"""Help me break down this task into smaller subtasks:
+            user_prompt = f"""Разбей эту задачу на 3-7 конкретных подзадач.
 
-Title: {task_title}
-Description: {task_description or "No description"}
+Задача:
+Название: {task_title}
+Описание: {task_description or "Описание не указано"}
 
-{initial_question or "Please suggest how to decompose this into manageable pieces."}"""
+{initial_question or ""}
 
-        elif dialog_type == "estimate":
-            user_prompt = f"""Help me estimate effort for this task:
+ВАЖНО: Ответь ТОЛЬКО валидным JSON без markdown-блоков, без текста до/после, без пояснений.
 
-Title: {task_title}
-Description: {task_description or "No description"}
+Формат ответа (строго JSON):
+{{"main_stages": [{{"id": 1, "title": "Название подзадачи", "description": "Что нужно сделать", "estimated_hours": 2, "blockers": []}}], "total_estimate": "8 часов"}}"""
 
-{initial_question or "What should I consider when estimating this task?"}"""
+        elif dialog_type == "technical":
+            user_prompt = f"""Ты — технический архитектор. Помоги обсудить техническое решение для этой задачи.
+
+Задача:
+Название: {task_title}
+Описание: {task_description or "Описание не указано"}
+
+{initial_question or "Какой подход к реализации ты рекомендуешь?"}
+
+Рассмотри:
+1. Архитектурный подход и паттерны
+2. Выбор технологий и библиотек
+3. Структуру данных и API
+4. Потенциальные сложности
+5. Вопросы масштабируемости и производительности
+
+Ответь на русском языке."""
+
+        elif dialog_type == "testing":
+            user_prompt = f"""Ты — QA-инженер. Помоги разработать стратегию тестирования для этой задачи.
+
+Задача:
+Название: {task_title}
+Описание: {task_description or "Описание не указано"}
+
+{initial_question or "Какие тест-кейсы нужно предусмотреть?"}
+
+Предложи:
+1. Основные тест-кейсы (happy path)
+2. Граничные случаи (edge cases)
+3. Негативные сценарии
+4. Критерии приёмки для проверки
+5. Рекомендации по автоматизации
+
+Ответь на русском языке."""
 
         else:  # general
-            user_prompt = f"""I want to discuss this task:
+            user_prompt = f"""Помоги обсудить эту задачу:
 
-Title: {task_title}
-Description: {task_description or "No description"}
+Задача:
+Название: {task_title}
+Описание: {task_description or "Описание не указано"}
 
-{initial_question or "How can I improve this task?"}"""
+{initial_question or "Как можно улучшить эту задачу?"}
+
+Ответь на русском языке."""
 
         # Get AI's initial response
         try:

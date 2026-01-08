@@ -27,7 +27,7 @@
 - Tasks (with hierarchy, status workflow, acceptance flow)
 - Tags, Comments, Checklists, Documents
 - Workflow Templates, Task History
-- AI (SMART validation, SMART Wizard, dialogs, risk analysis, comments)
+- AI (SMART validation, SMART Wizard, dialogs [clarify, decompose, technical, testing], risk analysis, comments)
 - Boards (Kanban with WIP limits, status sync)
 - Notifications (settings, unread tracking)
 - System Settings (AI model, language, custom prompts)
@@ -42,20 +42,20 @@
 - Task urgency indicators (overdue, due today, due soon)
 - 60+ React components
 
-**Latest Session (2026-01-08): SMART Wizard & System Settings ✅**
+**Latest Session (2026-01-08): AI Dialog Improvements ✅**
+- ✅ New AI dialog types:
+  - `technical` — обсуждение архитектуры, паттернов, технологий
+  - `testing` — генерация тест-кейсов, граничных случаев
+- ✅ Removed duplicate `estimate` dialog (decompose includes estimates)
+- ✅ Removed duplicate AI comment types (risk/progress have separate buttons)
+- ✅ Conversation history shows comment types with icons
+- ✅ All AI prompts translated to Russian
+- ✅ ResizableModal for AI chat dialogs
+
+**Previous Session (2026-01-08): SMART Wizard & System Settings**
 - ✅ SMART Wizard: 3-step AI-assisted task refinement
-  - Step 1: Analyze task and generate clarifying questions
-  - Step 2: Generate SMART proposal based on user answers
-  - Step 3: Apply changes (title, description, DoD checklist)
-- ✅ System Settings module (backend + frontend)
-  - AI model selection (claude-sonnet-4, claude-opus-4, etc.)
-  - AI response language setting (Russian/English)
-  - Custom prompt templates for each AI feature
-  - Settings page with tabs (General, AI, Prompts)
-- ✅ SMARTWizard component with step indicator
-- ✅ QuestionsStep: radio, checkbox, text inputs
-- ✅ ProposalStep: side-by-side comparison, DoD editor
-- ✅ SettingsPage with GeneralSettings, AISettings, PromptsSettings tabs
+- ✅ System Settings module (AI model, language, custom prompts)
+- ✅ SettingsPage with tabs (General, AI, Prompts)
 
 **Previous Features (2026-01-07):**
 - ✅ Tags module frontend (TagBadge, TagsSelect with inline creation)

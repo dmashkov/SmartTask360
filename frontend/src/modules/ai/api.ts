@@ -19,6 +19,16 @@ import type {
   SMARTRefineResponse,
   SMARTApplyRequest,
   SMARTApplyResponse,
+  // Risk Analysis types
+  RiskAnalysisRequest,
+  RiskAnalysisResponse,
+  // AI Comment types
+  AICommentType,
+  GenerateCommentResponse,
+  AutoCommentResponse,
+  // Progress Review types
+  ProgressReviewRequest,
+  ProgressReviewResponse,
 } from "./types";
 
 /**
@@ -109,6 +119,7 @@ export async function startDialog(
   const response = await api.post<StartDialogResponse>(
     `/ai/tasks/${data.task_id}/start-dialog`,
     {
+      task_id: data.task_id,
       dialog_type: data.dialog_type,
       initial_question: data.initial_question,
     }
@@ -190,6 +201,86 @@ export async function smartApply(
   const response = await api.post<SMARTApplyResponse>(
     "/ai/smart/apply",
     data
+  );
+  return response.data;
+}
+
+// ============================================================================
+// Risk Analysis API Functions
+// ============================================================================
+
+/**
+ * Analyze task risks
+ */
+export async function analyzeRisks(
+  data: RiskAnalysisRequest
+): Promise<RiskAnalysisResponse> {
+  const response = await api.post<RiskAnalysisResponse>(
+    "/ai/analyze-risks",
+    data
+  );
+  return response.data;
+}
+
+// ============================================================================
+// AI Comment API Functions
+// ============================================================================
+
+/**
+ * Generate AI comment (without saving to task)
+ */
+export async function generateComment(
+  taskId: string,
+  commentType: AICommentType
+): Promise<GenerateCommentResponse> {
+  const response = await api.post<GenerateCommentResponse>(
+    "/ai/generate-comment",
+    { task_id: taskId, comment_type: commentType }
+  );
+  return response.data;
+}
+
+/**
+ * Generate and save AI comment to task
+ */
+export async function autoComment(
+  taskId: string,
+  commentType: AICommentType
+): Promise<AutoCommentResponse> {
+  const response = await api.post<AutoCommentResponse>(
+    `/ai/tasks/${taskId}/auto-comment`,
+    { comment_type: commentType }
+  );
+  return response.data;
+}
+
+// ============================================================================
+// Progress Review API Functions
+// ============================================================================
+
+/**
+ * Review task progress
+ */
+export async function reviewProgress(
+  data: ProgressReviewRequest
+): Promise<ProgressReviewResponse> {
+  const response = await api.post<ProgressReviewResponse>(
+    "/ai/review-progress",
+    data
+  );
+  return response.data;
+}
+
+/**
+ * Complete dialog and summarize
+ */
+export async function completeDialog(
+  conversationId: string,
+  applyChanges: boolean = false
+): Promise<{ summary: Record<string, unknown> }> {
+  const response = await api.post<{ summary: Record<string, unknown> }>(
+    `/ai/conversations/${conversationId}/complete-dialog`,
+    { apply_changes: applyChanges }
   );
   return response.data;
 }

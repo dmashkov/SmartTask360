@@ -42,6 +42,8 @@ export {
   type ModalFooterProps,
 } from "./Modal";
 
+export { ResizableModal, type ResizableModalProps } from "./ResizableModal";
+
 export {
   Dropdown,
   DropdownItem,

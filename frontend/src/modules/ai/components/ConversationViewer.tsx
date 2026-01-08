@@ -201,6 +201,32 @@ function DialogView({
 }
 
 // ============================================================================
+// Extract JSON from content (handles markdown blocks and raw JSON)
+// ============================================================================
+
+function extractJSON(content: string): unknown {
+  let jsonStr = content.trim();
+
+  // Try to extract from markdown code blocks
+  const jsonBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (jsonBlockMatch) {
+    jsonStr = jsonBlockMatch[1].trim();
+  }
+
+  // Try to find JSON object in the text
+  const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    jsonStr = jsonMatch[0];
+  }
+
+  try {
+    return JSON.parse(jsonStr);
+  } catch {
+    return null;
+  }
+}
+
+// ============================================================================
 // Message Bubble
 // ============================================================================
 
@@ -209,33 +235,58 @@ function MessageBubble({ message }: { message: AIMessage }) {
   const isAssistant = message.role === "assistant";
 
   // Try to parse JSON content for assistant messages
-  let displayContent = message.content;
-  let isStructured = false;
+  if (isAssistant) {
+    const parsed = extractJSON(message.content);
+    if (parsed && typeof parsed === "object") {
+      const data = parsed as Record<string, unknown>;
 
-  if (isAssistant && message.content.trim().startsWith("{")) {
-    try {
-      const parsed = JSON.parse(message.content);
       // Check if it's a SMART validation result
-      if (parsed.overall_score !== undefined && parsed.criteria) {
+      if (data.overall_score !== undefined && data.criteria) {
         return (
           <div className="mr-8">
             <div className="text-xs text-gray-500 mb-1">AI</div>
-            <SMARTValidationCard validation={parsed as SMARTValidationResult} showApplyButton={false} />
+            <SMARTValidationCard validation={data as unknown as SMARTValidationResult} showApplyButton={false} />
           </div>
         );
       }
+
+      // Check if it's a decomposition response (main_stages)
+      if (data.main_stages && Array.isArray(data.main_stages)) {
+        return (
+          <div className="mr-8">
+            <div className="text-xs text-gray-500 mb-1">AI</div>
+            <DecompositionView data={data as unknown as DecompositionData} />
+          </div>
+        );
+      }
+
       // Check if it's a wizard analyze response
-      if (parsed.initial_assessment && parsed.questions) {
-        isStructured = true;
-        displayContent = parsed.initial_assessment;
+      if (data.initial_assessment && data.questions) {
+        return (
+          <div className="p-3 rounded-lg bg-white border border-gray-200 mr-8">
+            <div className="text-xs text-gray-500 mb-1">AI</div>
+            <div className="text-sm whitespace-pre-wrap">{String(data.initial_assessment)}</div>
+          </div>
+        );
       }
+
       // Other structured responses - try to extract meaningful text
-      if (parsed.summary) {
-        displayContent = parsed.summary;
-        isStructured = true;
+      if (data.summary) {
+        return (
+          <div className="p-3 rounded-lg bg-white border border-gray-200 mr-8">
+            <div className="text-xs text-gray-500 mb-1">AI</div>
+            <div className="text-sm whitespace-pre-wrap">{String(data.summary)}</div>
+          </div>
+        );
       }
-    } catch {
-      // Not JSON, display as-is
+
+      // Generic JSON - render as formatted structure
+      return (
+        <div className="mr-8">
+          <div className="text-xs text-gray-500 mb-1">AI</div>
+          <GenericJsonView data={data} />
+        </div>
+      );
     }
   }
 
@@ -250,12 +301,170 @@ function MessageBubble({ message }: { message: AIMessage }) {
       <div className="text-xs text-gray-500 mb-1">
         {isUser ? "Вы" : "AI"}
       </div>
-      <div className="text-sm whitespace-pre-wrap">{displayContent}</div>
-      {isStructured && (
-        <div className="mt-2 text-xs text-gray-400 italic">
-          (структурированный ответ)
+      <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Decomposition View (for main_stages structure)
+// ============================================================================
+
+interface DecompositionStage {
+  id?: number;
+  title: string;
+  subtasks?: string[];
+  description?: string;
+  estimated_hours?: number;
+  blockers?: string[];
+}
+
+interface DecompositionData {
+  main_stages: DecompositionStage[];
+  summary?: string;
+  total_estimate?: string;
+}
+
+function DecompositionView({ data }: { data: DecompositionData }) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
+      {data.summary && (
+        <p className="text-sm text-gray-700">{data.summary}</p>
+      )}
+
+      <div className="space-y-3">
+        {data.main_stages.map((stage, index) => (
+          <div key={stage.id || index} className="border-l-4 border-blue-400 pl-3 py-1">
+            <div className="font-medium text-gray-900">
+              {stage.id ? `${stage.id}. ` : `${index + 1}. `}
+              {stage.title}
+            </div>
+
+            {stage.description && (
+              <p className="text-sm text-gray-600 mt-1">{stage.description}</p>
+            )}
+
+            {stage.estimated_hours && (
+              <div className="text-xs text-gray-500 mt-1">
+                Оценка: {stage.estimated_hours} ч
+              </div>
+            )}
+
+            {stage.subtasks && stage.subtasks.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {stage.subtasks.map((subtask, subIndex) => (
+                  <li key={subIndex} className="text-sm text-gray-700 flex items-start gap-2">
+                    <span className="text-gray-400">•</span>
+                    {subtask}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {stage.blockers && stage.blockers.length > 0 && (
+              <div className="mt-2">
+                <span className="text-xs text-red-600 font-medium">Блокеры:</span>
+                <ul className="mt-1 space-y-1">
+                  {stage.blockers.map((blocker, bIndex) => (
+                    <li key={bIndex} className="text-sm text-red-600 flex items-start gap-2">
+                      <span>!</span>
+                      {blocker}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {data.total_estimate && (
+        <div className="pt-3 border-t border-gray-200 text-sm text-gray-600">
+          <span className="font-medium">Общая оценка:</span> {data.total_estimate}
         </div>
       )}
+    </div>
+  );
+}
+
+// ============================================================================
+// Generic JSON View (for unknown structures)
+// ============================================================================
+
+function GenericJsonView({ data }: { data: Record<string, unknown> }) {
+  // Try to render in a human-friendly way
+  const renderValue = (value: unknown, depth = 0): React.ReactNode => {
+    if (value === null || value === undefined) return <span className="text-gray-400">—</span>;
+
+    if (typeof value === "string") return value;
+    if (typeof value === "number") return value.toString();
+    if (typeof value === "boolean") return value ? "Да" : "Нет";
+
+    if (Array.isArray(value)) {
+      if (value.length === 0) return <span className="text-gray-400">—</span>;
+      // Check if array of strings
+      if (value.every((v) => typeof v === "string")) {
+        return (
+          <ul className="space-y-1 mt-1">
+            {value.map((item, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <span className="text-gray-400">•</span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        );
+      }
+      // Array of objects
+      return (
+        <div className="space-y-2 mt-1">
+          {value.map((item, i) => (
+            <div key={i} className="pl-3 border-l-2 border-gray-200">
+              {typeof item === "object" ? renderValue(item, depth + 1) : String(item)}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (typeof value === "object") {
+      const obj = value as Record<string, unknown>;
+      return (
+        <div className={depth > 0 ? "pl-3 border-l-2 border-gray-200 space-y-2" : "space-y-2"}>
+          {Object.entries(obj).map(([key, val]) => (
+            <div key={key}>
+              <span className="font-medium text-gray-700">{formatKey(key)}:</span>{" "}
+              <span className="text-gray-600">{renderValue(val, depth + 1)}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return String(value);
+  };
+
+  const formatKey = (key: string): string => {
+    // Convert snake_case to human-readable
+    const translations: Record<string, string> = {
+      main_stages: "Основные этапы",
+      subtasks: "Подзадачи",
+      title: "Название",
+      description: "Описание",
+      estimated_hours: "Оценка (ч)",
+      blockers: "Блокеры",
+      summary: "Резюме",
+      total_estimate: "Общая оценка",
+      risks: "Риски",
+      recommendations: "Рекомендации",
+      overall_risk_level: "Уровень риска",
+    };
+    return translations[key] || key.replace(/_/g, " ");
+  };
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-4 text-sm">
+      {renderValue(data)}
     </div>
   );
 }

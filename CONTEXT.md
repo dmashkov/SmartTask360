@@ -1,6 +1,6 @@
 # SmartTask360 — Development Context
 
-**Last Updated:** 2026-01-08 (Session 12: SMART Wizard & System Settings)
+**Last Updated:** 2026-01-08 (Session 12.5: AI Dialog Improvements)
 
 ---
 
@@ -9,9 +9,17 @@
 **Phase 2C: Frontend AI** — 🔄 In Progress
 
 ### Current Sprint
-Sprint 12: SMART Wizard & System Settings — ✅ Completed
+Sprint 12.5: AI Dialog Improvements — ✅ Completed
 
-### Recent Enhancements (2026-01-08 Session 12)
+### Recent Enhancements (2026-01-08 Session 12.5)
+- ✅ New AI dialog types: `technical` (architecture discussion) and `testing` (test cases)
+- ✅ Removed duplicate `estimate` dialog (decompose already includes estimates)
+- ✅ Removed duplicate AI comment types (risk/progress have separate buttons)
+- ✅ Conversation history shows comment types with icons (💡 Инсайт, ⚠️ Риск, etc.)
+- ✅ All AI prompts translated to Russian
+- ✅ ResizableModal for AI chat dialogs
+
+### Previous Enhancements (2026-01-08 Session 12)
 - ✅ SMART Wizard: 3-step AI-assisted task refinement
   - Step 1: Analyze task and generate clarifying questions
   - Step 2: Generate SMART proposal based on user answers
@@ -42,7 +50,7 @@ Sprint 12: SMART Wizard & System Settings — ✅ Completed
 - ✅ Bidirectional navigation (comments ↔ documents via CustomEvent)
 
 ### Current Session
-Session 12: SMART Wizard & System Settings — ✅ Completed
+Session 12.5: AI Dialog Improvements — ✅ Completed
 
 ### Next Up
 Sprint 13 — Gantt Chart:
@@ -127,7 +135,7 @@ None - Sprint 6 completed
 - `modules/checklists/` — ✅ Checklists with nested items (ltree)
 - `modules/documents/` — ✅ MinIO upload/download
 - `modules/workflow/` — ✅ Templates + transitions
-- `modules/ai/` — ✅ SMART validation + SMART Wizard + dialogs + comments + risk analysis
+- `modules/ai/` — ✅ SMART validation + SMART Wizard + dialogs (clarify, decompose, technical, testing) + comments + risk analysis
 - `modules/boards/` — ✅ Kanban with WIP limits, status sync
 - `modules/notifications/` — ✅ Settings, unread tracking
 - `modules/system_settings/` — ✅ AI model, language, custom prompts
