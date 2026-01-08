@@ -219,6 +219,13 @@
 - [ ] `AICommentMenu` — меню генерации AI-комментариев
 - [ ] Кнопка "Сгенерировать комментарий" в CommentsSection
 
+#### Session 12.5.3 — AI Duplicate Detection
+**Tasks:**
+- [ ] Backend: `/ai/check-duplicates` endpoint — поиск похожих задач
+- [ ] AI prompt для сравнения задач по title/description
+- [ ] Frontend: предупреждение при создании задачи о возможных дублях
+- [ ] UI: список похожих задач с возможностью перейти или продолжить создание
+
 ---
 
 ### Sprint 13 — Gantt Chart
