@@ -450,7 +450,7 @@ def build_smart_validation_prompt(
     Args:
         title: Task title
         description: Task description
-        context: Optional context (priority, status, parent_task)
+        context: Optional context (priority, status, parent_task, due_date, checklists)
         custom_prompt: Optional custom prompt template from settings
         language: Response language code (ru, en)
     """
@@ -463,12 +463,33 @@ def build_smart_validation_prompt(
             context_section += f"Priority: {context['priority']}\n"
         if context.get("status"):
             context_section += f"Status: {context['status']}\n"
+
+        # Time-bound data (critical for T criterion)
+        if context.get("due_date"):
+            context_section += f"Due Date: {context['due_date']}\n"
+        if context.get("estimated_hours"):
+            context_section += f"Estimated Hours: {context['estimated_hours']}\n"
+
+        # Parent task context
         if context.get("parent_task"):
             parent = context["parent_task"]
             context_section += f"\nParent Task Context:\n"
             context_section += f"  Title: {parent.get('title', 'N/A')}\n"
             if parent.get("description"):
                 context_section += f"  Description: {parent['description']}\n"
+
+        # Checklists / Definition of Done (critical for M criterion)
+        if context.get("checklists"):
+            context_section += f"\nChecklists (Definition of Done):\n"
+            for checklist in context["checklists"]:
+                context_section += f"  [{checklist.get('title', 'Checklist')}]\n"
+                items = checklist.get("items", [])
+                if items:
+                    for item in items:
+                        status = "✓" if item.get("is_completed") else "○"
+                        context_section += f"    {status} {item.get('content', '')}\n"
+                else:
+                    context_section += f"    (empty)\n"
 
     return template.format(
         title=title,

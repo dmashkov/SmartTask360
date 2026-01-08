@@ -35,18 +35,20 @@ export function useValidateSMART() {
 
   return useMutation({
     mutationFn: (data: SMARTValidationRequest) => validateTaskSMART(data),
-    onSuccess: (result, variables) => {
-      // Invalidate task SMART validations cache
-      queryClient.invalidateQueries({
+    onSuccess: async (result, variables) => {
+      // Refetch task SMART validations cache
+      await queryClient.refetchQueries({
         queryKey: ["smart-validations", variables.task_id],
       });
-      // Also invalidate task to update smart_score
-      queryClient.invalidateQueries({
+      // Also refetch task to update smart_score
+      await queryClient.refetchQueries({
         queryKey: ["task", variables.task_id],
       });
-      // Invalidate task conversations to show new conversation in history
-      queryClient.invalidateQueries({
-        queryKey: ["task-conversations", variables.task_id],
+      // Refetch task conversations to show new conversation in history
+      await queryClient.refetchQueries({
+        predicate: (query) =>
+          query.queryKey[0] === "task-conversations" &&
+          query.queryKey[1] === variables.task_id,
       });
       // Pre-fetch the conversation messages for immediate display
       if (result.conversation_id) {
@@ -238,12 +240,16 @@ export function useSmartApply() {
       // Invalidate checklists if DoD was created
       if (result.checklist_id) {
         queryClient.invalidateQueries({
-          queryKey: ["checklists", result.task_id],
+          predicate: (query) =>
+            query.queryKey[0] === "checklists" &&
+            query.queryKey[1] === result.task_id,
         });
       }
       // Invalidate conversations
       queryClient.invalidateQueries({
-        queryKey: ["task-conversations", result.task_id],
+        predicate: (query) =>
+          query.queryKey[0] === "task-conversations" &&
+          query.queryKey[1] === result.task_id,
       });
     },
   });

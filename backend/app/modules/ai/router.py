@@ -205,10 +205,10 @@ async def validate_task_smart(
     Validate task against SMART criteria.
 
     Creates an AI conversation and returns validation result.
+    Includes full task context: checklists (DoD), due dates, estimated hours.
     """
-    # Get task details (would need TaskService integration)
-    # For now, this is a placeholder - will be implemented in Session 1C.2
     from app.modules.tasks.service import TaskService
+    from app.modules.checklists.service import ChecklistService
 
     task_service = TaskService(db)
     task = await task_service.get_by_id(request.task_id)
@@ -216,7 +216,7 @@ async def validate_task_smart(
     if not task or task.is_deleted:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # Build context
+    # Build context with full task data
     context = None
     if request.include_context:
         context = {
@@ -224,6 +224,12 @@ async def validate_task_smart(
             "priority": task.priority,
             "status": task.status,
         }
+
+        # Add due date and estimated hours (critical for T - Time-bound)
+        if task.due_date:
+            context["due_date"] = task.due_date.isoformat()
+        if task.estimated_hours:
+            context["estimated_hours"] = float(task.estimated_hours)
 
         # Add parent task if exists
         if task.parent_id:
@@ -233,6 +239,24 @@ async def validate_task_smart(
                     "title": parent.title,
                     "description": parent.description,
                 }
+
+        # Load checklists with items (critical for M - Measurable)
+        checklist_service = ChecklistService(db)
+        checklists = await checklist_service.get_task_checklists(request.task_id)
+        if checklists:
+            context["checklists"] = []
+            for checklist in checklists:
+                items = await checklist_service.get_checklist_items(checklist.id)
+                context["checklists"].append({
+                    "title": checklist.title,
+                    "items": [
+                        {
+                            "content": item.content,
+                            "is_completed": item.is_completed,
+                        }
+                        for item in items
+                    ]
+                })
 
     # Validate
     service = AIService(db)

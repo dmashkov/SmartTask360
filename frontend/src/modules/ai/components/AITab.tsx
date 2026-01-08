@@ -52,6 +52,11 @@ export function AITab({ taskId, currentSmartScore, smartValidatedAt }: AITabProp
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messageInput, setMessageInput] = useState("");
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  // Local state for immediate display of new validation result
+  const [localValidation, setLocalValidation] = useState<{
+    result: SMARTValidationResult;
+    date: string;
+  } | null>(null);
 
   // Queries
   const { data: conversations = [], isLoading: isLoadingConversations } = useTaskConversations(taskId);
@@ -68,6 +73,11 @@ export function AITab({ taskId, currentSmartScore, smartValidatedAt }: AITabProp
   const handleValidateSMART = async () => {
     try {
       const result = await validateSMART.mutateAsync({ task_id: taskId });
+      // Save validation result to local state for immediate display
+      setLocalValidation({
+        result: result.validation,
+        date: new Date().toISOString(),
+      });
       // Open the new conversation
       setSelectedConversationId(result.conversation_id);
     } catch (error) {
@@ -139,9 +149,9 @@ export function AITab({ taskId, currentSmartScore, smartValidatedAt }: AITabProp
     };
   }, [conversations]);
 
-  // Use latestSmartValidation if available, otherwise fall back to props
-  const displaySmartScore = latestSmartValidation?.result || currentSmartScore;
-  const displaySmartDate = latestSmartValidation?.date || smartValidatedAt;
+  // Use localValidation first (immediate), then latestSmartValidation, then props
+  const displaySmartScore = localValidation?.result || latestSmartValidation?.result || currentSmartScore;
+  const displaySmartDate = localValidation?.date || latestSmartValidation?.date || smartValidatedAt;
 
   return (
     <div className="p-4 space-y-6">
