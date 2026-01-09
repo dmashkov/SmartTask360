@@ -1180,15 +1180,34 @@ Respond ONLY with valid JSON:
             try:
                 proposal_data = json.loads(content.strip())
             except json.JSONDecodeError as e:
-                print(f"JSON parse error in refine: {e}")
-                print(f"Content was: {content[:500]}")
-                proposal_data = {
-                    "title": task_title,
-                    "description": task_description,
-                    "definition_of_done": [],
-                    "time_estimate": None,
-                    "smart_scores": None,
-                }
+                # Try to fix common JSON issues (newlines in strings)
+                print(f"JSON parse error in refine: {e}, attempting to fix...")
+                try:
+                    import re
+                    # Simple fix: escape control characters in string values
+                    # Find content between quotes and escape newlines/tabs
+                    fixed_content = content.strip()
+
+                    # Replace control characters within quoted strings
+                    # Pattern: find all "key": "value" pairs and fix the value part
+                    def fix_string_value(match):
+                        key_part = match.group(1)  # Everything before the value
+                        value = match.group(2)      # The string value itself
+                        # Escape special characters
+                        value = value.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+                        return f'{key_part}{value}"'
+
+                    # Match pattern: "key": "value..." where value may contain newlines
+                    fixed_content = re.sub(r'("(?:[^"\\]|\\.)*":\s*")([^"]*?)"', fix_string_value, fixed_content, flags=re.DOTALL)
+
+                    proposal_data = json.loads(fixed_content)
+                    print(f"Successfully fixed JSON by escaping control characters!")
+                except Exception as e2:
+                    print(f"Failed to fix JSON: {e2}")
+                    print(f"Original error: {e}")
+                    print(f"Content (first 500 chars): {content[:500]}")
+                    # Don't use fallback - raise error so frontend knows something is wrong
+                    raise ValueError(f"AI returned invalid JSON format. Please try again.")
 
             # Update conversation with proposal
             await self.update_conversation(

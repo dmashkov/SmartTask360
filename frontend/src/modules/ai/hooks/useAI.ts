@@ -245,8 +245,9 @@ export function useSmartApply() {
     mutationFn: (data: SMARTApplyRequest) => smartApply(data),
     onSuccess: (result) => {
       // Invalidate task cache to refresh with new title/description
+      // Use correct query key format: ["tasks", "detail", taskId]
       queryClient.invalidateQueries({
-        queryKey: ["task", result.task_id],
+        queryKey: ["tasks", "detail", result.task_id],
       });
       // Invalidate tasks list
       queryClient.invalidateQueries({

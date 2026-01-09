@@ -55,6 +55,8 @@ def task_to_response(task, children_count: int = 0, tags: list | None = None) ->
         due_date=task.due_date,
         started_at=task.started_at,
         completed_at=task.completed_at,
+        planned_start_date=task.planned_start_date,
+        planned_end_date=task.planned_end_date,
         is_milestone=task.is_milestone,
         is_deleted=task.is_deleted,
         estimated_hours=task.estimated_hours,
