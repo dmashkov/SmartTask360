@@ -93,7 +93,7 @@ async def test_basic_template_transitions(client, auth_headers, templates):
     )
     assert response.status_code == 200
     pairs = {(t["from_status"], t["to_status"]) for t in response.json()}
-    assert ("in_progress", "review") in pairs
+    assert ("in_progress", "in_review") in pairs
 
 
 async def test_create_transition_and_update(client, auth_headers, add_transition):

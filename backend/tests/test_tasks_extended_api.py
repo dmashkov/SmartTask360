@@ -37,7 +37,7 @@ async def test_available_transitions_with_workflow(client, auth_headers, workflo
 
 
 async def test_valid_workflow_transitions(client, auth_headers, workflow_task):
-    for target in ("in_progress", "review"):
+    for target in ("in_progress", "in_review"):
         response = await _change(client, auth_headers, workflow_task["id"], target)
         assert response.status_code == 200, response.text
         assert response.json()["status"] == target

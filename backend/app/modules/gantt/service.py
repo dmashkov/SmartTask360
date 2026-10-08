@@ -356,9 +356,9 @@ class GanttService:
             return 100
         if task.status == "new":
             return 0
-        if task.status in ("in_progress", "review"):
+        if task.status in ("in_progress", "in_review"):
             # Could be enhanced with actual tracking later
-            if task.status == "review":
+            if task.status == "in_review":
                 return 80
             return 50
         return 0
