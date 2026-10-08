@@ -2,181 +2,106 @@
 Test Tags API endpoints
 """
 
-import asyncio
-
-import httpx
-
-# Test configuration
-BASE_URL = "http://localhost:8000/api/v1"
-ADMIN_EMAIL = "admin@smarttask360.com"
-ADMIN_PASSWORD = "Admin123!"
+import pytest
 
 
-async def main():
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        print("=== Testing Tags API ===\n")
-
-        # Step 1: Login as admin
-        print("1. Login as admin...")
+@pytest.fixture
+async def make_tag(client, auth_headers):
+    async def _make(name: str, color: str = "#3B82F6") -> dict:
         response = await client.post(
-            f"{BASE_URL}/auth/login",
-            json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD},
+            "/tags/", json={"name": name, "color": color}, headers=auth_headers
         )
-        assert response.status_code == 200, f"Login failed: {response.text}"
-        tokens = response.json()
-        access_token = tokens["access_token"]
-        print(f"✓ Logged in\n")
+        assert response.status_code == 201, response.text
+        return response.json()
 
-        # Headers with auth
-        headers = {"Authorization": f"Bearer {access_token}"}
-
-        # Step 2: Create tags
-        print("2. Creating tags...")
-        tag1_data = {"name": "Backend", "color": "#3B82F6"}
-        response = await client.post(f"{BASE_URL}/tags/", json=tag1_data, headers=headers)
-        assert response.status_code == 201
-        tag1 = response.json()
-        tag1_id = tag1["id"]
-        print(f"✓ Created tag: {tag1['name']} (color: {tag1['color']})")
-
-        tag2_data = {"name": "Frontend", "color": "#10B981"}
-        response = await client.post(f"{BASE_URL}/tags/", json=tag2_data, headers=headers)
-        assert response.status_code == 201
-        tag2 = response.json()
-        tag2_id = tag2["id"]
-        print(f"✓ Created tag: {tag2['name']} (color: {tag2['color']})")
-
-        tag3_data = {"name": "Bug", "color": "#EF4444"}
-        response = await client.post(f"{BASE_URL}/tags/", json=tag3_data, headers=headers)
-        assert response.status_code == 201
-        tag3 = response.json()
-        tag3_id = tag3["id"]
-        print(f"✓ Created tag: {tag3['name']} (color: {tag3['color']})\n")
-
-        # Step 3: Get all tags
-        print("3. Getting all tags...")
-        response = await client.get(f"{BASE_URL}/tags/", headers=headers)
-        assert response.status_code == 200
-        all_tags = response.json()
-        print(f"✓ Found {len(all_tags)} tags\n")
-
-        # Step 4: Get tag by ID
-        print("4. Getting tag by ID...")
-        response = await client.get(f"{BASE_URL}/tags/{tag1_id}", headers=headers)
-        assert response.status_code == 200
-        tag = response.json()
-        print(f"✓ Retrieved tag: {tag['name']}\n")
-
-        # Step 5: Update tag
-        print("5. Updating tag...")
-        update_data = {"color": "#8B5CF6"}
-        response = await client.patch(
-            f"{BASE_URL}/tags/{tag1_id}", json=update_data, headers=headers
-        )
-        assert response.status_code == 200
-        updated_tag = response.json()
-        print(f"✓ Updated tag color: {updated_tag['color']}\n")
-
-        # Step 6: Create a task for testing tag assignment
-        print("6. Creating a task...")
-        task_data = {
-            "title": "Fix authentication bug",
-            "description": "Users cannot login with special characters in password",
-            "priority": "high",
-        }
-        response = await client.post(f"{BASE_URL}/tasks/", json=task_data, headers=headers)
-        assert response.status_code == 201
-        task = response.json()
-        task_id = task["id"]
-        print(f"✓ Created task: {task['title']}\n")
-
-        # Step 7: Assign tags to task
-        print("7. Assigning tags to task...")
-        assign_data = {"tag_ids": [tag1_id, tag3_id]}  # Backend + Bug
-        response = await client.post(
-            f"{BASE_URL}/tags/tasks/{task_id}/tags", json=assign_data, headers=headers
-        )
-        assert response.status_code == 200
-        assigned_tags = response.json()
-        print(f"✓ Assigned {len(assigned_tags)} tags to task")
-        for tag in assigned_tags:
-            print(f"  - {tag['name']}")
-        print()
-
-        # Step 8: Get task tags
-        print("8. Getting task tags...")
-        response = await client.get(f"{BASE_URL}/tags/tasks/{task_id}/tags", headers=headers)
-        assert response.status_code == 200
-        task_tags = response.json()
-        print(f"✓ Task has {len(task_tags)} tags\n")
-
-        # Step 9: Add another tag to task
-        print("9. Adding another tag to task...")
-        response = await client.put(
-            f"{BASE_URL}/tags/tasks/{task_id}/tags/{tag2_id}", headers=headers
-        )
-        assert response.status_code == 204
-        print(f"✓ Added Frontend tag to task\n")
-
-        # Verify
-        response = await client.get(f"{BASE_URL}/tags/tasks/{task_id}/tags", headers=headers)
-        task_tags = response.json()
-        print(f"✓ Task now has {len(task_tags)} tags")
-        for tag in task_tags:
-            print(f"  - {tag['name']}")
-        print()
-
-        # Step 10: Remove a tag from task
-        print("10. Removing a tag from task...")
-        response = await client.delete(
-            f"{BASE_URL}/tags/tasks/{task_id}/tags/{tag3_id}", headers=headers
-        )
-        assert response.status_code == 204
-        print(f"✓ Removed Bug tag from task\n")
-
-        # Verify
-        response = await client.get(f"{BASE_URL}/tags/tasks/{task_id}/tags", headers=headers)
-        task_tags = response.json()
-        print(f"✓ Task now has {len(task_tags)} tags")
-        for tag in task_tags:
-            print(f"  - {tag['name']}")
-        print()
-
-        # Step 11: Replace all tags (assign_tags_to_task)
-        print("11. Replacing all tags on task...")
-        assign_data = {"tag_ids": [tag3_id]}  # Only Bug
-        response = await client.post(
-            f"{BASE_URL}/tags/tasks/{task_id}/tags", json=assign_data, headers=headers
-        )
-        assert response.status_code == 200
-        assigned_tags = response.json()
-        print(f"✓ Replaced tags with {len(assigned_tags)} tag(s)")
-        for tag in assigned_tags:
-            print(f"  - {tag['name']}")
-        print()
-
-        # Step 12: Soft delete tag
-        print("12. Soft deleting a tag...")
-        response = await client.delete(f"{BASE_URL}/tags/{tag2_id}", headers=headers)
-        assert response.status_code == 204
-        print(f"✓ Tag soft deleted\n")
-
-        # Verify it's not in the active list
-        response = await client.get(f"{BASE_URL}/tags/?active_only=true", headers=headers)
-        active_tags = response.json()
-        print(f"✓ Active tags: {len(active_tags)}\n")
-
-        # Step 13: Test duplicate tag name
-        print("13. Testing duplicate tag creation...")
-        duplicate_data = {"name": "Backend", "color": "#000000"}
-        response = await client.post(
-            f"{BASE_URL}/tags/", json=duplicate_data, headers=headers
-        )
-        assert response.status_code == 400
-        print(f"✓ Correctly rejected duplicate tag name\n")
-
-        print("=== All Tests Passed! ===")
+    return _make
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+async def _task_tag_ids(client, headers, task_id) -> set[str]:
+    response = await client.get(f"/tags/tasks/{task_id}/tags", headers=headers)
+    assert response.status_code == 200
+    return {t["id"] for t in response.json()}
+
+
+async def test_create_and_get_tag(client, auth_headers, make_tag):
+    tag = await make_tag("Backend", "#3B82F6")
+    assert tag["name"] == "Backend"
+    assert tag["color"] == "#3B82F6"
+
+    response = await client.get(f"/tags/{tag['id']}", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json()["id"] == tag["id"]
+
+
+async def test_list_tags(client, auth_headers, make_tag):
+    backend, frontend = await make_tag("Backend"), await make_tag("Frontend", "#10B981")
+    response = await client.get("/tags/", headers=auth_headers)
+    assert response.status_code == 200
+    assert {backend["id"], frontend["id"]} <= {t["id"] for t in response.json()}
+
+
+async def test_update_tag_color(client, auth_headers, make_tag):
+    tag = await make_tag("Backend")
+    response = await client.patch(
+        f"/tags/{tag['id']}", json={"color": "#8B5CF6"}, headers=auth_headers
+    )
+    assert response.status_code == 200
+    assert response.json()["color"] == "#8B5CF6"
+
+
+async def test_duplicate_tag_name_rejected(client, auth_headers, make_tag):
+    await make_tag("Backend")
+    response = await client.post(
+        "/tags/", json={"name": "Backend", "color": "#000000"}, headers=auth_headers
+    )
+    assert response.status_code == 400
+
+
+async def test_assign_tags_replaces_set(client, auth_headers, make_tag, make_task):
+    backend, bug = await make_tag("Backend"), await make_tag("Bug", "#EF4444")
+    task = await make_task(title="Fix authentication bug")
+
+    response = await client.post(
+        f"/tags/tasks/{task['id']}/tags",
+        json={"tag_ids": [backend["id"], bug["id"]]},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    assert {t["id"] for t in response.json()} == {backend["id"], bug["id"]}
+
+    response = await client.post(
+        f"/tags/tasks/{task['id']}/tags", json={"tag_ids": [bug["id"]]}, headers=auth_headers
+    )
+    assert response.status_code == 200
+    assert await _task_tag_ids(client, auth_headers, task["id"]) == {bug["id"]}
+
+
+async def test_add_and_remove_single_tag(client, auth_headers, make_tag, make_task):
+    frontend, bug = await make_tag("Frontend", "#10B981"), await make_tag("Bug", "#EF4444")
+    task = await make_task()
+    await client.post(
+        f"/tags/tasks/{task['id']}/tags", json={"tag_ids": [bug["id"]]}, headers=auth_headers
+    )
+
+    response = await client.put(
+        f"/tags/tasks/{task['id']}/tags/{frontend['id']}", headers=auth_headers
+    )
+    assert response.status_code == 204
+    assert await _task_tag_ids(client, auth_headers, task["id"]) == {frontend["id"], bug["id"]}
+
+    response = await client.delete(
+        f"/tags/tasks/{task['id']}/tags/{bug['id']}", headers=auth_headers
+    )
+    assert response.status_code == 204
+    assert await _task_tag_ids(client, auth_headers, task["id"]) == {frontend["id"]}
+
+
+async def test_delete_tag_is_soft(client, auth_headers, make_tag):
+    keep, drop = await make_tag("Keep"), await make_tag("Drop", "#EF4444")
+    response = await client.delete(f"/tags/{drop['id']}", headers=auth_headers)
+    assert response.status_code == 204
+
+    active = (await client.get("/tags/?active_only=true", headers=auth_headers)).json()
+    ids = {t["id"] for t in active}
+    assert keep["id"] in ids
+    assert drop["id"] not in ids

@@ -65,7 +65,9 @@
 - ✅ Document attachments in comments
 - ✅ Task hierarchy tree with expand/collapse
 
-**Next:** Phase 1F - Gantt Chart → Phase 2C - Frontend AI & Polish
+**✅ Phase 1F Completed** - Gantt Chart (Session 13)
+
+**Next:** Phase 2C.2 - Frontend AI & Polish → Sprint 14 (Polish & Testing)
 
 ## Tech Stack
 
@@ -748,10 +750,19 @@ Always include relevant context in AI prompts:
 
 ### Backend
 ```bash
-pytest tests/ -v
-pytest tests/test_tasks.py -v
-pytest tests/ -k "test_create" -v
+make test                                    # = docker-compose exec backend pytest tests/ -v
+docker compose exec backend pytest tests/test_tasks_api.py -v
+docker compose exec backend pytest tests/ -k "test_create" -v
 ```
+
+Tests are real pytest tests (`pytest.ini`, `tests/conftest.py`), not scripts:
+- Run against an isolated DB `smarttask360_test`, created from scratch via Alembic on each session.
+  The dev DB is never touched; `conftest.py` refuses non-`_test` database names.
+- Each test runs in a rolled-back transaction; the app is called in-process (no running server needed).
+- Fixtures: `client`, `auth_headers`, `admin_user`, `db_session`, `make_task`, `fake_ai`.
+- AI is never called for real: use `fake_ai.reply({...} | "text" | Exception)` to queue replies.
+- Document tests need MinIO (bucket `documents-test`) and skip if it is unreachable.
+- Known gap: notifications on task assignment (`xfail`, see TODO in `tasks/service.py`).
 
 ### Frontend
 ```bash

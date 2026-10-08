@@ -102,7 +102,8 @@ async def create_history_entry(
     when tasks are modified. This endpoint is for custom/manual entries.
     """
     service = TaskHistoryService(db)
-    entry = await service.create_entry(entry_data)
+    # The author is always the authenticated user; never trust it from the request body
+    entry = await service.create_entry(entry_data.model_copy(update={"changed_by_id": current_user.id}))
     return entry
 
 

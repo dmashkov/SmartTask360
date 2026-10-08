@@ -1,18 +1,15 @@
 """
-Test MinIO connection and create bucket
+Test MinIO connection and bucket creation
 """
 
+import pytest
 from minio import Minio
 from minio.error import S3Error
 
 from app.core.config import settings
 
 
-def test_minio():
-    """Test MinIO connection and create bucket."""
-    print("Testing MinIO connection...")
-
-    # Initialize MinIO client
+def test_minio_bucket():
     client = Minio(
         settings.MINIO_ENDPOINT,
         access_key=settings.MINIO_ACCESS_KEY,
@@ -21,27 +18,15 @@ def test_minio():
     )
 
     try:
-        # Test connection by listing buckets
-        buckets = client.list_buckets()
-        print(f"✅ MinIO connection successful")
-        print(f"Existing buckets: {[bucket.name for bucket in buckets]}")
+        client.list_buckets()
+    except Exception as e:  # connection refused, DNS, etc.
+        pytest.skip(f"MinIO is not reachable at {settings.MINIO_ENDPOINT}: {e}")
 
-        # Create bucket if it doesn't exist
-        bucket_name = settings.MINIO_BUCKET
-        if not client.bucket_exists(bucket_name):
-            client.make_bucket(bucket_name)
-            print(f"✅ Bucket '{bucket_name}' created successfully")
-        else:
-            print(f"✅ Bucket '{bucket_name}' already exists")
-
-        # Verify bucket exists
-        buckets = client.list_buckets()
-        print(f"All buckets after creation: {[bucket.name for bucket in buckets]}")
-
+    assert settings.MINIO_BUCKET.endswith("-test"), "tests must not use the dev bucket"
+    try:
+        if not client.bucket_exists(settings.MINIO_BUCKET):
+            client.make_bucket(settings.MINIO_BUCKET)
     except S3Error as e:
-        print(f"❌ MinIO error: {e}")
-        raise
+        pytest.fail(f"MinIO error: {e}")
 
-
-if __name__ == "__main__":
-    test_minio()
+    assert client.bucket_exists(settings.MINIO_BUCKET)

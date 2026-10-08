@@ -2,77 +2,26 @@
 Test Departments API endpoints with hierarchy
 """
 
-import httpx
+import pytest
 
 
-BASE_URL = "http://localhost:8000/api/v1"
+async def _create(client, headers, name, parent_id=None):
+    payload = {"name": name, "description": f"{name} department"}
+    if parent_id:
+        payload["parent_id"] = parent_id
+    response = await client.post("/departments/", json=payload, headers=headers)
+    assert response.status_code == 201, response.text
+    return response.json()
 
 
-def login():
-    """Login and get access token"""
-    data = {"email": "admin@smarttask360.com", "password": "Admin123!"}
-    response = httpx.post(f"{BASE_URL}/auth/login", json=data)
-    return response.json()["access_token"]
-
-
-def test_create_departments(token):
-    """Test department hierarchy creation"""
-    print("=" * 60)
-    print("Testing Department Hierarchy Creation")
-    print("=" * 60)
-
-    headers = {"Authorization": f"Bearer {token}"}
-
-    # Create root departments
-    engineering = httpx.post(
-        f"{BASE_URL}/departments/",
-        json={"name": "Engineering", "description": "Engineering Department"},
-        headers=headers,
-    ).json()
-    print(f"\n✅ Created root: {engineering['name']} (depth={engineering['depth']})")
-
-    sales = httpx.post(
-        f"{BASE_URL}/departments/",
-        json={"name": "Sales", "description": "Sales Department"},
-        headers=headers,
-    ).json()
-    print(f"✅ Created root: {sales['name']} (depth={sales['depth']})")
-
-    # Create child departments
-    backend = httpx.post(
-        f"{BASE_URL}/departments/",
-        json={
-            "name": "Backend Team",
-            "description": "Backend Development",
-            "parent_id": engineering["id"],
-        },
-        headers=headers,
-    ).json()
-    print(f"✅ Created child: {backend['name']} (depth={backend['depth']})")
-
-    frontend = httpx.post(
-        f"{BASE_URL}/departments/",
-        json={
-            "name": "Frontend Team",
-            "description": "Frontend Development",
-            "parent_id": engineering["id"],
-        },
-        headers=headers,
-    ).json()
-    print(f"✅ Created child: {frontend['name']} (depth={frontend['depth']})")
-
-    # Create grandchild department
-    api_team = httpx.post(
-        f"{BASE_URL}/departments/",
-        json={
-            "name": "API Team",
-            "description": "REST API Development",
-            "parent_id": backend["id"],
-        },
-        headers=headers,
-    ).json()
-    print(f"✅ Created grandchild: {api_team['name']} (depth={api_team['depth']})")
-
+@pytest.fixture
+async def depts(client, auth_headers):
+    """Engineering -> (Backend -> API Team, Frontend); Sales"""
+    engineering = await _create(client, auth_headers, "Engineering")
+    sales = await _create(client, auth_headers, "Sales")
+    backend = await _create(client, auth_headers, "Backend Team", engineering["id"])
+    frontend = await _create(client, auth_headers, "Frontend Team", engineering["id"])
+    api_team = await _create(client, auth_headers, "API Team", backend["id"])
     return {
         "engineering": engineering,
         "sales": sales,
@@ -82,138 +31,85 @@ def test_create_departments(token):
     }
 
 
-def test_get_all_departments(token):
-    """Test GET all departments"""
-    print("\n" + "=" * 60)
-    print("Testing GET /api/v1/departments")
-    print("=" * 60)
-
-    headers = {"Authorization": f"Bearer {token}"}
-    response = httpx.get(f"{BASE_URL}/departments/", headers=headers)
-
-    if response.status_code == 200:
-        departments = response.json()
-        print(f"\n✅ Found {len(departments)} departments (hierarchical order):")
-        for dept in departments:
-            indent = "  " * dept["depth"]
-            print(f"{indent}- {dept['name']} (depth={dept['depth']}, path={dept['path']})")
-    else:
-        print(f"❌ Error: {response.json()}")
+async def test_create_departments_sets_depth(depts):
+    assert depts["engineering"]["depth"] == 0
+    assert depts["sales"]["depth"] == 0
+    assert depts["backend"]["depth"] == 1
+    assert depts["api_team"]["depth"] == 2
+    assert depts["api_team"]["path"].count(".") == 2
 
 
-def test_get_root_departments(token):
-    """Test GET root departments"""
-    print("\n" + "=" * 60)
-    print("Testing GET /api/v1/departments/roots")
-    print("=" * 60)
-
-    headers = {"Authorization": f"Bearer {token}"}
-    response = httpx.get(f"{BASE_URL}/departments/roots", headers=headers)
-
-    if response.status_code == 200:
-        departments = response.json()
-        print(f"\n✅ Found {len(departments)} root departments:")
-        for dept in departments:
-            print(f"  - {dept['name']}")
-    else:
-        print(f"❌ Error: {response.json()}")
+async def test_create_requires_auth(client):
+    response = await client.post("/departments/", json={"name": "X"})
+    assert response.status_code in (401, 403)
 
 
-def test_get_children(token, dept):
-    """Test GET department children"""
-    print("\n" + "=" * 60)
-    print(f"Testing GET /api/v1/departments/{dept['id']}/children")
-    print("=" * 60)
-
-    headers = {"Authorization": f"Bearer {token}"}
-    response = httpx.get(f"{BASE_URL}/departments/{dept['id']}/children", headers=headers)
-
-    if response.status_code == 200:
-        children = response.json()
-        print(f"\n✅ {dept['name']} has {len(children)} children:")
-        for child in children:
-            print(f"  - {child['name']}")
-    else:
-        print(f"❌ Error: {response.json()}")
-
-
-def test_get_descendants(token, dept):
-    """Test GET department descendants"""
-    print("\n" + "=" * 60)
-    print(f"Testing GET /api/v1/departments/{dept['id']}/descendants")
-    print("=" * 60)
-
-    headers = {"Authorization": f"Bearer {token}"}
-    response = httpx.get(f"{BASE_URL}/departments/{dept['id']}/descendants", headers=headers)
-
-    if response.status_code == 200:
-        descendants = response.json()
-        print(f"\n✅ {dept['name']} has {len(descendants)} descendants:")
-        for desc in descendants:
-            indent = "  " * (desc["depth"] - dept["depth"])
-            print(f"{indent}- {desc['name']} (depth={desc['depth']})")
-    else:
-        print(f"❌ Error: {response.json()}")
-
-
-def test_get_ancestors(token, dept):
-    """Test GET department ancestors"""
-    print("\n" + "=" * 60)
-    print(f"Testing GET /api/v1/departments/{dept['id']}/ancestors")
-    print("=" * 60)
-
-    headers = {"Authorization": f"Bearer {token}"}
-    response = httpx.get(f"{BASE_URL}/departments/{dept['id']}/ancestors", headers=headers)
-
-    if response.status_code == 200:
-        ancestors = response.json()
-        print(f"\n✅ {dept['name']} has {len(ancestors)} ancestors:")
-        for anc in ancestors:
-            print(f"  - {anc['name']} (depth={anc['depth']})")
-    else:
-        print(f"❌ Error: {response.json()}")
-
-
-def test_update_department(token, dept):
-    """Test PATCH department"""
-    print("\n" + "=" * 60)
-    print(f"Testing PATCH /api/v1/departments/{dept['id']}")
-    print("=" * 60)
-
-    headers = {"Authorization": f"Bearer {token}"}
-    response = httpx.patch(
-        f"{BASE_URL}/departments/{dept['id']}",
-        json={"name": "Backend Engineering Team"},
-        headers=headers,
+async def test_create_with_unknown_parent(client, auth_headers):
+    response = await client.post(
+        "/departments/",
+        json={"name": "Orphan", "parent_id": "00000000-0000-0000-0000-000000000000"},
+        headers=auth_headers,
     )
-
-    if response.status_code == 200:
-        updated = response.json()
-        print(f"\n✅ Department updated:")
-        print(f"  Old name: {dept['name']}")
-        print(f"  New name: {updated['name']}")
-    else:
-        print(f"❌ Error: {response.json()}")
+    assert response.status_code in (400, 404)
 
 
-if __name__ == "__main__":
-    print("Logging in...")
-    token = login()
-    print("✅ Logged in successfully\n")
+async def test_get_all_departments(client, auth_headers, depts):
+    response = await client.get("/departments/", headers=auth_headers)
+    assert response.status_code == 200
+    assert {d["name"] for d in response.json()} == {
+        "Engineering",
+        "Sales",
+        "Backend Team",
+        "Frontend Team",
+        "API Team",
+    }
 
-    # Create department hierarchy
-    depts = test_create_departments(token)
 
-    # Test retrieving departments
-    test_get_all_departments(token)
-    test_get_root_departments(token)
-    test_get_children(token, depts["engineering"])
-    test_get_descendants(token, depts["engineering"])
-    test_get_ancestors(token, depts["api_team"])
+async def test_get_root_departments(client, auth_headers, depts):
+    response = await client.get("/departments/roots", headers=auth_headers)
+    assert response.status_code == 200
+    assert {d["name"] for d in response.json()} == {"Engineering", "Sales"}
 
-    # Test update
-    test_update_department(token, depts["backend"])
 
-    print("\n" + "=" * 60)
-    print("✅ All department API tests completed!")
-    print("=" * 60)
+async def test_get_children(client, auth_headers, depts):
+    response = await client.get(
+        f"/departments/{depts['engineering']['id']}/children", headers=auth_headers
+    )
+    assert response.status_code == 200
+    assert {d["name"] for d in response.json()} == {"Backend Team", "Frontend Team"}
+
+
+async def test_get_descendants(client, auth_headers, depts):
+    response = await client.get(
+        f"/departments/{depts['engineering']['id']}/descendants", headers=auth_headers
+    )
+    assert response.status_code == 200
+    assert {d["name"] for d in response.json()} == {"Backend Team", "Frontend Team", "API Team"}
+
+
+async def test_get_ancestors(client, auth_headers, depts):
+    response = await client.get(
+        f"/departments/{depts['api_team']['id']}/ancestors", headers=auth_headers
+    )
+    assert response.status_code == 200
+    assert {d["name"] for d in response.json()} == {"Engineering", "Backend Team"}
+
+
+async def test_update_department(client, auth_headers, depts):
+    response = await client.patch(
+        f"/departments/{depts['backend']['id']}",
+        json={"name": "Backend Engineering Team"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["name"] == "Backend Engineering Team"
+
+
+async def test_delete_department_cascades(client, auth_headers, depts):
+    response = await client.delete(
+        f"/departments/{depts['backend']['id']}", headers=auth_headers
+    )
+    assert response.status_code == 204
+
+    response = await client.get(f"/departments/{depts['api_team']['id']}", headers=auth_headers)
+    assert response.status_code == 404

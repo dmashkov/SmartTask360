@@ -2,135 +2,78 @@
 Test Users API endpoints
 """
 
-import httpx
+import pytest
+
+NEW_USER = {
+    "email": "manager@smarttask360.com",
+    "password": "Manager123!",
+    "name": "Project Manager",
+    "role": "manager",
+}
 
 
-BASE_URL = "http://localhost:8000/api/v1"
+@pytest.fixture
+async def created_user(client):
+    response = await client.post("/users/", json=NEW_USER)
+    assert response.status_code == 201, response.text
+    return response.json()
 
 
-def test_create_user():
-    """Test POST /users"""
-    print("=" * 60)
-    print("Testing POST /api/v1/users")
-    print("=" * 60)
-
-    data = {
-        "email": "manager@smarttask360.com",
-        "password": "Manager123!",
-        "name": "Project Manager",
-        "role": "manager",
-    }
-
-    response = httpx.post(f"{BASE_URL}/users/", json=data)
-    print(f"Status Code: {response.status_code}")
-
-    if response.status_code == 201:
-        user = response.json()
-        print(f"✅ User created successfully:")
-        print(f"   ID: {user['id']}")
-        print(f"   Email: {user['email']}")
-        print(f"   Name: {user['name']}")
-        print(f"   Role: {user['role']}")
-        return user["id"]
-    else:
-        print(f"❌ Error: {response.json()}")
-        return None
+async def test_create_user(client):
+    response = await client.post("/users/", json=NEW_USER)
+    assert response.status_code == 201
+    user = response.json()
+    assert user["email"] == NEW_USER["email"]
+    assert user["name"] == NEW_USER["name"]
+    assert user["role"] == "manager"
+    assert "password" not in user and "password_hash" not in user
 
 
-def test_get_users():
-    """Test GET /users"""
-    print("\n" + "=" * 60)
-    print("Testing GET /api/v1/users")
-    print("=" * 60)
-
-    response = httpx.get(f"{BASE_URL}/users/")
-    print(f"Status Code: {response.status_code}")
-
-    if response.status_code == 200:
-        users = response.json()
-        print(f"✅ Found {len(users)} users:")
-        for user in users:
-            print(f"   - {user['name']} ({user['email']}) - {user['role']}")
-    else:
-        print(f"❌ Error: {response.json()}")
+async def test_create_user_duplicate_email(client, created_user):
+    response = await client.post("/users/", json=NEW_USER)
+    assert response.status_code == 409
 
 
-def test_get_user_by_id(user_id: str):
-    """Test GET /users/{id}"""
-    print("\n" + "=" * 60)
-    print(f"Testing GET /api/v1/users/{user_id}")
-    print("=" * 60)
-
-    response = httpx.get(f"{BASE_URL}/users/{user_id}")
-    print(f"Status Code: {response.status_code}")
-
-    if response.status_code == 200:
-        user = response.json()
-        print(f"✅ User found:")
-        print(f"   Name: {user['name']}")
-        print(f"   Email: {user['email']}")
-        print(f"   Role: {user['role']}")
-    else:
-        print(f"❌ Error: {response.json()}")
+async def test_get_users(client, auth_headers, created_user):
+    response = await client.get("/users/", headers=auth_headers)
+    assert response.status_code == 200
+    emails = {u["email"] for u in response.json()}
+    assert {"admin@smarttask360.com", NEW_USER["email"]} <= emails
 
 
-def test_update_user(user_id: str):
-    """Test PATCH /users/{id}"""
-    print("\n" + "=" * 60)
-    print(f"Testing PATCH /api/v1/users/{user_id}")
-    print("=" * 60)
-
-    data = {"name": "Senior Project Manager"}
-
-    response = httpx.patch(f"{BASE_URL}/users/{user_id}", json=data)
-    print(f"Status Code: {response.status_code}")
-
-    if response.status_code == 200:
-        user = response.json()
-        print(f"✅ User updated:")
-        print(f"   New name: {user['name']}")
-    else:
-        print(f"❌ Error: {response.json()}")
+async def test_get_user_by_id(client, auth_headers, created_user):
+    response = await client.get(f"/users/{created_user['id']}", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json()["email"] == NEW_USER["email"]
 
 
-def test_delete_user(user_id: str):
-    """Test DELETE /users/{id}"""
-    print("\n" + "=" * 60)
-    print(f"Testing DELETE /api/v1/users/{user_id}")
-    print("=" * 60)
-
-    response = httpx.delete(f"{BASE_URL}/users/{user_id}")
-    print(f"Status Code: {response.status_code}")
-
-    if response.status_code == 204:
-        print(f"✅ User deleted (soft delete)")
-    else:
-        print(f"❌ Error: {response.json()}")
+async def test_get_user_not_found(client, auth_headers):
+    response = await client.get(
+        "/users/00000000-0000-0000-0000-000000000000", headers=auth_headers
+    )
+    assert response.status_code == 404
 
 
-if __name__ == "__main__":
-    # Test GET all users (should have admin)
-    test_get_users()
+async def test_get_me(client, auth_headers):
+    response = await client.get("/users/me", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json()["email"] == "admin@smarttask360.com"
 
-    # Test CREATE user
-    user_id = test_create_user()
 
-    if user_id:
-        # Test GET by ID
-        test_get_user_by_id(user_id)
+async def test_update_user(client, auth_headers, created_user):
+    response = await client.patch(
+        f"/users/{created_user['id']}",
+        json={"name": "Senior Project Manager"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["name"] == "Senior Project Manager"
 
-        # Test UPDATE
-        test_update_user(user_id)
 
-        # Test GET all again (should have 2 users)
-        test_get_users()
+async def test_delete_user_is_soft(client, auth_headers, created_user):
+    response = await client.delete(f"/users/{created_user['id']}", headers=auth_headers)
+    assert response.status_code == 204
 
-        # Test DELETE
-        test_delete_user(user_id)
-
-        # Test GET all again (user should be inactive)
-        test_get_users()
-
-    print("\n" + "=" * 60)
-    print("✅ All API tests completed!")
-    print("=" * 60)
+    response = await client.get(f"/users/{created_user['id']}", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json()["is_active"] is False

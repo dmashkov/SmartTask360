@@ -1,41 +1,22 @@
 """
-Test database connection and ltree extension
+Test database connection and PostgreSQL extensions
 """
 
-import asyncio
 from sqlalchemy import text
 
-from app.core.database import async_session_maker
 
 
-async def test_connection():
-    """Test database connection and ltree extension."""
-    print("Testing database connection...")
-
-    async with async_session_maker() as session:
-        # Test basic connection
-        result = await session.execute(text("SELECT 1"))
-        print(f"✅ Database connection successful: {result.scalar()}")
-
-        # Test ltree extension
-        result = await session.execute(
-            text("SELECT 'root.child.grandchild'::ltree AS path")
-        )
-        path = result.scalar()
-        print(f"✅ ltree extension working: {path}")
-
-        # Test pg_trgm extension
-        result = await session.execute(
-            text("SELECT similarity('test', 'text') AS similarity")
-        )
-        similarity = result.scalar()
-        print(f"✅ pg_trgm extension working: similarity = {similarity}")
-
-        # Get database version
-        result = await session.execute(text("SELECT version()"))
-        version = result.scalar()
-        print(f"✅ PostgreSQL version: {version.split(',')[0]}")
+async def test_connection_uses_test_database(db_session):
+    assert (await db_session.execute(text("SELECT 1"))).scalar() == 1
+    db_name = (await db_session.execute(text("SELECT current_database()"))).scalar()
+    assert db_name.endswith("_test")
 
 
-if __name__ == "__main__":
-    asyncio.run(test_connection())
+async def test_ltree_extension(db_session):
+    path = (await db_session.execute(text("SELECT 'root.child.grandchild'::ltree"))).scalar()
+    assert str(path) == "root.child.grandchild"
+
+
+async def test_pg_trgm_extension(db_session):
+    similarity = (await db_session.execute(text("SELECT similarity('test', 'text')"))).scalar()
+    assert 0 < similarity <= 1

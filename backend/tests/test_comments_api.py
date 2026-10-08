@@ -2,162 +2,96 @@
 Test Comments API endpoints
 """
 
-import asyncio
-
-import httpx
-
-# Test configuration
-BASE_URL = "http://localhost:8000/api/v1"
-ADMIN_EMAIL = "admin@smarttask360.com"
-ADMIN_PASSWORD = "Admin123!"
+import pytest
 
 
-async def main():
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        print("=== Testing Comments API ===\n")
+@pytest.fixture
+async def task(make_task):
+    return await make_task(title="Implement commenting system")
 
-        # Step 1: Login as admin
-        print("1. Login as admin...")
+
+@pytest.fixture
+async def make_comment(client, auth_headers, task):
+    async def _make(content: str, **extra) -> dict:
         response = await client.post(
-            f"{BASE_URL}/auth/login",
-            json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD},
+            "/comments/",
+            json={"task_id": task["id"], "content": content, **extra},
+            headers=auth_headers,
         )
-        assert response.status_code == 200
-        tokens = response.json()
-        access_token = tokens["access_token"]
-        print(f"✓ Logged in\n")
+        assert response.status_code == 201, response.text
+        return response.json()
 
-        headers = {"Authorization": f"Bearer {access_token}"}
+    return _make
 
-        # Step 2: Create a task for testing comments
-        print("2. Creating a task...")
-        task_data = {
-            "title": "Implement commenting system",
-            "description": "Add ability to comment on tasks",
-            "priority": "medium",
-        }
-        response = await client.post(f"{BASE_URL}/tasks/", json=task_data, headers=headers)
-        assert response.status_code == 201
-        task = response.json()
-        task_id = task["id"]
-        print(f"✓ Created task: {task['title']}\n")
 
-        # Step 3: Create first comment
-        print("3. Creating first comment...")
-        comment1_data = {"task_id": task_id, "content": "This is a great idea!"}
-        response = await client.post(
-            f"{BASE_URL}/comments/", json=comment1_data, headers=headers
-        )
-        assert response.status_code == 201
-        comment1 = response.json()
-        comment1_id = comment1["id"]
-        print(f"✓ Created comment: {comment1['content']}")
-        print(f"  Author type: {comment1['author_type']}\n")
+async def test_create_comment(make_comment, task, admin_user):
+    comment = await make_comment("This is a great idea!")
+    assert comment["content"] == "This is a great idea!"
+    assert comment["task_id"] == task["id"]
+    assert comment["author_id"] == str(admin_user.id)
 
-        # Step 4: Create second comment
-        print("4. Creating second comment...")
-        comment2_data = {
-            "task_id": task_id,
-            "content": "We should prioritize this feature for the next sprint.",
-        }
-        response = await client.post(
-            f"{BASE_URL}/comments/", json=comment2_data, headers=headers
-        )
-        assert response.status_code == 201
-        comment2 = response.json()
-        comment2_id = comment2["id"]
-        print(f"✓ Created comment: {comment2['content']}\n")
 
-        # Step 5: Create reply to first comment (threaded)
-        print("5. Creating reply to first comment...")
-        reply_data = {
-            "task_id": task_id,
-            "content": "I agree! Let's start with the basic implementation.",
-            "reply_to_id": comment1_id,
-        }
-        response = await client.post(f"{BASE_URL}/comments/", json=reply_data, headers=headers)
-        assert response.status_code == 201
-        reply = response.json()
-        reply_id = reply["id"]
-        print(f"✓ Created reply: {reply['content']}")
-        print(f"  Reply to: {reply['reply_to_id']}\n")
+async def test_create_comment_requires_auth(client, task):
+    response = await client.post("/comments/", json={"task_id": task["id"], "content": "x"})
+    assert response.status_code in (401, 403)
 
-        # Step 6: Get all comments for task
-        print("6. Getting all comments for task...")
-        response = await client.get(
-            f"{BASE_URL}/comments/tasks/{task_id}/comments", headers=headers
-        )
-        assert response.status_code == 200
-        task_comments = response.json()
-        print(f"✓ Task has {len(task_comments)} comment(s)")
-        for idx, comment in enumerate(task_comments, 1):
-            print(f"  {idx}. {comment['content'][:50]}...")
-        print()
 
-        # Step 7: Get replies to a comment
-        print("7. Getting replies to first comment...")
-        response = await client.get(
-            f"{BASE_URL}/comments/{comment1_id}/replies", headers=headers
-        )
-        assert response.status_code == 200
-        replies = response.json()
-        print(f"✓ First comment has {len(replies)} reply(ies)")
-        for reply in replies:
-            print(f"  - {reply['content'][:50]}...")
-        print()
+async def test_list_task_comments(client, auth_headers, task, make_comment):
+    first = await make_comment("First")
+    second = await make_comment("Second")
+    response = await client.get(f"/comments/tasks/{task['id']}/comments", headers=auth_headers)
+    assert response.status_code == 200
+    assert {first["id"], second["id"]} <= {c["id"] for c in response.json()}
 
-        # Step 8: Get comment by ID
-        print("8. Getting comment by ID...")
-        response = await client.get(f"{BASE_URL}/comments/{comment1_id}", headers=headers)
-        assert response.status_code == 200
-        comment = response.json()
-        print(f"✓ Retrieved comment: {comment['content']}\n")
 
-        # Step 9: Update comment
-        print("9. Updating comment...")
-        update_data = {"content": "This is an EXCELLENT idea! Can't wait to use it."}
-        response = await client.patch(
-            f"{BASE_URL}/comments/{comment1_id}", json=update_data, headers=headers
-        )
-        assert response.status_code == 200
-        updated_comment = response.json()
-        print(f"✓ Updated comment: {updated_comment['content']}\n")
+async def test_reply_and_get_replies(client, auth_headers, make_comment):
+    parent = await make_comment("Parent")
+    reply = await make_comment("I agree!", reply_to_id=parent["id"])
+    assert reply["reply_to_id"] == parent["id"]
 
-        # Step 10: Get my comments
-        print("10. Getting my comments...")
-        response = await client.get(f"{BASE_URL}/comments/users/me/comments", headers=headers)
-        assert response.status_code == 200
-        my_comments = response.json()
-        print(f"✓ I have {len(my_comments)} comment(s)\n")
+    response = await client.get(f"/comments/{parent['id']}/replies", headers=auth_headers)
+    assert response.status_code == 200
+    assert [r["id"] for r in response.json()] == [reply["id"]]
 
-        # Step 11: Delete a comment
-        print("11. Deleting a comment...")
-        response = await client.delete(f"{BASE_URL}/comments/{reply_id}", headers=headers)
-        assert response.status_code == 204
-        print(f"✓ Comment deleted\n")
 
-        # Verify deletion
-        response = await client.get(
-            f"{BASE_URL}/comments/tasks/{task_id}/comments", headers=headers
-        )
-        remaining_comments = response.json()
-        print(f"✓ Task now has {len(remaining_comments)} comment(s)\n")
-
-        # Step 12: Test invalid reply_to_id
-        print("12. Testing invalid reply_to_id...")
-        invalid_reply_data = {
-            "task_id": task_id,
+async def test_reply_to_unknown_comment_rejected(client, auth_headers, task):
+    response = await client.post(
+        "/comments/",
+        json={
+            "task_id": task["id"],
             "content": "Reply to non-existent comment",
             "reply_to_id": "00000000-0000-0000-0000-000000000000",
-        }
-        response = await client.post(
-            f"{BASE_URL}/comments/", json=invalid_reply_data, headers=headers
-        )
-        assert response.status_code == 400
-        print(f"✓ Correctly rejected invalid reply_to_id\n")
-
-        print("=== All Tests Passed! ===")
+        },
+        headers=auth_headers,
+    )
+    assert response.status_code == 400
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+async def test_get_and_update_comment(client, auth_headers, make_comment):
+    comment = await make_comment("Draft")
+    response = await client.get(f"/comments/{comment['id']}", headers=auth_headers)
+    assert response.status_code == 200
+
+    response = await client.patch(
+        f"/comments/{comment['id']}", json={"content": "Edited"}, headers=auth_headers
+    )
+    assert response.status_code == 200
+    assert response.json()["content"] == "Edited"
+
+
+async def test_my_comments(client, auth_headers, make_comment):
+    comment = await make_comment("Mine")
+    response = await client.get("/comments/users/me/comments", headers=auth_headers)
+    assert response.status_code == 200
+    assert comment["id"] in [c["id"] for c in response.json()]
+
+
+async def test_delete_comment(client, auth_headers, task, make_comment):
+    comment = await make_comment("Temporary")
+    response = await client.delete(f"/comments/{comment['id']}", headers=auth_headers)
+    assert response.status_code == 204
+
+    remaining = (
+        await client.get(f"/comments/tasks/{task['id']}/comments", headers=auth_headers)
+    ).json()
+    assert comment["id"] not in [c["id"] for c in remaining]

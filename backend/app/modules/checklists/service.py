@@ -110,13 +110,35 @@ class ChecklistService:
         return result.scalar_one_or_none()
 
     async def get_checklist_items(self, checklist_id: UUID) -> list[ChecklistItem]:
-        """Get all items for a checklist (ordered by path for hierarchical display)"""
+        """
+        Get all items for a checklist in tree order: every parent is followed by its
+        children, and siblings are sorted by position.
+
+        Ordering by `path` is not enough: paths are made of UUIDs, so siblings would
+        come back in random order instead of by position.
+        """
         result = await self.db.execute(
             select(ChecklistItem)
             .where(ChecklistItem.checklist_id == checklist_id)
-            .order_by(ChecklistItem.path)
+            .order_by(ChecklistItem.position, ChecklistItem.created_at)
         )
-        return list(result.scalars().all())
+        items = list(result.scalars().all())
+
+        children: dict[UUID | None, list[ChecklistItem]] = {}
+        for item in items:
+            children.setdefault(item.parent_id, []).append(item)
+
+        ordered: list[ChecklistItem] = []
+        stack = list(reversed(children.get(None, [])))
+        while stack:
+            item = stack.pop()
+            ordered.append(item)
+            stack.extend(reversed(children.get(item.id, [])))
+
+        # Never drop items whose parent is missing from this checklist
+        seen = {item.id for item in ordered}
+        ordered.extend(item for item in items if item.id not in seen)
+        return ordered
 
     async def get_item_children(self, item_id: UUID) -> list[ChecklistItem]:
         """Get direct children of an item"""

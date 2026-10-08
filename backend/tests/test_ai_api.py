@@ -1,227 +1,132 @@
 """
-Test AI API (Conversations, Messages, SMART Validation)
-
-NOTE: These tests require ANTHROPIC_API_KEY to be set in .env
-For testing without API key, AI calls will be mocked.
+Test AI API: conversations and SMART validation. The Anthropic client is replaced by FakeAI.
 """
 
-import asyncio
-import os
-from unittest.mock import AsyncMock, patch
+import pytest
 
-import httpx
+from app.modules.ai.client import AIError
+from tests.conftest import GOOD_SMART_RESULT
 
-# Test configuration
-BASE_URL = "http://localhost:8000/api/v1"
-ADMIN_EMAIL = "admin@smarttask360.com"
-ADMIN_PASSWORD = "Admin123!"
-
-# Check if we should use real API or mock
-USE_REAL_API = os.getenv("ANTHROPIC_API_KEY") and os.getenv("TEST_WITH_REAL_AI") == "true"
+MISSING_ID = "00000000-0000-0000-0000-000000000000"
 
 
-async def main():
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        print("=== Testing AI API ===\n")
-
-        # Step 1: Login as admin
-        print("1. Login as admin...")
-        response = await client.post(
-            f"{BASE_URL}/auth/login",
-            json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD},
-        )
-        assert response.status_code == 200
-        tokens = response.json()
-        access_token = tokens["access_token"]
-        print("✓ Logged in\n")
-
-        headers = {"Authorization": f"Bearer {access_token}"}
-
-        # Step 2: Create a test task
-        print("2. Creating test task for AI validation...")
-        task_data = {
-            "title": "Implement user authentication system",
-            "description": "Add JWT-based authentication with email/password login",
-            "priority": "high",
-            "status": "new",
-        }
-        response = await client.post(f"{BASE_URL}/tasks/", json=task_data, headers=headers)
-        assert response.status_code == 201
-        task = response.json()
-        task_id = task["id"]
-        print(f"✓ Created task: {task_id}\n")
-
-        # Step 3: Validate task with SMART criteria (will mock if no API key)
-        print("3. Validating task with SMART criteria...")
-
-        if USE_REAL_API:
-            print("   Using REAL Anthropic API...")
-            validation_request = {
-                "task_id": task_id,
-                "include_context": True,
-            }
-            response = await client.post(
-                f"{BASE_URL}/ai/validate-smart",
-                json=validation_request,
-                headers=headers,
-            )
-
-            if response.status_code == 200:
-                result = response.json()
-                conversation_id = result["conversation_id"]
-                validation = result["validation"]
-
-                print(f"✓ SMART Validation completed")
-                print(f"  Conversation ID: {conversation_id}")
-                print(f"  Overall Score: {validation['overall_score']:.2f}")
-                print(f"  Is Valid: {validation['is_valid']}")
-                print(f"  Summary: {validation['summary']}\n")
-
-                # Step 4: Get conversation details
-                print("4. Getting conversation details...")
-                response = await client.get(
-                    f"{BASE_URL}/ai/conversations/{conversation_id}",
-                    headers=headers,
-                )
-                assert response.status_code == 200
-                conversation = response.json()
-                print(f"✓ Conversation type: {conversation['conversation_type']}")
-                print(f"  Status: {conversation['status']}\n")
-
-                # Step 5: Get conversation with messages
-                print("5. Getting conversation messages...")
-                response = await client.get(
-                    f"{BASE_URL}/ai/conversations/{conversation_id}/messages",
-                    headers=headers,
-                )
-                assert response.status_code == 200
-                conv_with_messages = response.json()
-                messages = conv_with_messages["messages"]
-                print(f"✓ Conversation has {len(messages)} messages")
-                for msg in messages:
-                    preview = msg["content"][:60] + "..." if len(msg["content"]) > 60 else msg["content"]
-                    print(f"  [{msg['role']}] {preview}\n")
-
-                # Step 6: Get all conversations for task
-                print("6. Getting all conversations for task...")
-                response = await client.get(
-                    f"{BASE_URL}/ai/tasks/{task_id}/conversations",
-                    headers=headers,
-                )
-                assert response.status_code == 200
-                task_conversations = response.json()
-                print(f"✓ Task has {len(task_conversations)} conversation(s)\n")
-
-                # Step 7: Filter conversations by type
-                print("7. Getting SMART validation conversations only...")
-                response = await client.get(
-                    f"{BASE_URL}/ai/tasks/{task_id}/conversations?conversation_type=smart_validation",
-                    headers=headers,
-                )
-                assert response.status_code == 200
-                smart_conversations = response.json()
-                print(f"✓ Found {len(smart_conversations)} SMART validation conversation(s)\n")
-
-                # Step 8: Test access control - try to access conversation from different user
-                print("8. Testing access control (should fail with 403)...")
-                # Create another user first
-                user2_data = {
-                    "email": "user2@test.com",
-                    "password": "User123!",
-                    "name": "Test User 2",
-                    "role": "user",
-                }
-                response = await client.post(f"{BASE_URL}/users/", json=user2_data, headers=headers)
-                if response.status_code == 201:
-                    # Login as user2
-                    response = await client.post(
-                        f"{BASE_URL}/auth/login",
-                        json={"email": "user2@test.com", "password": "User123!"},
-                    )
-                    user2_token = response.json()["access_token"]
-                    user2_headers = {"Authorization": f"Bearer {user2_token}"}
-
-                    # Try to access admin's conversation
-                    response = await client.get(
-                        f"{BASE_URL}/ai/conversations/{conversation_id}",
-                        headers=user2_headers,
-                    )
-                    assert response.status_code == 403
-                    print("✓ Access correctly denied to other user\n")
-
-                    # Cleanup user2
-                    await client.delete(f"{BASE_URL}/users/{response.json()['id']}", headers=headers)
-
-                # Step 9: Delete conversation
-                print("9. Deleting conversation...")
-                response = await client.delete(
-                    f"{BASE_URL}/ai/conversations/{conversation_id}",
-                    headers=headers,
-                )
-                assert response.status_code == 204
-                print("✓ Conversation deleted\n")
-
-                # Verify deletion
-                response = await client.get(
-                    f"{BASE_URL}/ai/conversations/{conversation_id}",
-                    headers=headers,
-                )
-                assert response.status_code == 404
-                print("✓ Conversation not found after deletion\n")
-
-        else:
-            print("   MOCKING AI API (no ANTHROPIC_API_KEY or TEST_WITH_REAL_AI not set)...")
-            print("   Skipping API tests - would need real API key\n")
-            print("   To test with real API:")
-            print("   1. Set ANTHROPIC_API_KEY in .env")
-            print("   2. Set TEST_WITH_REAL_AI=true")
-            print("   3. Run tests again\n")
-
-        # Step 10: Test error handling - validate non-existent task
-        print("10. Testing error handling - non-existent task...")
-        validation_request = {
-            "task_id": "00000000-0000-0000-0000-000000000000",
-            "include_context": False,
-        }
-        response = await client.post(
-            f"{BASE_URL}/ai/validate-smart",
-            json=validation_request,
-            headers=headers,
-        )
-        assert response.status_code == 404
-        print("✓ Got expected 404 for non-existent task\n")
-
-        # Step 11: Test getting non-existent conversation
-        print("11. Testing get non-existent conversation...")
-        response = await client.get(
-            f"{BASE_URL}/ai/conversations/00000000-0000-0000-0000-000000000000",
-            headers=headers,
-        )
-        assert response.status_code == 404
-        print("✓ Got expected 404 for non-existent conversation\n")
-
-        # Step 12: Test getting conversations for non-existent task
-        print("12. Getting conversations for non-existent task...")
-        response = await client.get(
-            f"{BASE_URL}/ai/tasks/00000000-0000-0000-0000-000000000000/conversations",
-            headers=headers,
-        )
-        assert response.status_code == 200
-        conversations = response.json()
-        assert len(conversations) == 0
-        print("✓ Returns empty list for non-existent task\n")
-
-        # Cleanup: Delete test task
-        print("Cleanup: Deleting test task...")
-        response = await client.delete(f"{BASE_URL}/tasks/{task_id}", headers=headers)
-        print("✓ Cleanup complete\n")
-
-        if USE_REAL_API:
-            print("=== All Tests Passed! (with REAL API) ===")
-        else:
-            print("=== Basic Tests Passed! (AI API mocked) ===")
-            print("Run with ANTHROPIC_API_KEY and TEST_WITH_REAL_AI=true for full testing")
+@pytest.fixture
+async def task(make_task):
+    return await make_task(
+        title="Implement user authentication system",
+        description="Add JWT-based authentication with email/password login",
+        priority="high",
+    )
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+async def _validate(client, headers, task_id, **extra):
+    return await client.post(
+        "/ai/validate-smart", json={"task_id": task_id, "include_context": True, **extra}, headers=headers
+    )
+
+
+async def test_validate_smart_returns_scores_and_stores_conversation(
+    client, auth_headers, task, fake_ai
+):
+    fake_ai.reply(GOOD_SMART_RESULT)
+    response = await _validate(client, auth_headers, task["id"])
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["validation"]["overall_score"] == 0.82
+    assert body["validation"]["is_valid"] is True
+    assert len(body["validation"]["criteria"]) == 5
+
+    conversation = await client.get(
+        f"/ai/conversations/{body['conversation_id']}", headers=auth_headers
+    )
+    assert conversation.status_code == 200
+    assert conversation.json()["conversation_type"] == "smart_validation"
+    assert conversation.json()["task_id"] == task["id"]
+
+
+async def test_validate_smart_accepts_markdown_fenced_json(client, auth_headers, task, fake_ai):
+    import json
+
+    fake_ai.reply("```json\n" + json.dumps(GOOD_SMART_RESULT) + "\n```")
+    response = await _validate(client, auth_headers, task["id"])
+    assert response.status_code == 200
+    assert response.json()["validation"]["is_valid"] is True
+
+
+async def test_validate_smart_falls_back_on_unparseable_reply(client, auth_headers, task, fake_ai):
+    fake_ai.reply("this is not json at all")
+    response = await _validate(client, auth_headers, task["id"])
+    assert response.status_code == 200
+    validation = response.json()["validation"]
+    assert validation["is_valid"] is False
+    assert "Could not parse" in validation["summary"]
+
+
+async def test_validate_smart_ai_outage_returns_503(client, auth_headers, task, fake_ai):
+    fake_ai.reply(AIError("API unavailable"))
+    response = await _validate(client, auth_headers, task["id"])
+    assert response.status_code == 503
+
+
+async def test_validate_smart_unknown_task(client, auth_headers, fake_ai):
+    response = await _validate(client, auth_headers, MISSING_ID)
+    assert response.status_code == 404
+    assert fake_ai.calls == []
+
+
+async def test_validate_smart_requires_auth(client, task):
+    response = await client.post("/ai/validate-smart", json={"task_id": task["id"]})
+    assert response.status_code in (401, 403)
+
+
+async def test_conversation_messages_and_listing(client, auth_headers, task, fake_ai):
+    fake_ai.reply(GOOD_SMART_RESULT)
+    conversation_id = (await _validate(client, auth_headers, task["id"])).json()["conversation_id"]
+
+    messages = await client.get(
+        f"/ai/conversations/{conversation_id}/messages", headers=auth_headers
+    )
+    assert messages.status_code == 200
+    assert [m["role"] for m in messages.json()["messages"]] == ["user", "assistant"]
+
+    listed = await client.get(f"/ai/tasks/{task['id']}/conversations", headers=auth_headers)
+    assert [c["id"] for c in listed.json()] == [conversation_id]
+
+    filtered = await client.get(
+        f"/ai/tasks/{task['id']}/conversations?conversation_type=task_dialog", headers=auth_headers
+    )
+    assert filtered.json() == []
+
+
+async def test_conversation_is_private_to_its_owner(client, auth_headers, task, fake_ai):
+    fake_ai.reply(GOOD_SMART_RESULT)
+    conversation_id = (await _validate(client, auth_headers, task["id"])).json()["conversation_id"]
+
+    await client.post(
+        "/users/",
+        json={"email": "user2@test.com", "password": "User123!", "name": "Test User 2", "role": "executor"},
+    )
+    login = await client.post("/auth/login", json={"email": "user2@test.com", "password": "User123!"})
+    other = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    response = await client.get(f"/ai/conversations/{conversation_id}", headers=other)
+    assert response.status_code == 403
+
+
+async def test_delete_conversation(client, auth_headers, task, fake_ai):
+    fake_ai.reply(GOOD_SMART_RESULT)
+    conversation_id = (await _validate(client, auth_headers, task["id"])).json()["conversation_id"]
+
+    assert (
+        await client.delete(f"/ai/conversations/{conversation_id}", headers=auth_headers)
+    ).status_code == 204
+    assert (
+        await client.get(f"/ai/conversations/{conversation_id}", headers=auth_headers)
+    ).status_code == 404
+
+
+async def test_unknown_conversation_and_task_listing(client, auth_headers):
+    assert (await client.get(f"/ai/conversations/{MISSING_ID}", headers=auth_headers)).status_code == 404
+    response = await client.get(f"/ai/tasks/{MISSING_ID}/conversations", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json() == []
